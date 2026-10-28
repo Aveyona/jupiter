@@ -1,0 +1,19 @@
+{
+  "repo": "Aveyona/jupiter",
+  "plugins": {
+    "j-help": {
+      "version": "1.1.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.1.0/j-help-v1.1.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.1.0",
+      "published": "2026-10-28",
+      "notes": "Aktualizácie všetkých doplnkov Jupiter z GitHubu."
+    },
+    "j-invoices": {
+      "version": "0.2.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.2.1/j-invoices-v0.2.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.2.1",
+      "published": "2026-10-28",
+      "notes": "Prijaté faktúry; Vydané faktúry, Prijaté faktúry a Nastavenia ako samostatné stránky."
+    }
+  }
+}

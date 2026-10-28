@@ -2,7 +2,8 @@
 /**
  * Aktualizácie doplnkov Jupiter z GitHubu (verejný repozitár Aveyona/jupiter).
  *
- * Každé vydanie má značku „<doplnok>-v<verzia>“ (napr. j-invoices-v0.2.1) a ZIP doplnku v prílohe.
+ * Každé vydanie má značku „<doplnok>-v<verzia>“ (napr. j-invoices-v0.2.1) a ZIP doplnku v prílohe;
+ * súbor updates.json v koreni repozitára uvádza najnovšiu verziu a odkaz na ZIP každého doplnku.
  * WordPress potom pri doplnkoch Jupiter ukáže „Dostupná aktualizácia“ ako pri bežných doplnkoch
  * a dá sa zapnúť aj automatická aktualizácia. Funguje na každom webe, kde je J-Pomocník zapnutý.
  */
@@ -12,52 +13,64 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'JHELP_REPO', 'Aveyona/jupiter' );
 
-/** Najnovšie vydania na GitHube: slug => [version, package, url, notes, published]. Uloženie na 6 hodín. */
+/**
+ * Najnovšie verzie doplnkov: slug => [version, package, url, notes, published]. Uloženie na 6 hodín.
+ * Zdroj: súbor updates.json v repozitári (raw.githubusercontent.com – bez limitu GitHub API,
+ * ktorý zdieľané hostingy často vyčerpajú). Ako záloha sa použije GitHub API (zoznam vydaní).
+ */
 function jhelp_remote_versions( $force = false ) {
 	$cached = get_site_transient( 'jhelp_releases' );
 	if ( ! $force && is_array( $cached ) ) {
 		return $cached;
 	}
-	$res = wp_remote_get( 'https://api.github.com/repos/' . JHELP_REPO . '/releases?per_page=50', array(
-		'timeout' => 15,
-		'headers' => array( 'Accept' => 'application/vnd.github+json', 'User-Agent' => 'Jupiter-WordPress/' . JHELP_VERSION ),
-	) );
-	if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
-		set_site_transient( 'jhelp_releases', is_array( $cached ) ? $cached : array(), HOUR_IN_SECONDS ); // pri chybe skúsiť o hodinu
-		update_site_option( 'jhelp_releases_error', is_wp_error( $res ) ? $res->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code( $res ) );
-		return is_array( $cached ) ? $cached : array();
-	}
-	delete_site_option( 'jhelp_releases_error' );
-	$out = array();
-	foreach ( (array) json_decode( wp_remote_retrieve_body( $res ), true ) as $rel ) {
-		if ( ! empty( $rel['draft'] ) || ! empty( $rel['prerelease'] ) || empty( $rel['tag_name'] ) ) {
-			continue;
-		}
-		if ( ! preg_match( '/^(j-[a-z0-9-]+)-v(\d+(?:\.\d+)*)$/', $rel['tag_name'], $m ) ) {
-			continue;
-		}
-		$slug = $m[1];
-		$ver  = $m[2];
-		$zip  = '';
-		foreach ( (array) $rel['assets'] as $a ) {
-			if ( isset( $a['name'] ) && $rel['tag_name'] . '.zip' === $a['name'] ) {
-				$zip = $a['browser_download_url'];
+	$args = array( 'timeout' => 15, 'headers' => array( 'User-Agent' => 'Jupiter-WordPress/' . JHELP_VERSION ) );
+	$out  = array();
+	$err  = '';
+	$res  = wp_remote_get( 'https://raw.githubusercontent.com/' . JHELP_REPO . '/main/updates.json', $args );
+	if ( ! is_wp_error( $res ) && 200 === (int) wp_remote_retrieve_response_code( $res ) ) {
+		$json = json_decode( wp_remote_retrieve_body( $res ), true );
+		foreach ( (array) ( isset( $json['plugins'] ) ? $json['plugins'] : array() ) as $slug => $p ) {
+			if ( 0 === strpos( (string) $slug, 'j-' ) && ! empty( $p['version'] ) && ! empty( $p['package'] ) ) {
+				$out[ $slug ] = array(
+					'version'   => (string) $p['version'],
+					'package'   => esc_url_raw( $p['package'] ),
+					'url'       => isset( $p['url'] ) ? esc_url_raw( $p['url'] ) : 'https://github.com/' . JHELP_REPO . '/releases',
+					'notes'     => isset( $p['notes'] ) ? (string) $p['notes'] : '',
+					'published' => isset( $p['published'] ) ? (string) $p['published'] : '',
+				);
 			}
 		}
-		if ( ! $zip ) {
-			continue;
-		}
-		if ( ! isset( $out[ $slug ] ) || version_compare( $ver, $out[ $slug ]['version'], '>' ) ) {
-			$out[ $slug ] = array(
-				'version'   => $ver,
-				'package'   => $zip,
-				'url'       => $rel['html_url'],
-				'notes'     => (string) $rel['body'],
-				'published' => (string) $rel['published_at'],
-			);
+	} else {
+		$err = 'updates.json: ' . ( is_wp_error( $res ) ? $res->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code( $res ) );
+	}
+	if ( ! $out ) {
+		$api = wp_remote_get( 'https://api.github.com/repos/' . JHELP_REPO . '/releases?per_page=50', array_merge( $args, array( 'headers' => array( 'Accept' => 'application/vnd.github+json', 'User-Agent' => 'Jupiter-WordPress/' . JHELP_VERSION ) ) ) );
+		if ( ! is_wp_error( $api ) && 200 === (int) wp_remote_retrieve_response_code( $api ) ) {
+			foreach ( (array) json_decode( wp_remote_retrieve_body( $api ), true ) as $rel ) {
+				if ( ! empty( $rel['draft'] ) || ! empty( $rel['prerelease'] ) || empty( $rel['tag_name'] ) || ! preg_match( '/^(j-[a-z0-9-]+)-v(\d+(?:\.\d+)*)$/', $rel['tag_name'], $m ) ) {
+					continue;
+				}
+				$zip = '';
+				foreach ( (array) $rel['assets'] as $a ) {
+					if ( isset( $a['name'] ) && $rel['tag_name'] . '.zip' === $a['name'] ) {
+						$zip = $a['browser_download_url'];
+					}
+				}
+				if ( $zip && ( ! isset( $out[ $m[1] ] ) || version_compare( $m[2], $out[ $m[1] ]['version'], '>' ) ) ) {
+					$out[ $m[1] ] = array( 'version' => $m[2], 'package' => $zip, 'url' => $rel['html_url'], 'notes' => (string) $rel['body'], 'published' => (string) $rel['published_at'] );
+				}
+			}
+			$err = '';
+		} else {
+			$err .= ( $err ? '; ' : '' ) . 'API: ' . ( is_wp_error( $api ) ? $api->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code( $api ) );
 		}
 	}
-	set_site_transient( 'jhelp_releases', $out, 6 * HOUR_IN_SECONDS );
+	if ( $out ) {
+		delete_site_option( 'jhelp_releases_error' );
+	} else {
+		update_site_option( 'jhelp_releases_error', $err ? $err : 'žiadne vydania' );
+	}
+	set_site_transient( 'jhelp_releases', $out, $out ? 6 * HOUR_IN_SECONDS : HOUR_IN_SECONDS );
 	return $out;
 }
 

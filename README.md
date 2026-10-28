@@ -17,15 +17,17 @@
 - WooCommerce 9 alebo novší
 - PHP 8.1 alebo novší
 
-## Inštalácia
+## Inštalácia a aktualizácie
 
-Stiahni ZIP doplnku z [Releases](../../releases) a nahraj ho vo WordPresse: **Pluginy → Pridať plugin → Nahrať plugin**.
+1. Stiahni ZIP doplnku z [Releases](../../releases) a nahraj ho vo WordPresse: **Pluginy → Pridať plugin → Nahrať plugin**. Vždy nainštaluj aj **J-Pomocník**.
+2. Rovnaký kód môže bežať na ľubovoľnom počte e-shopov – **každý web má vlastné údaje a nastavenia**, weby si nič nevymieňajú.
+3. Aktualizácie: J-Pomocník kontroluje súbor [`updates.json`](updates.json). Keď vyjde nová verzia, vo WordPresse sa v Pluginoch ukáže **Dostupná aktualizácia** (dá sa zapnúť aj automatická aktualizácia).
 
 ## Vývoj
 
 - Každý doplnok má vlastný priečinok v `plugins/`.
 - Pri každom commite sa automaticky kontroluje syntax PHP.
-- Nová verzia sa vydáva značkou v tvare `<doplnok>-v<verzia>`, napr. `j-invoices-v1.0.0` – ZIP doplnku sa potom sám pripojí k vydaniu (Release).
+- Nová verzia: zvýš `Version` v doplnku, uprav `updates.json` a vytvor značku `<doplnok>-v<verzia>` (napr. `j-invoices-v1.0.0`) – ZIP doplnku sa sám pripojí k vydaniu (Release) a weby ponúknu aktualizáciu.
 
 ## Licencia
 
