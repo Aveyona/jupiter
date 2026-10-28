@@ -44,7 +44,7 @@ function jsk_move_sources() {
 		'storno'  => 'Storno dokladu',
 		'manual'  => 'Ručná zmena v produkte',
 		'cost'    => 'Zmena nákupnej ceny',
-		'other'   => 'Iná zmena (doplnok, import)',
+		'other'   => 'Iná zmena (doplnok, import, vyrovnanie)',
 	);
 }
 

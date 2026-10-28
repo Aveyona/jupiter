@@ -10,7 +10,7 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		array(
 			'Zásoba ostáva v produktoch WooCommerce (Zásoby → Spravovať zásoby, Množstvo na sklade). J-Sklad k nej pridáva doklady a úplnú históriu pohybov.',
 			'Pri zapnutí sa súčasné zásoby zapíšu ako otváracia príjemka (počiatočný stav) – zásoby sa nemenia.',
-			'Každá zmena zásoby sa zapíše do Pohybov: predaj v objednávke, vrátenie na sklad (zrušená objednávka), príjemka, výdajka, ručná zmena v produkte aj zmena iným doplnkom.',
+			'Každá zmena zásoby sa zapíše do Pohybov: predaj v objednávke, vrátenie na sklad (zrušená objednávka, refundácia), pridanie či odobratie položky v úprave objednávky – vždy s číslom objednávky –, príjemka, výdajka, ručná zmena v produkte aj zmena iným doplnkom.',
 			'Eviduje len produkty a varianty so zapnutým sledovaním zásob.',
 		),
 		'J-Sklad',

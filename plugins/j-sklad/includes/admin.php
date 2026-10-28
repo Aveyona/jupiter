@@ -15,7 +15,7 @@ add_action( 'admin_menu', function () {
 } );
 
 add_action( 'admin_enqueue_scripts', function ( $hook ) {
-	if ( false !== strpos( (string) $hook, 'j-sklad' ) || 'post.php' === $hook ) {
+	if ( false !== strpos( (string) $hook, 'j-sklad' ) || ( 'post.php' === $hook && 'product' === get_post_type() ) ) {
 		wp_enqueue_style( 'j-sklad', JSK_URL . 'assets/admin.css', array(), JSK_VERSION );
 	}
 } );
@@ -28,6 +28,32 @@ function jsk_head( $title ) {
 	echo '<div class="wrap jsk"><h1 class="wp-heading-inline">' . esc_html( $title ) . ' <span class="jsk-ver">J-Sklad v' . esc_html( JSK_VERSION ) . '</span></h1>';
 }
 
+function jsk_status_label( $st ) {
+	return array(
+		'draft'      => 'Koncept',
+		'posting'    => 'Zaúčtovaný len čiastočne',
+		'posted'     => 'Zaúčtovaný',
+		'cancelling' => 'Stornovaný len čiastočne',
+		'cancelled'  => 'Stornovaný',
+	)[ $st ] ?? $st;
+}
+
+/** Bezpečný reťazec z $_GET (pole namiesto reťazca → ''). */
+function jsk_get( $k ) {
+	return isset( $_GET[ $k ] ) && is_string( $_GET[ $k ] ) ? wp_unslash( $_GET[ $k ] ) : ''; // phpcs:ignore
+}
+
+/** Miniatúra produktu (pri variante bez obrázka obrázok hlavného produktu). */
+function jsk_thumb( $p, $size = 48 ) {
+	$img = $p->get_image_id();
+	if ( ! $img && $p->get_parent_id() ) {
+		$par = wc_get_product( $p->get_parent_id() );
+		$img = $par ? $par->get_image_id() : 0;
+	}
+	$url = $img ? wp_get_attachment_image_url( $img, 'thumbnail' ) : '';
+	return $url ? '<img src="' . esc_url( $url ) . '" alt="" width="' . (int) $size . '" height="' . (int) $size . '" loading="lazy" class="jsk-thumb">' : '<span class="jsk-thumb jsk-noimg" style="width:' . (int) $size . 'px;height:' . (int) $size . 'px"></span>';
+}
+
 function jsk_notice() {
 	$m = isset( $_GET['jsk_msg'] ) ? sanitize_key( $_GET['jsk_msg'] ) : ''; // phpcs:ignore
 	$t = array(
@@ -35,13 +61,14 @@ function jsk_notice() {
 		'posted'    => array( 'success', 'Doklad je zaúčtovaný – zásoby sú zmenené.' ),
 		'cancelled' => array( 'success', 'Doklad je stornovaný – zásoby sú vrátené.' ),
 		'deleted'   => array( 'success', 'Koncept je zmazaný.' ),
+		'skipped'   => array( 'warning', 'Koncept je uložený, ale niektoré riadky sa vynechali (nulové alebo neplatné množstvo, neexistujúci produkt):' ),
 		'settings'  => array( 'success', 'Nastavenia sú uložené.' ),
 		'err'       => array( 'error', 'Akcia sa nepodarila.' ),
 	);
 	if ( isset( $t[ $m ] ) ) {
 		$e = get_transient( 'jsk_err_' . get_current_user_id() );
 		delete_transient( 'jsk_err_' . get_current_user_id() );
-		echo '<div class="notice notice-' . esc_attr( $t[ $m ][0] ) . ' is-dismissible"><p>' . esc_html( $t[ $m ][1] . ( 'err' === $m && $e ? ' ' . $e : '' ) ) . '</p></div>';
+		echo '<div class="notice notice-' . esc_attr( $t[ $m ][0] ) . ' is-dismissible"><p>' . esc_html( $t[ $m ][1] . ( ( 'err' === $m || 'skipped' === $m ) && $e ? ' ' . $e : '' ) ) . '</p></div>';
 	}
 }
 
@@ -52,8 +79,8 @@ function jsk_render_overview() {
 	if ( ! current_user_can( JSK_CAP ) ) {
 		return;
 	}
-	$q    = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : ''; // phpcs:ignore
-	$f    = isset( $_GET['f'] ) ? sanitize_key( $_GET['f'] ) : ''; // phpcs:ignore
+	$q    = sanitize_text_field( jsk_get( 's' ) );
+	$f    = sanitize_key( jsk_get( 'f' ) );
 	$cat  = isset( $_GET['cat'] ) ? (int) $_GET['cat'] : 0; // phpcs:ignore
 	$pg   = max( 1, isset( $_GET['paged'] ) ? (int) $_GET['paged'] : 1 ); // phpcs:ignore
 	$low  = (float) jsk_opt( 'low_stock' );
@@ -83,17 +110,22 @@ function jsk_render_overview() {
 		$args['post__in'] = $ids ? array_map( 'intval', $ids ) : array( 0 );
 	}
 	if ( $cat ) {
-		$args['tax_query'] = array( array( 'taxonomy' => 'product_cat', 'terms' => $cat, 'include_children' => true ) ); // phpcs:ignore
-		$args['post_type'] = 'product';
+		// Produkty kategórie aj ich varianty (varianty kategóriu nemajú, dedia ju z hlavného produktu).
+		$parents = get_posts( array( 'post_type' => 'product', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids', 'tax_query' => array( array( 'taxonomy' => 'product_cat', 'terms' => $cat, 'include_children' => true ) ) ) ); // phpcs:ignore
+		$vars    = $parents ? get_posts( array( 'post_type' => 'product_variation', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids', 'post_parent__in' => $parents ) ) : array();
+		$in      = array_map( 'intval', array_merge( $parents, $vars ) );
+		$args['post__in'] = isset( $args['post__in'] ) ? array_values( array_intersect( $args['post__in'], $in ) ) : $in;
+		if ( ! $args['post__in'] ) {
+			$args['post__in'] = array( 0 );
+		}
 	}
 	$wq = new WP_Query( $args );
 	// Súhrn celého skladu (len produkty so sledovaním zásob).
-	$sum = $wpdb->get_row( "SELECT COUNT(*) AS n, SUM( GREATEST( s.meta_value + 0, 0 ) ) AS qty, SUM( GREATEST( s.meta_value + 0, 0 ) * ( c.meta_value + 0 ) ) AS val, SUM( c.meta_value IS NULL ) AS nocost, SUM( GREATEST( s.meta_value + 0, 0 ) * ( pr.meta_value + 0 ) ) AS sell
+	$sum = $wpdb->get_row( "SELECT COUNT(*) AS n, SUM( GREATEST( s.meta_value + 0, 0 ) ) AS qty, SUM( GREATEST( s.meta_value + 0, 0 ) * ( c.meta_value + 0 ) ) AS val, SUM( c.meta_value IS NULL ) AS nocost, SUM( GREATEST( s.meta_value + 0, 0 ) * IFNULL( ( SELECT MIN( pr.meta_value + 0 ) FROM {$wpdb->postmeta} pr WHERE pr.post_id = m.post_id AND pr.meta_key = '_price' AND pr.meta_value <> '' ), 0 ) ) AS sell
 		FROM {$wpdb->postmeta} m
-		JOIN {$wpdb->posts} p ON p.ID = m.post_id AND p.post_type IN ('product','product_variation') AND p.post_status <> 'trash'
+		JOIN {$wpdb->posts} p ON p.ID = m.post_id AND p.post_type IN ('product','product_variation') AND p.post_status IN ('publish','private','draft','pending')
 		LEFT JOIN {$wpdb->postmeta} s ON s.post_id = m.post_id AND s.meta_key = '_stock'
 		LEFT JOIN {$wpdb->postmeta} c ON c.post_id = m.post_id AND c.meta_key = '_jsk_cost'
-		LEFT JOIN {$wpdb->postmeta} pr ON pr.post_id = m.post_id AND pr.meta_key = '_price'
 		WHERE m.meta_key = '_manage_stock' AND m.meta_value = 'yes'", ARRAY_A ); // phpcs:ignore
 	jsk_head( 'Prehľad skladu' );
 	echo '<a class="page-title-action" href="' . esc_url( jsk_url( 'j-sklad-docs', array( 'new' => 'receipt' ) ) ) . '">Nová príjemka</a>';
@@ -124,9 +156,9 @@ function jsk_render_overview() {
 		<span class="jsk-total"><?php echo esc_html( number_format_i18n( (int) $wq->found_posts ) ); ?> produktov</span>
 	</form>
 	<table class="widefat striped jsk-table">
-		<thead><tr><th>Produkt</th><th>SKU</th><th class="n">Na sklade</th><th class="n">Predajná cena</th><th class="n">Nákupná cena (priemer)</th><th class="n">Hodnota (nákup)</th><th>Posledný pohyb</th><th></th></tr></thead>
+		<thead><tr><th class="jsk-img-col"></th><th>Produkt</th><th>SKU</th><th class="n">Na sklade</th><th class="n">Predajná cena</th><th class="n">Nákupná cena (priemer)</th><th class="n">Hodnota (nákup)</th><th>Posledný pohyb</th><th></th></tr></thead>
 		<tbody>
-		<?php if ( ! $wq->posts ) : ?><tr><td colspan="8">Žiadne produkty. Zásoby sa sledujú len pri produktoch so zapnutým „Spravovať zásoby“.</td></tr><?php endif; ?>
+		<?php if ( ! $wq->posts ) : ?><tr><td colspan="9">Žiadne produkty. Zásoby sa sledujú len pri produktoch so zapnutým „Spravovať zásoby“.</td></tr><?php endif; ?>
 		<?php foreach ( $wq->posts as $pid ) : ?>
 			<?php
 			$p = wc_get_product( $pid );
@@ -138,11 +170,12 @@ function jsk_render_overview() {
 			$last = jsk_last_move( $pid );
 			$edit = get_edit_post_link( $p->is_type( 'variation' ) ? $p->get_parent_id() : $pid );
 			?>
-			<tr class="<?php echo $st <= 0 ? 'jsk-out' : ( $st <= $low ? 'jsk-low' : '' ); ?>">
-				<td><a href="<?php echo esc_url( $edit ); ?>"><?php echo esc_html( $p->get_name() ); ?></a></td>
+			<tr class="jsk-prow <?php echo $st <= 0 ? 'jsk-out' : ( $st <= $low ? 'jsk-low' : '' ); ?>">
+				<td class="jsk-img-col"><a href="<?php echo esc_url( $edit ); ?>" tabindex="-1"><?php echo jsk_thumb( $p, 56 ); // phpcs:ignore ?></a></td>
+				<td class="jsk-pname"><a href="<?php echo esc_url( $edit ); ?>"><?php echo esc_html( $p->get_name() ); ?></a></td>
 				<td><?php echo esc_html( $p->get_sku() ); ?></td>
-				<td class="n"><strong><?php echo esc_html( jsk_qty( $st ) ); ?></strong></td>
-				<td class="n"><?php echo '' === (string) $p->get_price() ? '—' : esc_html( jsk_money( $p->get_price() ) ); ?></td>
+				<td class="n jsk-stock"><?php echo esc_html( jsk_qty( $st ) ); ?></td>
+				<td class="n jsk-price"><?php echo '' === (string) $p->get_price() ? '—' : esc_html( jsk_money( $p->get_price() ) ); ?><?php if ( $p->is_on_sale() && '' !== (string) $p->get_regular_price() ) : ?><br><del><?php echo esc_html( jsk_money( $p->get_regular_price() ) ); ?></del><?php endif; ?></td>
 				<td class="n"><input type="number" class="jsk-cost" data-id="<?php echo (int) $pid; ?>" data-qty="<?php echo esc_attr( max( 0, $st ) ); ?>" value="<?php echo null === $cost ? '' : esc_attr( round( $cost, 4 ) ); ?>" min="0" step="0.01" placeholder="zadať" aria-label="Nákupná cena"></td>
 				<td class="n jsk-val"><?php echo null === $cost ? '—' : esc_html( jsk_money( max( 0, $st ) * $cost ) ); ?></td>
 				<td><?php echo $last ? esc_html( jsk_move_sources()[ $last['source'] ] ?? $last['source'] ) . '<br><small>' . esc_html( date_i18n( 'j. n. Y H:i', strtotime( $last['created_at'] ) ) ) . '</small>' : '—'; ?></td>
@@ -195,7 +228,7 @@ function jsk_render_docs() {
 		return;
 	}
 	global $wpdb;
-	$type  = isset( $_GET['type'] ) && isset( jsk_doc_types()[ $_GET['type'] ] ) ? sanitize_key( $_GET['type'] ) : ''; // phpcs:ignore
+	$type  = isset( jsk_doc_types()[ jsk_get( 'type' ) ] ) ? jsk_get( 'type' ) : '';
 	$pg    = max( 1, isset( $_GET['paged'] ) ? (int) $_GET['paged'] : 1 ); // phpcs:ignore
 	$where = $type ? $wpdb->prepare( 'WHERE type = %s', $type ) : '';
 	$total = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . jsk_t( 'docs' ) . " $where" ); // phpcs:ignore
@@ -223,7 +256,7 @@ function jsk_render_docs() {
 				<td><?php echo esc_html( trim( $r['partner'] . ( $r['partner_doc'] ? ' (' . $r['partner_doc'] . ')' : '' ) . ( $r['reason'] ? ' ' . $r['reason'] : '' ) ) ); ?></td>
 				<td class="n"><?php echo (int) $r['n']; ?></td>
 				<td class="n"><?php echo (float) $r['total'] ? esc_html( jsk_money( $r['total'] ) ) : '—'; ?></td>
-				<td><span class="jsk-st jsk-st-<?php echo esc_attr( $r['status'] ); ?>"><?php echo esc_html( array( 'draft' => 'Koncept', 'posted' => 'Zaúčtovaný', 'cancelled' => 'Stornovaný' )[ $r['status'] ] ?? $r['status'] ); ?></span></td>
+				<td><span class="jsk-st jsk-st-<?php echo esc_attr( $r['status'] ); ?>"><?php echo esc_html( jsk_status_label( $r['status'] ) ); ?></span></td>
 			</tr>
 		<?php endforeach; ?>
 		</tbody>
@@ -238,7 +271,7 @@ function jsk_render_docs() {
 function jsk_render_doc_form() {
 	$id   = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0; // phpcs:ignore
 	$d    = $id ? jsk_doc( $id ) : null;
-	$type = $d ? $d['type'] : ( isset( $_GET['new'] ) && in_array( $_GET['new'], array( 'receipt', 'issue' ), true ) ? sanitize_key( $_GET['new'] ) : 'receipt' ); // phpcs:ignore
+	$type = $d ? $d['type'] : ( in_array( jsk_get( 'new' ), array( 'receipt', 'issue' ), true ) ? jsk_get( 'new' ) : 'receipt' );
 	if ( $d && 'draft' !== $d['status'] ) {
 		jsk_render_doc_view( $id );
 		return;
@@ -277,8 +310,8 @@ function jsk_render_doc_form() {
 						<td><input type="hidden" name="items[product_id][]" value="<?php echo (int) $it['product_id']; ?>"><?php echo esc_html( $it['name'] ); ?></td>
 						<td><?php echo esc_html( $it['sku'] ); ?></td>
 						<td class="n"><?php echo $p ? esc_html( jsk_qty( $p->get_stock_quantity() ) ) : '—'; ?></td>
-						<td class="n"><input type="number" name="items[qty][]" value="<?php echo esc_attr( (float) $it['qty'] ); ?>" min="0" step="any" class="small-text"></td>
-						<?php if ( $rec ) : ?><td class="n"><input type="number" name="items[price][]" value="<?php echo null === $it['price'] ? '' : esc_attr( (float) $it['price'] ); ?>" min="0" step="any" class="small-text"></td><?php endif; ?>
+						<td class="n"><input type="number" name="items[qty][]" value="<?php echo esc_attr( (float) $it['qty'] ); ?>" min="0" step="1" class="small-text"></td>
+						<?php if ( $rec ) : ?><td class="n"><input type="number" name="items[price][]" value="<?php echo null === $it['price'] ? '' : esc_attr( (float) $it['price'] ); ?>" min="0" step="0.0001" class="small-text"></td><?php endif; ?>
 						<td><button type="button" class="button-link jsk-del" aria-label="Odstrániť">✕</button></td>
 					</tr>
 				<?php endforeach; ?>
@@ -300,7 +333,7 @@ function jsk_render_doc_form() {
 			var ex=rows.querySelector('input[name="items[product_id][]"][value="'+p.id+'"]');
 			if(ex){var q=ex.closest('tr').querySelector('input[name="items[qty][]"]');q.value=(parseFloat(q.value)||0)+1;q.focus();return;}
 			var tr=document.createElement('tr');
-			tr.innerHTML='<td><input type="hidden" name="items[product_id][]" value="'+p.id+'">'+esc(p.name)+(p.manage?'':' <em class="jsk-warn">(nesleduje zásoby)</em>')+'</td><td>'+esc(p.sku)+'</td><td class="n">'+esc(p.stock)+'</td><td class="n"><input type="number" name="items[qty][]" value="1" min="0" step="any" class="small-text"></td>'+(rec?'<td class="n"><input type="number" name="items[price][]" value="'+(p.cost===null?'':p.cost)+'" min="0" step="any" class="small-text"></td>':'')+'<td><button type="button" class="button-link jsk-del" aria-label="Odstrániť">✕</button></td>';
+			tr.innerHTML='<td><input type="hidden" name="items[product_id][]" value="'+p.id+'">'+esc(p.name)+(p.manage?'':' <em class="jsk-warn">(nesleduje zásoby)</em>')+'</td><td>'+esc(p.sku)+'</td><td class="n">'+esc(p.stock)+'</td><td class="n"><input type="number" name="items[qty][]" value="1" min="0" step="1" class="small-text"></td>'+(rec?'<td class="n"><input type="number" name="items[price][]" value="'+(p.cost===null?'':p.cost)+'" min="0" step="0.0001" class="small-text"></td>':'')+'<td><button type="button" class="button-link jsk-del" aria-label="Odstrániť">✕</button></td>';
 			rows.appendChild(tr);tr.querySelector('input[name="items[qty][]"]').focus();
 		}
 		function search(term,exact){
@@ -308,7 +341,7 @@ function jsk_render_doc_form() {
 			fetch(ajaxurl,{method:'POST',body:f,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
 				var list=(j&&j.success)?j.data:[];res.innerHTML='';
 				if(exact){var hit=list.filter(function(p){return p.sku&&p.sku.toLowerCase()===term.toLowerCase();});if(hit.length===1||list.length===1){add(hit[0]||list[0]);find.value='';res.hidden=true;return;}}
-				list.forEach(function(p){var li=document.createElement('li');li.innerHTML='<strong>'+esc(p.name)+'</strong> <small>'+esc(p.sku)+' · na sklade '+esc(p.stock)+'</small>';li.onclick=function(){add(p);find.value='';res.hidden=true;find.focus();};res.appendChild(li);});
+				list.forEach(function(p){var li=document.createElement('li');li.innerHTML=(p.img?'<img src="'+esc(p.img)+'" alt="" width="32" height="32"> ':'')+'<strong>'+esc(p.name)+'</strong> <small>'+esc(p.sku)+' · na sklade '+esc(p.stock)+'</small>';li.onclick=function(){add(p);find.value='';res.hidden=true;find.focus();};res.appendChild(li);});
 				if(!list.length){res.innerHTML='<li class="jsk-none">Nič sa nenašlo.</li>';}
 				res.hidden=false;
 			});
@@ -338,7 +371,7 @@ function jsk_render_doc_view( $id ) {
 			<span>Dátum: <strong><?php echo esc_html( date_i18n( 'j. n. Y', strtotime( $d['doc_date'] ) ) ); ?></strong></span>
 			<?php if ( $d['partner'] ) : ?><span>Dodávateľ: <strong><?php echo esc_html( $d['partner'] ); ?></strong><?php echo $d['partner_doc'] ? ' (' . esc_html( $d['partner_doc'] ) . ')' : ''; ?></span><?php endif; ?>
 			<?php if ( $d['reason'] ) : ?><span>Dôvod: <strong><?php echo esc_html( $d['reason'] ); ?></strong></span><?php endif; ?>
-			<span>Stav: <span class="jsk-st jsk-st-<?php echo esc_attr( $d['status'] ); ?>"><?php echo esc_html( array( 'draft' => 'Koncept', 'posted' => 'Zaúčtovaný', 'cancelled' => 'Stornovaný' )[ $d['status'] ] ?? $d['status'] ); ?></span></span>
+			<span>Stav: <span class="jsk-st jsk-st-<?php echo esc_attr( $d['status'] ); ?>"><?php echo esc_html( jsk_status_label( $d['status'] ) ); ?></span></span>
 			<?php $u = get_userdata( (int) $d['user_id'] ); ?><span>Vystavil: <?php echo esc_html( $u ? $u->display_name : '—' ); ?></span>
 		</p>
 		<?php if ( $d['note'] ) : ?><p><?php echo esc_html( $d['note'] ); ?></p><?php endif; ?>
@@ -355,7 +388,10 @@ function jsk_render_doc_view( $id ) {
 		<p class="jsk-actions">
 			<a class="button" href="<?php echo esc_url( jsk_url( 'j-sklad-docs' ) ); ?>">← Späť na doklady</a>
 			<a class="button" href="<?php echo esc_url( jsk_url( 'j-sklad-moves', array( 'doc' => $d['id'] ) ) ); ?>">Pohyby dokladu</a>
-			<?php if ( 'posted' === $d['status'] && 'opening' !== $d['type'] ) : ?>
+			<?php if ( 'posting' === $d['status'] ) : ?>
+				<a class="button button-primary" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=jsk_doc_post&id=' . $d['id'] ), 'jsk_doc_post_' . $d['id'] ) ); ?>">Dokončiť zaúčtovanie</a>
+			<?php endif; ?>
+			<?php if ( in_array( $d['status'], array( 'posted', 'cancelling' ), true ) && 'opening' !== $d['type'] ) : ?>
 				<a class="button jsk-danger" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=jsk_doc_cancel&id=' . $d['id'] ), 'jsk_doc_cancel_' . $d['id'] ) ); ?>" onclick="return confirm('Stornovať doklad <?php echo esc_js( $d['number'] ); ?>? Zásoby sa vrátia, doklad ostane v evidencii.');">Stornovať</a>
 			<?php endif; ?>
 		</p>
@@ -381,9 +417,15 @@ add_action( 'admin_post_jsk_doc_save', function () {
 	foreach ( $pids as $i => $pid ) {
 		$items[] = array( 'product_id' => (int) $pid, 'qty' => $in['items']['qty'][ $i ] ?? 0, 'price' => $in['items']['price'][ $i ] ?? '' );
 	}
-	$id = jsk_save_draft( (int) ( $in['id'] ?? 0 ), sanitize_key( $in['type'] ?? 'receipt' ), $in, $items );
+	$id = jsk_save_draft( (int) ( $in['id'] ?? 0 ), sanitize_key( is_string( $in['type'] ?? null ) ? $in['type'] : 'receipt' ), $in, $items );
 	if ( is_wp_error( $id ) ) {
 		jsk_back_err( jsk_url( 'j-sklad-docs' ), $id->get_error_message() );
+	}
+	if ( ! empty( $GLOBALS['jsk_skipped'] ) ) {
+		// Pri vynechaných riadkoch sa nezaúčtuje – nech to používateľ vidí a skontroluje.
+		set_transient( 'jsk_err_' . get_current_user_id(), implode( ', ', $GLOBALS['jsk_skipped'] ), 120 );
+		wp_safe_redirect( jsk_url( 'j-sklad-docs', array( 'edit' => $id, 'jsk_msg' => 'skipped' ) ) );
+		exit;
 	}
 	if ( 'post' === ( $in['do'] ?? '' ) ) {
 		$r = jsk_post_doc( $id );
@@ -394,6 +436,20 @@ add_action( 'admin_post_jsk_doc_save', function () {
 		exit;
 	}
 	wp_safe_redirect( jsk_url( 'j-sklad-docs', array( 'edit' => $id, 'jsk_msg' => 'saved' ) ) );
+	exit;
+} );
+
+add_action( 'admin_post_jsk_doc_post', function () {
+	$id = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0; // phpcs:ignore
+	if ( ! current_user_can( JSK_CAP ) ) {
+		wp_die( 'Nemáte oprávnenie.' );
+	}
+	check_admin_referer( 'jsk_doc_post_' . $id );
+	$r = jsk_post_doc( $id );
+	if ( is_wp_error( $r ) ) {
+		jsk_back_err( jsk_url( 'j-sklad-docs', array( 'view' => $id ) ), $r->get_error_message() );
+	}
+	wp_safe_redirect( jsk_url( 'j-sklad-docs', array( 'view' => $id, 'jsk_msg' => 'posted' ) ) );
 	exit;
 } );
 
@@ -438,16 +494,18 @@ add_action( 'wp_ajax_jsk_search', function () {
 	$out  = array();
 	foreach ( array_slice( array_filter( array_map( 'intval', (array) $ids ) ), 0, 30 ) as $id ) {
 		$p = wc_get_product( $id );
-		if ( ! $p || $p->is_type( 'variable' ) || $p->is_type( 'grouped' ) ) {
-			continue; // variabilný produkt – vyberá sa konkrétny variant
+		if ( ! $p || $p->is_type( 'grouped' ) || $p->is_type( 'external' ) || ( $p->is_type( 'variable' ) && ! $p->managing_stock() ) ) {
+			continue; // variabilný produkt bez spoločnej zásoby – vyberá sa konkrétny variant
 		}
+		$img = $p->get_image_id() ? $p->get_image_id() : ( $p->get_parent_id() ? (int) get_post_thumbnail_id( $p->get_parent_id() ) : 0 );
 		$out[] = array(
 			'id'     => $id,
 			'name'   => wp_strip_all_tags( $p->get_name() ),
 			'sku'    => (string) $p->get_sku(),
 			'stock'  => $p->managing_stock() ? jsk_qty( $p->get_stock_quantity() ) : '—',
 			'manage' => $p->managing_stock(),
-			'cost'   => jsk_cost( $id ),
+			'cost'   => jsk_cost( jsk_stock_id( $p ) ),
+			'img'    => $img ? (string) wp_get_attachment_image_url( $img, 'thumbnail' ) : '',
 		);
 	}
 	wp_send_json_success( $out );
@@ -465,6 +523,7 @@ add_action( 'wp_ajax_jsk_set_cost', function () {
 	if ( ! $p || ! $p->managing_stock() ) {
 		wp_send_json_error( 'Produkt neexistuje alebo nemá sledovanie zásob.' );
 	}
+	$id = jsk_stock_id( $p );
 	if ( '' !== $raw && ( ! is_numeric( $raw ) || (float) $raw < 0 ) ) {
 		wp_send_json_error( 'Zadajte kladné číslo.' );
 	}
@@ -476,7 +535,8 @@ add_action( 'wp_ajax_jsk_set_cost', function () {
 	}
 	$new = '' === $raw ? null : round( (float) $raw, 4 );
 	if ( $old !== $new ) {
-		jsk_log_move( $id, 0, $p->get_stock_quantity(), 'cost', array( 'cost' => $new, 'note' => 'Nákupná cena: ' . jsk_money( $old ) . ' → ' . jsk_money( $new ) ) );
+		$last = jsk_last_move( $id );
+		jsk_log_move( $id, 0, $last && null !== $last['stock_after'] ? $last['stock_after'] : jsk_db_stock( $id ), 'cost', array( 'cost' => $new, 'note' => 'Nákupná cena: ' . jsk_money( $old ) . ' → ' . jsk_money( $new ) ) );
 	}
 	wp_send_json_success( array( 'cost' => $new ) );
 } );
@@ -490,13 +550,14 @@ function jsk_render_moves() {
 	}
 	$pid  = isset( $_GET['product'] ) ? (int) $_GET['product'] : 0; // phpcs:ignore
 	$doc  = isset( $_GET['doc'] ) ? (int) $_GET['doc'] : 0; // phpcs:ignore
-	$src  = isset( $_GET['src'] ) && isset( jsk_move_sources()[ $_GET['src'] ] ) ? sanitize_key( $_GET['src'] ) : ''; // phpcs:ignore
-	$from = isset( $_GET['from'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ) ? $_GET['from'] : ''; // phpcs:ignore
-	$to   = isset( $_GET['to'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $_GET['to'] ) ? $_GET['to'] : ''; // phpcs:ignore
+	$src  = isset( jsk_move_sources()[ jsk_get( 'src' ) ] ) ? jsk_get( 'src' ) : '';
+	$from = preg_match( '/^\d{4}-\d{2}-\d{2}$/', jsk_get( 'from' ) ) ? jsk_get( 'from' ) : '';
+	$to   = preg_match( '/^\d{4}-\d{2}-\d{2}$/', jsk_get( 'to' ) ) ? jsk_get( 'to' ) : '';
 	$pg   = max( 1, isset( $_GET['paged'] ) ? (int) $_GET['paged'] : 1 ); // phpcs:ignore
 	$w    = array( '1=1' );
 	if ( $pid ) {
-		$w[] = $wpdb->prepare( 'm.product_id = %d', $pid );
+		$kids = array_map( 'intval', get_children( array( 'post_parent' => $pid, 'post_type' => 'product_variation', 'fields' => 'ids' ) ) );
+		$w[]  = 'm.product_id IN (' . implode( ',', array_merge( array( $pid ), $kids ) ) . ')';
 	}
 	if ( $doc ) {
 		$w[] = $wpdb->prepare( 'm.doc_id = %d', $doc );

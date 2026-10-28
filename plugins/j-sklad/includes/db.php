@@ -59,6 +59,7 @@ function jsk_install() {
   stock_after decimal(14,4) NULL DEFAULT NULL,
   source varchar(20) NOT NULL DEFAULT 'other',
   doc_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  item_id bigint(20) unsigned NOT NULL DEFAULT 0,
   order_id bigint(20) unsigned NOT NULL DEFAULT 0,
   cost decimal(14,4) NULL DEFAULT NULL,
   note varchar(255) NOT NULL DEFAULT '',
@@ -68,6 +69,7 @@ function jsk_install() {
   KEY product_id (product_id,id),
   KEY source (source),
   KEY doc_id (doc_id),
+  KEY doc_item (doc_id,item_id),
   KEY order_id (order_id),
   KEY created_at (created_at)
 ) $c;" );

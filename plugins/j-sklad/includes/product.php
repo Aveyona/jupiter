@@ -33,9 +33,19 @@ function jsk_product_box( $post ) {
 	} else {
 		echo '<table class="jsk-mini"><tbody>';
 		foreach ( $rows as $r ) {
-			echo '<tr><td>' . esc_html( date_i18n( 'j. n. y', strtotime( $r['created_at'] ) ) ) . '</td><td>' . esc_html( jsk_move_sources()[ $r['source'] ] ?? $r['source'] ) . '</td><td class="n ' . ( (float) $r['qty'] < 0 ? 'jsk-neg' : 'jsk-pos' ) . '">' . esc_html( ( (float) $r['qty'] > 0 ? '+' : '' ) . jsk_qty( $r['qty'] ) ) . '</td></tr>';
+			echo '<tr><td>' . esc_html( date_i18n( 'j. n. y', strtotime( $r['created_at'] ) ) ) . '</td><td>' . esc_html( jsk_move_sources()[ $r['source'] ] ?? $r['source'] ) . ( (int) $r['product_id'] !== $p->get_id() ? '<br><small>' . esc_html( jsk_var_label( (int) $r['product_id'] ) ) . '</small>' : '' ) . '</td><td class="n ' . ( (float) $r['qty'] < 0 ? 'jsk-neg' : 'jsk-pos' ) . '">' . esc_html( ( (float) $r['qty'] > 0 ? '+' : '' ) . jsk_qty( $r['qty'] ) ) . '</td></tr>';
 		}
 		echo '</tbody></table>';
 	}
 	echo '<p><a href="' . esc_url( jsk_url( 'j-sklad-moves', array( 'product' => $p->get_id() ) ) ) . '">Celá história</a> · <a href="' . esc_url( jsk_url( 'j-sklad-docs', array( 'new' => 'receipt' ) ) ) . '">Nová príjemka</a></p>';
+}
+
+/** Krátky popis variantu (atribúty alebo SKU). */
+function jsk_var_label( $id ) {
+	$v = wc_get_product( $id );
+	if ( ! $v ) {
+		return '#' . $id;
+	}
+	$a = $v->is_type( 'variation' ) ? wc_get_formatted_variation( $v, true, false, false ) : '';
+	return $a ? wp_strip_all_tags( $a ) : ( $v->get_sku() ? $v->get_sku() : '#' . $id );
 }
