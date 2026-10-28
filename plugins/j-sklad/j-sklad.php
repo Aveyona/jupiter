@@ -3,7 +3,7 @@
  * Plugin Name:       J-Sklad
  * Plugin URI:        https://github.com/Aveyona/jupiter
  * Description:       Sklad pre WooCommerce: príjemky a výdajky, kniha všetkých pohybov zásob (predaj, vrátenie, ručné zmeny), priemerná nákupná cena a hodnota skladu. Zásoba ostáva v produktoch WooCommerce. Súčasť rodiny Jupiter.
- * Version:           0.1.0
+ * Version:           0.1.1
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JSK_VERSION', '0.1.0' );
+define( 'JSK_VERSION', '0.1.1' );
 define( 'JSK_DB_VERSION', 1 );
 define( 'JSK_FILE', __FILE__ );
 define( 'JSK_DIR', plugin_dir_path( __FILE__ ) );

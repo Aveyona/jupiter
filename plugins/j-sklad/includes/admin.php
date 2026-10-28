@@ -88,11 +88,12 @@ function jsk_render_overview() {
 	}
 	$wq = new WP_Query( $args );
 	// Súhrn celého skladu (len produkty so sledovaním zásob).
-	$sum = $wpdb->get_row( "SELECT COUNT(*) AS n, SUM( GREATEST( s.meta_value + 0, 0 ) ) AS qty, SUM( GREATEST( s.meta_value + 0, 0 ) * ( c.meta_value + 0 ) ) AS val, SUM( c.meta_value IS NULL ) AS nocost
+	$sum = $wpdb->get_row( "SELECT COUNT(*) AS n, SUM( GREATEST( s.meta_value + 0, 0 ) ) AS qty, SUM( GREATEST( s.meta_value + 0, 0 ) * ( c.meta_value + 0 ) ) AS val, SUM( c.meta_value IS NULL ) AS nocost, SUM( GREATEST( s.meta_value + 0, 0 ) * ( pr.meta_value + 0 ) ) AS sell
 		FROM {$wpdb->postmeta} m
 		JOIN {$wpdb->posts} p ON p.ID = m.post_id AND p.post_type IN ('product','product_variation') AND p.post_status <> 'trash'
 		LEFT JOIN {$wpdb->postmeta} s ON s.post_id = m.post_id AND s.meta_key = '_stock'
 		LEFT JOIN {$wpdb->postmeta} c ON c.post_id = m.post_id AND c.meta_key = '_jsk_cost'
+		LEFT JOIN {$wpdb->postmeta} pr ON pr.post_id = m.post_id AND pr.meta_key = '_price'
 		WHERE m.meta_key = '_manage_stock' AND m.meta_value = 'yes'", ARRAY_A ); // phpcs:ignore
 	jsk_head( 'Prehľad skladu' );
 	echo '<a class="page-title-action" href="' . esc_url( jsk_url( 'j-sklad-docs', array( 'new' => 'receipt' ) ) ) . '">Nová príjemka</a>';
@@ -102,6 +103,7 @@ function jsk_render_overview() {
 	<div class="jsk-cards">
 		<div><span>Produkty so sledovaním zásob</span><strong><?php echo esc_html( number_format_i18n( (int) $sum['n'] ) ); ?></strong></div>
 		<div><span>Kusov na sklade</span><strong><?php echo esc_html( jsk_qty( $sum['qty'] ) ); ?></strong></div>
+		<div><span>Hodnota skladu v predajných cenách</span><strong><?php echo esc_html( jsk_money( $sum['sell'] ) ); ?></strong><small class="jsk-muted">aktuálne ceny v e-shope (pri zľave zľavnená)</small></div>
 		<div><span>Hodnota skladu (nákupné ceny)</span><strong><?php echo esc_html( jsk_money( $sum['val'] ) ); ?></strong><?php if ( (int) $sum['nocost'] ) : ?><small><?php echo esc_html( number_format_i18n( (int) $sum['nocost'] ) ); ?> produktov bez nákupnej ceny</small><?php endif; ?></div>
 	</div>
 	<ul class="subsubsub jsk-filters">
@@ -122,9 +124,9 @@ function jsk_render_overview() {
 		<span class="jsk-total"><?php echo esc_html( number_format_i18n( (int) $wq->found_posts ) ); ?> produktov</span>
 	</form>
 	<table class="widefat striped jsk-table">
-		<thead><tr><th>Produkt</th><th>SKU</th><th class="n">Na sklade</th><th class="n">Nákupná cena (priemer)</th><th class="n">Hodnota</th><th>Posledný pohyb</th><th></th></tr></thead>
+		<thead><tr><th>Produkt</th><th>SKU</th><th class="n">Na sklade</th><th class="n">Predajná cena</th><th class="n">Nákupná cena (priemer)</th><th class="n">Hodnota (nákup)</th><th>Posledný pohyb</th><th></th></tr></thead>
 		<tbody>
-		<?php if ( ! $wq->posts ) : ?><tr><td colspan="7">Žiadne produkty. Zásoby sa sledujú len pri produktoch so zapnutým „Spravovať zásoby“.</td></tr><?php endif; ?>
+		<?php if ( ! $wq->posts ) : ?><tr><td colspan="8">Žiadne produkty. Zásoby sa sledujú len pri produktoch so zapnutým „Spravovať zásoby“.</td></tr><?php endif; ?>
 		<?php foreach ( $wq->posts as $pid ) : ?>
 			<?php
 			$p = wc_get_product( $pid );
@@ -140,14 +142,37 @@ function jsk_render_overview() {
 				<td><a href="<?php echo esc_url( $edit ); ?>"><?php echo esc_html( $p->get_name() ); ?></a></td>
 				<td><?php echo esc_html( $p->get_sku() ); ?></td>
 				<td class="n"><strong><?php echo esc_html( jsk_qty( $st ) ); ?></strong></td>
-				<td class="n"><?php echo esc_html( jsk_money( $cost ) ); ?></td>
-				<td class="n"><?php echo null === $cost ? '—' : esc_html( jsk_money( max( 0, $st ) * $cost ) ); ?></td>
+				<td class="n"><?php echo '' === (string) $p->get_price() ? '—' : esc_html( jsk_money( $p->get_price() ) ); ?></td>
+				<td class="n"><input type="number" class="jsk-cost" data-id="<?php echo (int) $pid; ?>" data-qty="<?php echo esc_attr( max( 0, $st ) ); ?>" value="<?php echo null === $cost ? '' : esc_attr( round( $cost, 4 ) ); ?>" min="0" step="0.01" placeholder="zadať" aria-label="Nákupná cena"></td>
+				<td class="n jsk-val"><?php echo null === $cost ? '—' : esc_html( jsk_money( max( 0, $st ) * $cost ) ); ?></td>
 				<td><?php echo $last ? esc_html( jsk_move_sources()[ $last['source'] ] ?? $last['source'] ) . '<br><small>' . esc_html( date_i18n( 'j. n. Y H:i', strtotime( $last['created_at'] ) ) ) . '</small>' : '—'; ?></td>
 				<td><a href="<?php echo esc_url( jsk_url( 'j-sklad-moves', array( 'product' => $pid ) ) ); ?>">História</a></td>
 			</tr>
 		<?php endforeach; ?>
 		</tbody>
 	</table>
+	<p class="description">Nákupnú cenu zadáš priamo v tabuľke – uloží sa po opustení poľa alebo klávesom Enter (zmena sa zapíše do Pohybov). Pri príjemke s cenou sa prepočíta automaticky.</p>
+	<script>
+	(function(){
+		var nonce='<?php echo esc_js( wp_create_nonce( 'jsk_cost' ) ); ?>';
+		function fmt(v){return v.toLocaleString('sk-SK',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+		function save(inp){
+			if(inp.value===inp.getAttribute('data-saved')){return;}
+			var f=new FormData();f.append('action','jsk_set_cost');f.append('_ajax_nonce',nonce);f.append('id',inp.dataset.id);f.append('cost',inp.value);
+			inp.classList.remove('jsk-ok','jsk-bad');inp.disabled=true;
+			fetch(ajaxurl,{method:'POST',body:f,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+				inp.disabled=false;
+				if(j&&j.success){inp.setAttribute('data-saved',inp.value);inp.classList.add('jsk-ok');var c=inp.closest('tr').querySelector('.jsk-val');c.textContent=inp.value===''?'—':fmt(parseFloat(inp.dataset.qty)*parseFloat(inp.value));}
+				else{inp.classList.add('jsk-bad');alert((j&&j.data)||'Nepodarilo sa uložiť.');}
+			}).catch(function(){inp.disabled=false;inp.classList.add('jsk-bad');});
+		}
+		document.querySelectorAll('.jsk-cost').forEach(function(inp){
+			inp.setAttribute('data-saved',inp.value);
+			inp.addEventListener('change',function(){save(inp);});
+			inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();save(inp);var all=[].slice.call(document.querySelectorAll('.jsk-cost')),i=all.indexOf(inp);if(all[i+1]){all[i+1].focus();}}});
+		});
+	})();
+	</script>
 	<?php
 	if ( $wq->max_num_pages > 1 ) {
 		echo '<p class="jsk-pages">' . paginate_links( array( 'base' => add_query_arg( 'paged', '%#%' ), 'format' => '', 'current' => $pg, 'total' => (int) $wq->max_num_pages ) ) . '</p>'; // phpcs:ignore
@@ -426,6 +451,34 @@ add_action( 'wp_ajax_jsk_search', function () {
 		);
 	}
 	wp_send_json_success( $out );
+} );
+
+// Ručné zadanie nákupnej ceny v Prehľade skladu (zapíše sa do knihy ako zmena ceny, zásoba sa nemení).
+add_action( 'wp_ajax_jsk_set_cost', function () {
+	if ( ! current_user_can( JSK_CAP ) ) {
+		wp_send_json_error( 'Nemáte oprávnenie.', 403 );
+	}
+	check_ajax_referer( 'jsk_cost' );
+	$id  = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+	$raw = isset( $_POST['cost'] ) ? trim( str_replace( ',', '.', sanitize_text_field( wp_unslash( $_POST['cost'] ) ) ) ) : '';
+	$p   = wc_get_product( $id );
+	if ( ! $p || ! $p->managing_stock() ) {
+		wp_send_json_error( 'Produkt neexistuje alebo nemá sledovanie zásob.' );
+	}
+	if ( '' !== $raw && ( ! is_numeric( $raw ) || (float) $raw < 0 ) ) {
+		wp_send_json_error( 'Zadajte kladné číslo.' );
+	}
+	$old = jsk_cost( $id );
+	if ( '' === $raw ) {
+		delete_post_meta( $id, '_jsk_cost' );
+	} else {
+		update_post_meta( $id, '_jsk_cost', round( (float) $raw, 4 ) );
+	}
+	$new = '' === $raw ? null : round( (float) $raw, 4 );
+	if ( $old !== $new ) {
+		jsk_log_move( $id, 0, $p->get_stock_quantity(), 'cost', array( 'cost' => $new, 'note' => 'Nákupná cena: ' . jsk_money( $old ) . ' → ' . jsk_money( $new ) ) );
+	}
+	wp_send_json_success( array( 'cost' => $new ) );
 } );
 
 /* ---------------------------------------------------------------- Pohyby */

@@ -35,3 +35,7 @@
 .jsk-mini { width: 100%; font-size: 12px; border-collapse: collapse; }
 .jsk-mini td { padding: 3px 2px; border-bottom: 1px solid #F0F0F1; }
 .jsk-mini .n { text-align: right; }
+.jsk-cost { width: 90px; text-align: right; }
+.jsk-cost.jsk-ok { border-color: #00A32A; background: #F0FAF3; }
+.jsk-cost.jsk-bad { border-color: #A3121B; background: #FCF0F1; }
+.jsk-muted { color: #646970 !important; }

@@ -43,6 +43,7 @@ function jsk_move_sources() {
 		'restore' => 'Objednávka – vrátenie na sklad',
 		'storno'  => 'Storno dokladu',
 		'manual'  => 'Ručná zmena v produkte',
+		'cost'    => 'Zmena nákupnej ceny',
 		'other'   => 'Iná zmena (doplnok, import)',
 	);
 }
