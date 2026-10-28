@@ -1,0 +1,66 @@
+.jhelp { max-width: 1240px; }
+.jhelp > h1 { margin-bottom: 16px; }
+.jhelp-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin: 0 0 20px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; width: fit-content; max-width: 100%; }
+.jhelp-tabs a { padding: 8px 16px; border-radius: 7px; color: #50575E; font-weight: 600; text-decoration: none; }
+.jhelp-tabs a:hover { background: #F0F0F1; color: #1D2327; }
+.jhelp-tabs a.is-active { background: #162D4F; color: #FFFFFF; }
+.jhelp-intro { background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; padding: 6px 24px 16px; margin-bottom: 24px; }
+.jhelp-intro h2 { margin: 18px 0 8px; font-size: 18px; }
+.jhelp-intro p { max-width: 860px; font-size: 14px; line-height: 1.6; }
+.jhelp-count { color: #646970; }
+.jhelp-count span { font-weight: 700; color: #1D2327; }
+.jhelp-group { margin-bottom: 26px; }
+.jhelp-group h2 { margin: 0 0 4px; font-size: 16px; }
+.jhelp-group-desc { margin: 0 0 12px; color: #646970; }
+.jhelp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.jhelp-card { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px 16px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; }
+.jhelp-card.is-off { opacity: .65; }
+.jhelp-card header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.jhelp-card header .dashicons { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: #162D4F; color: #FFFFFF; font-size: 18px; }
+.jhelp-card h3 { margin: 0; font-size: 15px; }
+.jhelp-ver { color: #646970; font-size: 12px; }
+.jhelp-state { margin-left: auto; padding: 1px 8px; border-radius: 999px; background: #F0F0F1; color: #50575E; font-size: 11px; font-weight: 600; }
+.jhelp-state.is-on { background: #E8F6EC; color: #145A2A; }
+.jhelp-card p { margin: 2px 0 0; font-size: 13px; line-height: 1.55; color: #3C434A; }
+.jhelp-link { margin-top: auto; padding-top: 6px; font-weight: 600; text-decoration: none; }
+.jhelp-timeline { position: relative; max-width: 900px; margin: 0 !important; padding: 0 0 0 4px !important; list-style: none !important; }
+.jhelp-timeline::before { content: ""; position: absolute; left: 21px; top: 10px; bottom: 10px; width: 2px; background: #DCDCDE; }
+.jhelp-timeline li { position: relative; display: flex; align-items: flex-start; gap: 12px; margin: 0 0 10px !important; }
+.jhelp-tl-n { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #162D4F; color: #FFFFFF; font-weight: 700; box-shadow: 0 0 0 4px #F0F0F1; }
+.jhelp-timeline li > .dashicons { flex: none; margin-top: 8px; color: #162D4F; }
+.jhelp-timeline li > div { flex: 1; padding: 8px 14px 10px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; }
+.jhelp-timeline strong { font-size: 14px; }
+.jhelp-timeline p { margin: 3px 0 0; color: #50575E; font-size: 13px; line-height: 1.5; }
+.jhelp-timeline li:last-child .jhelp-tl-n { background: var(--wp-admin-theme-color, #2271B1); }
+.jhelp-tl-note { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #FFF4E5; color: #8A4B00; font-size: 11px; font-weight: 600; font-style: normal; }
+.jhelp-timeline p.jhelp-tl-why { margin-top: 6px; padding: 6px 10px; border-radius: 6px; background: #FFF8EC; color: #6B4300; font-size: 12px; }
+
+/* Míľniky */
+.jhelp-ms { position: relative; max-width: 960px; margin: 0 !important; padding: 0 !important; list-style: none !important; }
+.jhelp-ms::before { content: ""; position: absolute; left: 21px; top: 16px; bottom: 16px; width: 3px; border-radius: 2px; background: linear-gradient(180deg, #162D4F, #A3121B); }
+.jhelp-ms > li { position: relative; display: flex; gap: 16px; margin: 0 0 16px !important; }
+.jhelp-ms-dot { position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background: #162D4F; color: #FFFFFF; box-shadow: 0 0 0 5px #F0F0F1; }
+.jhelp-ms > li.is-latest .jhelp-ms-dot { background: #A3121B; }
+.jhelp-ms-card { flex: 1; min-width: 0; padding: 12px 18px 14px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 12px; }
+.jhelp-ms > li.is-latest .jhelp-ms-card { border-color: #A3121B; box-shadow: 0 4px 14px rgba(163,18,27,.08); }
+.jhelp-ms-card header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.jhelp-ms-n { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #A3121B; }
+.jhelp-ms-card h3 { margin: 0; font-size: 16px; }
+.jhelp-ms-when { margin-left: auto; padding: 2px 10px; border-radius: 999px; background: #EEF2F8; color: #162D4F; font-size: 12px; font-weight: 600; }
+.jhelp-ms-plugins { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 6px !important; }
+.jhelp-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px 2px 6px; border-radius: 999px; background: #162D4F; color: #FFFFFF; font-size: 12px; font-weight: 600; }
+.jhelp-chip .dashicons { width: 16px; height: 16px; font-size: 15px; }
+.jhelp-ms-card ul { margin: 6px 0 0 18px !important; list-style: disc !important; }
+.jhelp-ms-card ul li { margin: 0 0 4px !important; font-size: 13px; line-height: 1.55; color: #3C434A; }
+/* J-Help doplnky */
+.jhelp-steps { margin: 6px 0 0 18px !important; }
+.jhelp-steps li { margin: 0 0 4px !important; font-size: 13px; line-height: 1.55; color: #3C434A; }
+.jhelp-ms-dot { font-weight: 800; font-size: 16px; }
+.jhelp-ms > li.is-done .jhelp-ms-dot { background: #145A2A; }
+.jhelp-ms > li.is-now .jhelp-ms-dot { background: #7F54B3; }
+.jhelp-ms > li.is-next .jhelp-ms-dot { background: #8C8F94; }
+.jhelp-ms > li.is-now .jhelp-ms-card { border-color: #7F54B3; box-shadow: 0 4px 14px rgba(127,84,179,.12); }
+.jhelp-ms > li.is-done .jhelp-ms-when { background: #E8F6EC; color: #145A2A; }
+.jhelp-ms > li.is-now .jhelp-ms-when { background: #F1EAFB; color: #5B3A8A; }
+.jhelp-ms::before { background: linear-gradient(180deg, #145A2A, #7F54B3, #C3C4C7); }
+.jhelp-card header .dashicons { background: #7F54B3; }
