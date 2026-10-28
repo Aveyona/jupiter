@@ -1,0 +1,38 @@
+.jem { max-width: 1200px; }
+.jem h1 .jem-ver { font-size: 13px; font-weight: 400; color: #646970; }
+.jem-panel { background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; padding: 6px 20px 10px; margin: 12px 0 14px; }
+.jem-panel h2 { margin: 14px 0 0; font-size: 15px; }
+.jem-empty { padding: 14px 20px; }
+.jem-search { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0; }
+.jem-search input[type="search"] { min-width: 300px; }
+.jem-count { color: #646970; margin-left: 6px; }
+.jem-list td, .jem-list th { vertical-align: middle; }
+.jem-list a { color: #1D2327; text-decoration: none; display: block; }
+.jem-list tr.is-unseen td { font-weight: 700; }
+.jem-list tr.is-unseen td:first-child { box-shadow: inset 3px 0 0 #2271B1; }
+.jem-list tr.is-seen td { color: #50575E; }
+.jem-list tr:hover td { background: #F0F6FC; }
+.jem-list .dashicons { font-size: 16px; width: 16px; height: 16px; color: #8C8F94; vertical-align: -3px; }
+.jem-c-who { width: 24%; }
+.jem-c-date { width: 110px; white-space: nowrap; }
+.jem-c-size { width: 80px; white-space: nowrap; text-align: right; color: #646970; }
+.jem-none { text-align: center; color: #646970; padding: 24px !important; }
+.jem-msg-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.jem-danger { color: #A3121B !important; border-color: #A3121B !important; }
+.jem-subj { font-size: 20px !important; line-height: 1.3; margin: 12px 0 8px !important; }
+.jem-head { border-collapse: collapse; margin-bottom: 10px; }
+.jem-head th { text-align: left; font-weight: 600; color: #646970; padding: 2px 14px 2px 0; vertical-align: top; width: 90px; }
+.jem-head td { padding: 2px 0; }
+.jem-atts { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; padding: 0; list-style: none; }
+.jem-atts li { margin: 0; padding: 6px 10px; border: 1px solid #DCDCDE; border-radius: 8px; background: #F6F7F7; }
+.jem-atts a { text-decoration: none; }
+.jem-atts small { color: #646970; }
+.jem-img-note { padding: 8px 12px; background: #FFF8E5; border: 1px solid #F0D58C; border-radius: 8px; }
+.jem-frame { width: 100%; min-height: 300px; border: 1px solid #E0E0E0; border-radius: 8px; background: #FFFFFF; }
+.jem-text { white-space: normal; font-size: 14px; line-height: 1.6; padding: 10px 0; overflow-wrap: anywhere; }
+.jem-compose label { display: block; font-weight: 600; }
+.jem-compose input[type="text"] { display: block; width: 100%; margin-top: 4px; font-weight: 400; }
+.jem-compose textarea { width: 100%; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.jem-compose .jem-files input { display: block; margin-top: 6px; font-weight: 400; }
+.jem-from { color: #50575E; }
+.jem-test { padding: 4px 20px 14px; }

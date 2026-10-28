@@ -1,0 +1,21 @@
+=== J-Emails ===
+Contributors: aveyona
+Tags: email, imap, smtp, woocommerce, jupiter
+Requires at least: 6.5
+Tested up to: 6.9
+Requires PHP: 8.1
+Stable tag: 0.1.0
+License: GPLv2 or later
+
+E-mailová schránka obchodu priamo v administrácii WordPressu. Súčasť rodiny Jupiter.
+
+== Description ==
+
+Doručená pošta, Odoslané a Kôš ako samostatné stránky, čítanie správ (text aj HTML v izolovanom rámci, obrázky z internetu na požiadanie), prílohy, nová správa, odpoveď, odpoveď všetkým a preposlanie s prílohami. Pripája sa k schránke cez IMAP a SMTP; nepotrebuje rozšírenie php-imap. Heslo je uložené zašifrované. Poštu vidí len administrátor.
+
+Pripravuje sa: HTML odpovede, šablóny odpovedí, prepojenie s Mailchimpom pre zákazníkov e-shopu.
+
+== Changelog ==
+
+= 0.1.0 =
+* Prvá verzia: schránka cez IMAP/SMTP, Doručená pošta, Odoslané, Kôš, čítanie, prílohy, napísať, odpovedať, preposlať, nastavenia s testom pripojenia.

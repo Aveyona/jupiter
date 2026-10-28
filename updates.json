@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.1.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.1.0/j-help-v1.1.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.1.0",
+      "version": "1.1.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.1.1/j-help-v1.1.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.1.1",
       "published": "2026-10-28",
-      "notes": "Aktualizácie všetkých doplnkov Jupiter z GitHubu."
+      "notes": "Plán vývoja: J-Emails 0.1."
     },
     "j-invoices": {
       "version": "0.4.1",
@@ -14,6 +14,13 @@
       "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.4.1",
       "published": "2026-10-28",
       "notes": "Režim prechodu pri Woo Faktura; nastavenia v záložkách; sprievodca importom dokladov z Woo Faktura (Importy údajov)."
+    },
+    "j-emails": {
+      "version": "0.1.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-emails-v0.1.0/j-emails-v0.1.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-emails-v0.1.0",
+      "published": "2026-10-28",
+      "notes": "Prvá verzia: e-mailová schránka v administrácii (IMAP/SMTP)."
     }
   }
 }

@@ -128,10 +128,18 @@ function jhelp_roadmap() {
 			),
 		),
 		array(
-			'title'  => 'J-Emails – schránka a Mailchimp',
+			'title'  => 'J-Emails 0.1 – schránka v administrácii',
+			'state'  => 'done',
+			'points' => array(
+				'Doručená pošta, Odoslané a Kôš ako samostatné stránky; čítanie správ s prílohami, HTML v izolovanom rámci.',
+				'Napísať, Odpovedať, Odpovedať všetkým, Preposlať; kópia do Odoslaných; zašifrované heslo; test pripojenia.',
+			),
+		),
+		array(
+			'title'  => 'J-Emails – Mailchimp a e-maily e-shopu',
 			'state'  => 'next',
 			'points' => array(
-				'Správca e-mailovej schránky obchodu v administrácii: prijaté a odoslané správy, odpovede zákazníkom.',
+				'HTML odpovede a šablóny odpovedí.',
 				'Mailchimp: synchronizácia zákazníkov so súhlasom, zoznamy a kampane.',
 				'Odosielanie faktúr a e-mailov e-shopu cez J-Emails.',
 			),
