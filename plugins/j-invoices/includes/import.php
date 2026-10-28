@@ -58,7 +58,7 @@ function jinv_wf_detect() {
 	$files = $dir && is_dir( $dir ) ? count( (array) glob( trailingslashit( $dir ) . '*.pdf' ) ) : 0;
 	$done  = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . jinv_table() . " WHERE source = 'woo-faktura'" ); // phpcs:ignore
 	return array(
-		'active'   => class_exists( 'WC_WI_Invoice_Manager' ) || function_exists( 'wi_invoicemanager_init' ),
+		'active'   => jinv_woo_faktura_active(),
 		'counts'   => $counts,
 		'total'    => array_sum( $counts ),
 		'dir'      => $dir,

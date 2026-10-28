@@ -50,6 +50,11 @@ function jinv_customer_from_order( WC_Order $o ) {
 	);
 }
 
+/** Beží doplnok Woo Faktura? (režim prechodu – automatika J-Fakturácie je vtedy vypnutá) */
+function jinv_woo_faktura_active() {
+	return class_exists( 'WC_WI_Invoice_Manager' ) || function_exists( 'wi_invoicemanager_init' );
+}
+
 /** Je objednávka platená na dobierku? Spôsoby platby sa dajú doplniť filtrom jinv_cod_methods. */
 function jinv_is_cod_order( WC_Order $o ) {
 	$methods = apply_filters( 'jinv_cod_methods', array( 'cod', 'jetpack_custom_gateway' ) );
@@ -173,10 +178,10 @@ function jinv_create_from_order( $order ) {
  * dobierka, osobný odber a ostatné → keď je objednávka vybavená.
  */
 add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to, $order ) {
-	if ( ! jinv_opt( 'auto' ) || ! $order instanceof WC_Order ) {
-		return;
+	if ( ! jinv_opt( 'auto' ) || ! $order instanceof WC_Order || jinv_woo_faktura_active() ) {
+		return; // režim prechodu: kým beží Woo Faktura, faktúry vystavuje ona – žiadne dvojité doklady
 	}
-	$cod_like = in_array( $order->get_payment_method(), array( 'cod', 'cheque' ), true );
+	$cod_like = jinv_is_cod_order( $order ) || in_array( $order->get_payment_method(), array( 'cheque' ), true );
 	if ( 'completed' === $to || ( 'processing' === $to && ! $cod_like && $order->is_paid() ) ) {
 		jinv_create_from_order( $order );
 	}

@@ -9,11 +9,11 @@
       "notes": "Aktualizácie všetkých doplnkov Jupiter z GitHubu."
     },
     "j-invoices": {
-      "version": "0.4.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.4.0/j-invoices-v0.4.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.4.0",
+      "version": "0.4.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.4.1/j-invoices-v0.4.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.4.1",
       "published": "2026-10-28",
-      "notes": "Nastavenia v záložkách; sprievodca importom dokladov z Woo Faktura (Importy údajov)."
+      "notes": "Režim prechodu pri Woo Faktura; nastavenia v záložkách; sprievodca importom dokladov z Woo Faktura (Importy údajov)."
     }
   }
 }

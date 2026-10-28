@@ -134,6 +134,7 @@ function jinv_render_list() {
 		}
 	}
 	?>
+	<?php if ( jinv_woo_faktura_active() ) : ?><div class="notice notice-info"><p><strong>Režim prechodu:</strong> beží doplnok Woo Faktura, preto J-Fakturácia faktúry automaticky nevystavuje a do pokladne nepridáva firemné polia (vystavuje Woo Faktura). Doklady z Woo Faktury prevezmeš v <a href="<?php echo esc_url( admin_url( 'admin.php?page=j-invoices-settings&section=import' ) ); ?>">Nastavenia → Importy údajov</a>.</p></div><?php endif; ?>
 	<?php if ( $miss ) : ?><div class="notice notice-warning"><p>V nastaveniach chýba: <strong><?php echo esc_html( implode( ', ', $miss ) ); ?></strong>. <a href="<?php echo esc_url( jinv_admin_url( array( 'tab' => 'settings' ) ) ); ?>">Doplniť údaje dodávateľa →</a></p></div><?php endif; ?>
 	<form method="get" class="jinv-filter">
 		<input type="hidden" name="page" value="j-invoices">

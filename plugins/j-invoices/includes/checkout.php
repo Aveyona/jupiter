@@ -13,7 +13,7 @@ function jinv_company_fields_on() {
 	if ( ! jinv_opt( 'company_fields' ) ) {
 		return false;
 	}
-	return ! class_exists( 'WC_WI_Invoice_Manager' ) && ! function_exists( 'wi_invoicemanager_init' );
+	return ! jinv_woo_faktura_active();
 }
 
 /** Popisy polí. */
