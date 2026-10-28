@@ -65,7 +65,7 @@ add_action( 'woocommerce_init', function () {
 		),
 		array(
 			'id'                => 'jupiter/dic',
-			'label'             => 'DIČ (nepovinné)',
+			'label'             => 'DIČ',
 			'location'          => 'contact',
 			'type'              => 'text',
 			'hidden'            => jinv_blocks_company_rule( false ),
@@ -76,7 +76,7 @@ add_action( 'woocommerce_init', function () {
 		),
 		array(
 			'id'                => 'jupiter/icdph',
-			'label'             => 'IČ DPH (nepovinné)',
+			'label'             => 'IČ DPH',
 			'location'          => 'contact',
 			'type'              => 'text',
 			'hidden'            => jinv_blocks_company_rule( false ),
