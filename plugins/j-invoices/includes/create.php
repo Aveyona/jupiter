@@ -50,7 +50,18 @@ function jinv_customer_from_order( WC_Order $o ) {
 	);
 }
 
-/** Položky faktúry z objednávky (tovar, doprava, poplatky). Ceny sú konečné (neplatiteľ DPH). */
+/** Je objednávka platená na dobierku? Spôsoby platby sa dajú doplniť filtrom jinv_cod_methods. */
+function jinv_is_cod_order( WC_Order $o ) {
+	$methods = apply_filters( 'jinv_cod_methods', array( 'cod', 'jetpack_custom_gateway' ) );
+	return in_array( $o->get_payment_method(), (array) $methods, true );
+}
+
+/** Je poplatok v objednávke poplatkom za dobierku? (názov obsahuje „dobierk“, „dobírk“ alebo „cash on delivery“) */
+function jinv_is_cod_fee_name( $name ) {
+	return (bool) preg_match( '/dobierk|dobírk|cash on delivery|\bcod\b/iu', (string) $name );
+}
+
+/** Položky faktúry z objednávky (tovar, doprava, poplatky – aj poplatok za dobierku). Ceny sú konečné (neplatiteľ DPH). */
 function jinv_items_from_order( WC_Order $o ) {
 	$items = array();
 	foreach ( $o->get_items() as $it ) {
@@ -70,9 +81,20 @@ function jinv_items_from_order( WC_Order $o ) {
 		$total   = (float) $sh->get_total() + (float) $sh->get_total_tax();
 		$items[] = array( 'name' => 'Doprava: ' . $sh->get_name(), 'sku' => '', 'qty' => 1, 'unit' => '', 'price' => round( $total, 2 ), 'total' => round( $total, 2 ) );
 	}
+	$is_cod  = jinv_is_cod_order( $o );
+	$has_cod = false;
 	foreach ( $o->get_fees() as $fee ) {
-		$total   = (float) $fee->get_total() + (float) $fee->get_total_tax();
-		$items[] = array( 'name' => $fee->get_name(), 'sku' => '', 'qty' => 1, 'unit' => '', 'price' => round( $total, 2 ), 'total' => round( $total, 2 ) );
+		$total = (float) $fee->get_total() + (float) $fee->get_total_tax();
+		$name  = $fee->get_name();
+		if ( $is_cod && jinv_is_cod_fee_name( $name ) ) {
+			$has_cod = true;
+			$name    = (string) jinv_opt( 'cod_item_name' );
+		}
+		$items[] = array( 'name' => $name, 'sku' => '', 'qty' => 1, 'unit' => '', 'price' => round( $total, 2 ), 'total' => round( $total, 2 ) );
+	}
+	// Dobierka bez poplatku v objednávke (napr. ručne vytvorená objednávka): položka s nulovou cenou, aby bola na faktúre uvedená.
+	if ( $is_cod && ! $has_cod && jinv_opt( 'cod_item' ) ) {
+		$items[] = array( 'name' => (string) jinv_opt( 'cod_item_name' ), 'sku' => '', 'qty' => 1, 'unit' => '', 'price' => 0, 'total' => 0 );
 	}
 	if ( (float) $o->get_discount_total() > 0 ) {
 		// Zľava je už započítaná v položkách tovaru (get_total po zľave) – len informačný riadok.

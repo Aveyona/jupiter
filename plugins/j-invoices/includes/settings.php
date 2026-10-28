@@ -26,6 +26,10 @@ function jinv_defaults() {
 		'format'       => '{RRRR}{nnn}',  // číselný rad: {RRRR} rok, {RR} rok dvojmiestne, {nnn}/{nnnn} poradie
 		'due_days'     => 14,
 		'auto'         => 1,             // vytvárať faktúry z objednávok automaticky
+		'cod_item'      => 1,            // pri dobierke vždy uviesť položku dobierky
+		'cod_item_name' => 'Dobierka',
+		'company_fields'   => 1,         // pokladňa: Nakupujem na firmu + IČO, DIČ, IČ DPH
+		'company_required' => 0,         // pri nákupe na firmu sú IČO a názov firmy povinné
 		'issued_by'    => '',
 		'footer'       => 'Ďakujeme za nákup.',
 	);
@@ -62,6 +66,10 @@ function jinv_setting_fields() {
 			'bank'     => array( 'Banka', 'text', '' ),
 			'due_days' => array( 'Splatnosť (dni)', 'number', '' ),
 		),
+		'Nákup na firmu' => array(
+			'company_fields'   => array( 'Polia pre firmu v pokladni', 'checkbox', 'Zaškrtávacie pole „Nakupujem na firmu“ a polia IČO, DIČ, IČ DPH (aj v Môj účet → Adresy a v detaile objednávky). Ak je zapnutý doplnok Woo Faktura, polia sa nepridávajú (má vlastné).' ),
+			'company_required' => array( 'Povinné pri nákupe na firmu', 'checkbox', 'Názov firmy a IČO budú povinné, keď zákazník zaškrtne „Nakupujem na firmu“.' ),
+		),
 		'Kontakt' => array(
 			'email'    => array( 'E-mail', 'email', '' ),
 			'phone'    => array( 'Telefón', 'text', '' ),
@@ -70,6 +78,8 @@ function jinv_setting_fields() {
 		'Číslovanie a vystavovanie' => array(
 			'format'    => array( 'Formát čísla faktúry', 'text', '{RRRR} = rok (2026), {RR} = rok dvojmiestne, {nnn} / {nnnn} = poradie v roku. Predvolené {RRRR}{nnn} → 2026001.' ),
 			'auto'      => array( 'Vystaviť faktúru automaticky z objednávky', 'checkbox', 'Prevod na účet: keď je objednávka zaplatená (Spracováva sa). Dobierka a osobný odber: keď je objednávka vybavená.' ),
+			'cod_item'      => array( 'Položka dobierky na faktúre', 'checkbox', 'Pri platbe na dobierku sa poplatok z objednávky uvedie ako položka s týmto názvom. Ak objednávka poplatok nemá, pridá sa položka s cenou 0 €.' ),
+			'cod_item_name' => array( 'Názov položky dobierky', 'text', 'Napr. „Dobierka“ alebo „Poplatok za dobierku“.' ),
 			'issued_by' => array( 'Vystavil', 'text', 'Meno na faktúre (nepovinné).' ),
 			'footer'    => array( 'Text v päte faktúry', 'text', '' ),
 		),
@@ -97,6 +107,9 @@ add_action( 'admin_post_jinv_save_settings', function () {
 				$out[ $k ] = sanitize_text_field( isset( $in[ $k ] ) ? $in[ $k ] : '' );
 			}
 		}
+	}
+	if ( '' === trim( (string) $out['cod_item_name'] ) ) {
+		$out['cod_item_name'] = 'Dobierka';
 	}
 	$out['iban'] = strtoupper( preg_replace( '/\s+/', '', $out['iban'] ) );
 	if ( false === strpos( $out['format'], '{n' ) ) {

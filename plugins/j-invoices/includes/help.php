@@ -12,6 +12,7 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'Zálohová faktúra – výzva na platbu pri platbe prevodom; vzniká automaticky, keď objednávka prejde do stavu Pozastavené, a hneď sa pošle zákazníkovi (pripravuje sa).',
 			'Dobropis – opravný doklad k faktúre pri vrátení tovaru alebo zľave (pripravuje sa).',
 			'Každý doklad má číslo, dátum vystavenia, dodania a splatnosti, variabilný symbol a pri položkách katalógové číslo (SKU).',
+			'Pri platbe na dobierku je na faktúre položka „Dobierka“ s poplatkom z objednávky (názov sa dá zmeniť v Nastaveniach); ak objednávka poplatok nemá, položka má cenu 0 €.',
 		),
 		'J-Fakturácia',
 	);
@@ -70,7 +71,9 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 	$guides[] = array(
 		'Nákup na firmu',
 		array(
-			'V pokladni pole Nakupujem ako firma a nepovinné polia IČO, DIČ a IČ DPH (pripravuje sa).',
+			'V pokladni zaškrtávacie pole „Nakupujem na firmu“ – po zaškrtnutí sa zobrazia polia Firma, IČO, DIČ a IČ DPH (zapína sa v Nastaveniach, povinnosť IČO tiež).',
+			'Tie isté polia sú v Môj účet → Adresy, v detaile objednávky a v profile zákazníka; IČO/DIČ sa zobrazia aj v adrese v e-mailoch.',
+			'Kým beží doplnok Woo Faktura, J-Fakturácia vlastné polia nepridáva – faktúra však načíta údaje aj z polí Woo Faktury.',
 			'Údaje firmy sa prenesú na faktúru odberateľa.',
 		),
 		'J-Fakturácia',
