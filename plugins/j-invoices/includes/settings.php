@@ -1,5 +1,5 @@
 <?php
-/** Nastavenia J-Invoices: údaje dodávateľa, číselný rad, splatnosť, kedy vznikne faktúra. */
+/** Nastavenia J-Fakturácia: údaje dodávateľa, číselný rad, splatnosť, kedy vznikne faktúra. */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }

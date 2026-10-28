@@ -10,7 +10,7 @@ add_action( 'add_meta_boxes', function () {
 		$screens[] = wc_get_page_screen_id( 'shop-order' );
 	}
 	foreach ( array_unique( $screens ) as $scr ) {
-		add_meta_box( 'jinv-order-box', 'Faktúra (J-Invoices)', 'jinv_order_box', $scr, 'side', 'high' );
+		add_meta_box( 'jinv-order-box', 'Faktúra (J-Fakturácia)', 'jinv_order_box', $scr, 'side', 'high' );
 	}
 } );
 

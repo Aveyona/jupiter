@@ -1,12 +1,13 @@
 <?php
-/** Administrácia J-Invoices: zoznam vydaných faktúr, náhľad faktúry, nastavenia. Menu je pod Marketingom (J-Help ho zaradí). */
+/** Administrácia J-Fakturácia: zoznam vydaných faktúr, náhľad faktúry, nastavenia. Menu je pod Marketingom (J-Pomocník ho zaradí). */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 add_action( 'admin_menu', function () {
-	add_menu_page( 'J-Invoices', 'J-Invoices', 'manage_woocommerce', 'j-invoices', 'jinv_render_admin', 'dashicons-media-spreadsheet', 58 );
+	add_menu_page( 'J-Fakturácia', 'J-Fakturácia', 'manage_woocommerce', 'j-invoices', 'jinv_render_admin', 'dashicons-media-spreadsheet', 58 );
 	add_submenu_page( 'j-invoices', 'Vydané faktúry', 'Vydané faktúry', 'manage_woocommerce', 'j-invoices', 'jinv_render_admin' );
+	add_submenu_page( 'j-invoices', 'Prijaté faktúry', 'Prijaté faktúry', 'manage_woocommerce', 'j-invoices&tab=received', '__return_null' );
 	add_submenu_page( 'j-invoices', 'Nastavenia faktúr', 'Nastavenia', 'manage_woocommerce', 'j-invoices&tab=settings', '__return_null' );
 } );
 
@@ -46,7 +47,7 @@ add_action( 'admin_post_jinv_action', function () {
 		if ( $inv && $inv['order_id'] && ( $o = wc_get_order( $inv['order_id'] ) ) ) {
 			$o->delete_meta_data( '_jinv_invoice' );
 			$o->save();
-			$o->add_order_note( sprintf( 'J-Invoices: faktúra č. %s bola stornovaná.', $inv['number'] ) );
+			$o->add_order_note( sprintf( 'J-Fakturácia: faktúra č. %s bola stornovaná.', $inv['number'] ) );
 		}
 		$msg = 'cancelled';
 	}
@@ -70,7 +71,7 @@ function jinv_render_admin() {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
 		return;
 	}
-	$tab  = isset( $_GET['tab'] ) && 'settings' === $_GET['tab'] ? 'settings' : 'issued'; // phpcs:ignore
+	$tab  = isset( $_GET['tab'] ) && in_array( $_GET['tab'], array( 'settings', 'received' ), true ) ? sanitize_key( $_GET['tab'] ) : 'issued'; // phpcs:ignore
 	$view = isset( $_GET['view'] ) ? (int) $_GET['view'] : 0; // phpcs:ignore
 	$msgs = array(
 		'created'   => 'Faktúra je vystavená.',
@@ -78,20 +79,27 @@ function jinv_render_admin() {
 		'unpaid'    => 'Faktúra je znova neuhradená.',
 		'cancelled' => 'Faktúra je stornovaná.',
 		'err'       => 'Faktúru sa nepodarilo vystaviť.',
+		'rsaved'    => 'Prijatá faktúra je uložená.',
+		'rpaid'     => 'Prijatá faktúra je označená ako uhradená.',
+		'runpaid'   => 'Prijatá faktúra je znova neuhradená.',
+		'rdelete'   => 'Prijatá faktúra je zmazaná.',
 	);
 	$msg  = isset( $_GET['jinv_msg'] ) ? sanitize_key( $_GET['jinv_msg'] ) : ''; // phpcs:ignore
 	?>
 	<div class="wrap jinv">
-		<h1>J-Invoices <span class="jinv-ver">v<?php echo esc_html( JINV_VERSION ); ?></span></h1>
+		<h1>J-Fakturácia <span class="jinv-ver">v<?php echo esc_html( JINV_VERSION ); ?></span></h1>
 		<?php if ( isset( $msgs[ $msg ] ) ) : ?><div class="notice notice-<?php echo 'err' === $msg ? 'error' : 'success'; ?> is-dismissible"><p><?php echo esc_html( $msgs[ $msg ] ); ?></p></div><?php endif; ?>
 		<?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore ?><div class="notice notice-success is-dismissible"><p>Nastavenia sú uložené.</p></div><?php endif; ?>
 		<nav class="jinv-tabs">
 			<a href="<?php echo esc_url( jinv_admin_url() ); ?>" class="<?php echo 'issued' === $tab ? 'is-active' : ''; ?>">Vydané faktúry</a>
+			<a href="<?php echo esc_url( jinv_admin_url( array( 'tab' => 'received' ) ) ); ?>" class="<?php echo 'received' === $tab ? 'is-active' : ''; ?>">Prijaté faktúry</a>
 			<a href="<?php echo esc_url( jinv_admin_url( array( 'tab' => 'settings' ) ) ); ?>" class="<?php echo 'settings' === $tab ? 'is-active' : ''; ?>">Nastavenia</a>
 		</nav>
 		<?php
 		if ( 'settings' === $tab ) {
 			jinv_render_settings();
+		} elseif ( 'received' === $tab ) {
+			jinv_render_received();
 		} elseif ( $view ) {
 			jinv_render_view( $view );
 		} else {
@@ -201,3 +209,11 @@ function jinv_render_settings() {
 	</form>
 	<?php
 }
+
+// Zvýraznenie správnej podpoložky menu (Prijaté faktúry / Nastavenia).
+add_filter( 'submenu_file', function ( $file ) {
+	if ( isset( $_GET['page'] ) && 'j-invoices' === $_GET['page'] && isset( $_GET['tab'] ) && in_array( $_GET['tab'], array( 'received', 'settings' ), true ) ) { // phpcs:ignore
+		return 'j-invoices&tab=' . sanitize_key( $_GET['tab'] ); // phpcs:ignore
+	}
+	return $file;
+} );

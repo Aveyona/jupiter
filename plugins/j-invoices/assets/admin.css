@@ -18,3 +18,13 @@
 .jinv-panel { background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; padding: 4px 20px 6px; margin-bottom: 14px; }
 .jinv-panel h2 { margin: 14px 0 0; font-size: 15px; }
 #jinv-order-box .jinv-st { margin-left: 4px; }
+.jinv-cards { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 14px; }
+.jinv-cards > div { min-width: 160px; padding: 12px 16px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; }
+.jinv-cards span { display: block; font-size: 12px; color: #646970; }
+.jinv-cards strong { font-size: 22px; }
+.jinv-cards small { display: block; color: #50575E; }
+.jinv-cards .is-warn { border-color: #DBA617; background: #FFF8E5; }
+.jinv-row-actions { white-space: nowrap; }
+.jinv-del { color: #A3121B; }
+.jinv-dates label { display: inline-flex; flex-direction: column; margin-right: 12px; font-size: 12px; color: #50575E; }
+.jinv-rform input[type="date"] { min-width: 150px; }

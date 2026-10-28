@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       J-Invoices
+ * Plugin Name:       J-Fakturácia
  * Plugin URI:        https://github.com/Aveyona/jupiter
- * Description:       Faktúry pre WooCommerce: vydané faktúry z objednávok s ročným číselným radom, splatnosťou a variabilným symbolom, prehľad faktúr a tlačový náhľad. Súčasť rodiny doplnkov Jupiter.
- * Version:           0.1.0
+ * Description:       Doklady pre WooCommerce: faktúry z objednávok s číselným radom, splatnosťou a variabilným symbolom, prehľad a tlačový náhľad; pripravujú sa zálohové faktúry, dobropisy, PDF s QR PAY by square, e-mail, Pohoda a prechod z Woo Faktura. Súčasť rodiny Jupiter.
+ * Version:           0.2.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JINV_VERSION', '0.1.0' );
+define( 'JINV_VERSION', '0.2.0' );
 define( 'JINV_DB_VERSION', 1 );
 define( 'JINV_FILE', __FILE__ );
 define( 'JINV_DIR', plugin_dir_path( __FILE__ ) );
@@ -29,6 +29,8 @@ require_once JINV_DIR . 'includes/create.php';
 require_once JINV_DIR . 'includes/view.php';
 require_once JINV_DIR . 'includes/admin.php';
 require_once JINV_DIR . 'includes/order.php';
+require_once JINV_DIR . 'includes/help.php';
+require_once JINV_DIR . 'includes/received.php';
 
 register_activation_hook( __FILE__, 'jinv_install' );
 add_action( 'plugins_loaded', function () {
@@ -37,7 +39,7 @@ add_action( 'plugins_loaded', function () {
 	}
 } );
 
-// Zápis do J-Help (prehľad doplnkov Jupiter).
+// Zápis do J-Pomocník (prehľad doplnkov Jupiter).
 add_filter( 'jupiter_plugins', function ( $plugins ) {
 	if ( isset( $plugins['j-invoices'] ) ) {
 		$plugins['j-invoices']['status'] = 'dev';

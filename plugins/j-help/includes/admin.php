@@ -1,6 +1,6 @@
 <?php
 /**
- * Stránka J-Help: Prehľad doplnkov, Návody, Plán vývoja.
+ * Stránka J-Pomocník: Prehľad doplnkov, Návody, Plán vývoja.
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -38,8 +38,8 @@ function jhelp_render_admin() {
 	$tab = isset( $_GET['tab'] ) && isset( jhelp_tabs()[ $_GET['tab'] ] ) ? sanitize_key( $_GET['tab'] ) : 'overview'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	?>
 	<div class="wrap jhelp">
-		<h1>J-Help</h1>
-		<nav class="jhelp-tabs" aria-label="Sekcie J-Help">
+		<h1>J-Pomocník</h1>
+		<nav class="jhelp-tabs" aria-label="Sekcie J-Pomocník">
 			<?php foreach ( jhelp_tabs() as $k => $label ) : ?>
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=j-help&tab=' . $k ) ); ?>" class="<?php echo $k === $tab ? 'is-active' : ''; ?>"<?php echo $k === $tab ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $label ); ?></a>
 			<?php endforeach; ?>
@@ -106,7 +106,7 @@ function jhelp_tab_guides() {
 				'Stiahni ZIP doplnku z GitHubu (Releases) – napr. j-invoices-v1.0.0.zip.',
 				'Vo WordPresse otvor Pluginy → Pridať plugin → Nahrať plugin a vyber ZIP.',
 				'Doplnok zapni. Doplnky Jupiter potrebujú zapnutý WooCommerce.',
-				'Doplnok sa objaví v menu pod položkou Marketing a v prehľade J-Help.',
+				'Doplnok sa objaví v menu pod položkou Marketing a v prehľade J-Pomocník.',
 			),
 		),
 		array(
@@ -121,7 +121,7 @@ function jhelp_tab_guides() {
 			'Kde sú doplnky v menu',
 			array(
 				'Všetky doplnky Jupiter sú spolu hneď pod položkou WooCommerce Marketing.',
-				'Prvý je vždy J-Help, ostatné nasledujú podľa abecedy.',
+				'Doplnky sú zoradené podľa abecedy, J-Pomocník je vždy posledný.',
 				'Doplnky vidí používateľ s oprávnením spravovať WooCommerce (Správca obchodu alebo Administrátor).',
 			),
 		),
@@ -133,17 +133,19 @@ function jhelp_tab_guides() {
 			),
 		),
 	);
+	/** Návody doplnkov Jupiter: array( názov, kroky[], doplnok ). Každý J-doplnok pridáva svoje cez filter jupiter_guides. */
+	$guides = apply_filters( 'jupiter_guides', $guides );
 	?>
 	<div class="jhelp-intro">
 		<h2>Návody</h2>
-		<p>Stručné postupy pre prácu s doplnkami Jupiter. Pri každom doplnku pribudnú aj jeho vlastné návody.</p>
+		<p>Stručné postupy pre prácu s doplnkami Jupiter. Návody jednotlivých doplnkov (napr. J-Fakturácia) sa zobrazia, keď je doplnok zapnutý. Funkcie označené „(pripravuje sa)“ ešte nie sú hotové.</p>
 	</div>
 	<div class="jhelp-grid">
 		<?php foreach ( $guides as $g ) : ?>
 			<article class="jhelp-card">
-				<header><span class="dashicons dashicons-book" aria-hidden="true"></span><h3><?php echo esc_html( $g[0] ); ?></h3></header>
+				<header><span class="dashicons dashicons-book" aria-hidden="true"></span><h3><?php echo esc_html( $g[0] ); ?></h3><?php if ( ! empty( $g[2] ) ) : ?><span class="jhelp-state"><?php echo esc_html( $g[2] ); ?></span><?php endif; ?></header>
 				<ol class="jhelp-steps">
-					<?php foreach ( $g[1] as $step ) : ?><li><?php echo esc_html( $step ); ?></li><?php endforeach; ?>
+					<?php foreach ( $g[1] as $step ) : $soon = false !== strpos( $step, '(pripravuje sa)' ); ?><li<?php echo $soon ? ' class="is-soon"' : ''; ?>><?php echo esc_html( $step ); ?></li><?php endforeach; ?>
 				</ol>
 			</article>
 		<?php endforeach; ?>

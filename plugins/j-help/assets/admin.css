@@ -52,7 +52,7 @@
 .jhelp-chip .dashicons { width: 16px; height: 16px; font-size: 15px; }
 .jhelp-ms-card ul { margin: 6px 0 0 18px !important; list-style: disc !important; }
 .jhelp-ms-card ul li { margin: 0 0 4px !important; font-size: 13px; line-height: 1.55; color: #3C434A; }
-/* J-Help doplnky */
+/* J-Pomocník doplnky */
 .jhelp-steps { margin: 6px 0 0 18px !important; }
 .jhelp-steps li { margin: 0 0 4px !important; font-size: 13px; line-height: 1.55; color: #3C434A; }
 .jhelp-ms-dot { font-weight: 800; font-size: 16px; }
@@ -64,3 +64,4 @@
 .jhelp-ms > li.is-now .jhelp-ms-when { background: #F1EAFB; color: #5B3A8A; }
 .jhelp-ms::before { background: linear-gradient(180deg, #145A2A, #7F54B3, #C3C4C7); }
 .jhelp-card header .dashicons { background: #7F54B3; }
+.jhelp-steps li.is-soon { color: #8C8F94; }

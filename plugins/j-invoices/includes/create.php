@@ -122,7 +122,7 @@ function jinv_create_from_order( $order ) {
 			$id = (int) $wpdb->insert_id;
 			$o->update_meta_data( '_jinv_invoice', $num );
 			$o->save();
-			$o->add_order_note( sprintf( 'J-Invoices: vystavená faktúra č. %s.', $num ) );
+			$o->add_order_note( sprintf( 'J-Fakturácia: vystavená faktúra č. %s.', $num ) );
 			do_action( 'jinv_invoice_created', $id, $o );
 			return $id;
 		}

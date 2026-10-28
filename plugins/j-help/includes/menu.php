@@ -1,15 +1,15 @@
 <?php
 /**
  * Menu administrácie: všetky doplnky Jupiter (slug začína „j-“) sú spolu hneď pod položkou
- * WooCommerce „Marketing“ – J-Help prvý, ostatné podľa abecedy.
+ * WooCommerce „Marketing“ – podľa abecedy, J-Pomocník vždy posledný.
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 add_action( 'admin_menu', function () {
-	add_menu_page( 'J-Help', 'J-Help', 'manage_woocommerce', 'j-help', 'jhelp_render_admin', 'dashicons-sos', 58 );
-	add_submenu_page( 'j-help', 'J-Help – Prehľad', 'Prehľad', 'manage_woocommerce', 'j-help', 'jhelp_render_admin' );
+	add_menu_page( 'J-Pomocník', 'J-Pomocník', 'manage_woocommerce', 'j-help', 'jhelp_render_admin', 'dashicons-sos', 58 );
+	add_submenu_page( 'j-help', 'J-Pomocník – Prehľad', 'Prehľad', 'manage_woocommerce', 'j-help', 'jhelp_render_admin' );
 } );
 
 /** Je položka menu doplnkom Jupiter? */
@@ -38,10 +38,10 @@ add_action( 'admin_menu', function () {
 	}
 	uasort( $items, function ( $a, $b ) {
 		if ( 'j-help' === $a[2] ) {
-			return -1;
+			return 1; // J-Pomocník vždy na konci skupiny
 		}
 		if ( 'j-help' === $b[2] ) {
-			return 1;
+			return -1;
 		}
 		return strcasecmp( wp_strip_all_tags( $a[0] ), wp_strip_all_tags( $b[0] ) );
 	} );

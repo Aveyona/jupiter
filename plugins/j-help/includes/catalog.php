@@ -3,7 +3,7 @@
  * Katalóg doplnkov Jupiter. Ďalší J-doplnok sa doňho pridá filtrom `jupiter_plugins`:
  *
  *     add_filter( 'jupiter_plugins', function ( $p ) {
- *         $p['j-invoices'] = array( 'name' => 'J-Invoices', 'icon' => 'dashicons-media-spreadsheet', 'what' => '…', 'status' => 'stable' );
+ *         $p['j-invoices'] = array( 'name' => 'J-Fakturácia', 'icon' => 'dashicons-media-spreadsheet', 'what' => '…', 'status' => 'stable' );
  *         return $p;
  *     } );
  */
@@ -25,15 +25,15 @@ function jhelp_statuses() {
 function jhelp_plugins() {
 	$plugins = array(
 		'j-help'     => array(
-			'name'   => 'J-Help',
+			'name'   => 'J-Pomocník',
 			'icon'   => 'dashicons-sos',
-			'what'   => 'Táto dokumentácia: prehľad doplnkov Jupiter, návody a plán vývoja. V menu je prvá z doplnkov Jupiter, hneď pod Marketingom.',
+			'what'   => 'Táto dokumentácia: prehľad doplnkov Jupiter, návody a plán vývoja. V menu je vždy posledný z doplnkov Jupiter (skupina pod Marketingom).',
 			'status' => 'stable',
 		),
 		'j-invoices' => array(
-			'name'   => 'J-Invoices',
+			'name'   => 'J-Fakturácia',
 			'icon'   => 'dashicons-media-spreadsheet',
-			'what'   => 'Faktúry: vydané faktúry z objednávok WooCommerce (číselný rad RRRRnnn, splatnosť 14 dní, PDF, QR kód PAY by square; zákazníkovi sa pošlú e-mailom po tvojom potvrdení), ručné faktúry a dobropisy, prijaté faktúry s prílohami a splatnosťou, export pre účtovníka.',
+			'what'   => 'Doklady k objednávkam WooCommerce: faktúra, zálohová faktúra (automaticky pri platbe prevodom) a dobropis; PDF s QR kódom PAY by square, odoslanie e-mailom, odkaz na stiahnutie pre zákazníka, pole „Nakupujem ako firma“ (IČO, DIČ, IČ DPH) v pokladni, export do účtovníctva Pohoda, prechod z doplnku Woo Faktura. Prijaté faktúry s prílohami a splatnosťou.',
 			'status' => 'planned',
 		),
 		'j-emails'   => array(
@@ -59,46 +59,72 @@ function jhelp_plugins() {
 function jhelp_roadmap() {
 	return apply_filters( 'jupiter_roadmap', array(
 		array(
-			'title'  => 'Základ Jupitera a J-Help',
+			'title'  => 'Základ Jupitera a J-Pomocník',
 			'state'  => 'done',
 			'points' => array(
 				'Verejný repozitár na GitHube (licencia GPL-2.0-or-later), automatická kontrola kódu a vydávanie ZIP doplnkov.',
-				'J-Help: prehľad doplnkov, návody a plán vývoja priamo v administrácii.',
+				'J-Pomocník: prehľad doplnkov, návody a plán vývoja priamo v administrácii.',
 				'Doplnky Jupiter majú v menu vlastné miesto hneď pod položkou Marketing.',
 			),
 		),
 		array(
-			'title'  => 'J-Invoices – vydané faktúry z objednávok',
+			'title'  => 'J-Fakturácia 0.1 – faktúry z objednávok',
+			'state'  => 'done',
+			'points' => array(
+				'Faktúra z objednávky automaticky (prevod po zaplatení, dobierka a osobný odber po vybavení) alebo tlačidlom v objednávke.',
+				'Ročný číselný rad, variabilný symbol, splatnosť, text pre neplatiteľa DPH, katalógové číslo (SKU) pri položkách.',
+				'Prehľad faktúr s filtrom, stavy uhradená / po splatnosti / stornovaná, tlačový náhľad, box v objednávke a stĺpec v zozname objednávok.',
+			),
+		),
+		array(
+			'title'  => 'J-Fakturácia 0.2 – prijaté faktúry',
+			'state'  => 'done',
+			'points' => array(
+				'Evidencia dodávateľských faktúr: dodávateľ, číslo, VS, dátumy, suma, kategória, poznámka.',
+				'Príloha PDF alebo fotka v chránenom priečinku, stav uhradená / neuhradená / po splatnosti, súčet neuhradených.',
+			),
+		),
+		array(
+			'title'  => 'J-Fakturácia – PDF, e-mail a odkaz pre zákazníka',
 			'state'  => 'now',
 			'points' => array(
-				'Faktúra vznikne z objednávky: pri prevode po zaplatení, pri dobierke a osobnom odbere po vybavení.',
-				'Ročný číselný rad bez medzier, dátum vystavenia, dodania a splatnosti, variabilný symbol, text pre neplatiteľa DPH.',
-				'PDF s logom a QR kódom PAY by square; faktúra je aj v účte zákazníka.',
-				'E-mailom sa faktúra pošle zákazníkovi až po tvojom potvrdení (tlačidlo Odoslať).',
+				'PDF dokladu s logom a QR kódom PAY by square (úhrada prevodom naskenovaním v bankovej aplikácii).',
+				'Odoslanie e-mailom „Doklad k objednávke … z {obchod}“ s PDF v prílohe – podľa nastavenia automaticky alebo po potvrdení tlačidlom Poslať e-mailom.',
+				'Zákazník si doklad stiahne sám v Môj účet → Objednávky a z e-mailu (zabezpečený odkaz, nie do administrácie).',
 			),
 		),
 		array(
-			'title'  => 'J-Invoices – ručné faktúry a dobropisy',
+			'title'  => 'J-Fakturácia – zálohové faktúry, dobropisy, box v objednávke',
 			'state'  => 'next',
 			'points' => array(
-				'Faktúra pre odberateľa mimo e-shopu s vlastnými položkami.',
-				'Dobropis pri vrátení tovaru (odstúpenie od zmluvy) a storno faktúry.',
+				'Zálohová faktúra automaticky pri platbe prevodom, keď objednávka prejde do stavu Pozastavené – hneď sa pošle zákazníkovi.',
+				'Box Faktúry v objednávke: Vystaviť, Zobraziť, Znova vystaviť, Poslať e-mailom, Zmazať – pre faktúru, zálohovú faktúru aj dobropis.',
+				'Hromadné vystavenie faktúr pre vybrané objednávky v zozname objednávok.',
+				'Číslovanie podľa voľby: vlastný ročný rad alebo rovnaké ako číslo objednávky; splatnosť nastaviteľná (napr. 7 dní).',
 			),
 		),
 		array(
-			'title'  => 'J-Invoices – prijaté faktúry',
+			'title'  => 'J-Fakturácia – pokladňa „Nakupujem ako firma“',
 			'state'  => 'next',
 			'points' => array(
-				'Evidencia dodávateľských faktúr s prílohou PDF alebo fotkou.',
-				'Splatnosť a úhrady, upozornenie na faktúry po splatnosti.',
+				'Zaškrtávacie pole Nakupujem ako firma a nepovinné polia IČO, DIČ a IČ DPH v pokladni.',
+				'Údaje firmy sa prenesú na faktúru a sú v detaile objednávky.',
 			),
 		),
 		array(
-			'title'  => 'Prehľady a export pre účtovníka',
+			'title'  => 'J-Fakturácia – export do Pohody a pre účtovníka',
 			'state'  => 'next',
 			'points' => array(
-				'Mesačný prehľad vydaných a prijatých faktúr.',
-				'Export za obdobie: tabuľka (XLSX/CSV) a ZIP so všetkými PDF.',
+				'Export faktúr za zvolené obdobie do súboru XML na import do účtovníctva Pohoda.',
+				'Export pre účtovníka: tabuľka (XLSX/CSV) a ZIP so všetkými PDF.',
+			),
+		),
+		array(
+			'title'  => 'J-Fakturácia – prechod z doplnku Woo Faktura',
+			'state'  => 'next',
+			'points' => array(
+				'Načítanie existujúcich faktúr, zálohových faktúr a dobropisov (aj PDF) z Woo Faktura, aby boli v prehľade a v účte zákazníka.',
+				'Pokračovanie v rovnakom číslovaní, potom vypnutie starého doplnku.',
 			),
 		),
 		array(
