@@ -1,5 +1,5 @@
 <?php
-/** Box „Faktúra“ v detaile objednávky (klasické objednávky aj HPOS) a stĺpec v zozname objednávok. */
+/** Box „Doklady“ v detaile objednávky (klasické objednávky aj HPOS) a stĺpec v zozname objednávok. */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -10,25 +10,45 @@ add_action( 'add_meta_boxes', function () {
 		$screens[] = wc_get_page_screen_id( 'shop-order' );
 	}
 	foreach ( array_unique( $screens ) as $scr ) {
-		add_meta_box( 'jinv-order-box', 'Faktúra (J-Fakturácia)', 'jinv_order_box', $scr, 'side', 'high' );
+		add_meta_box( 'jinv-order-box', 'Doklady (J-Fakturácia)', 'jinv_order_box', $scr, 'side', 'high' );
 	}
 } );
 
 function jinv_order_box( $post_or_order ) {
 	$o = $post_or_order instanceof WC_Order ? $post_or_order : wc_get_order( $post_or_order->ID );
-	if ( ! $o ) {
+	if ( ! $o || ! $o->get_id() ) {
 		return;
 	}
-	$inv  = jinv_by_order( $o->get_id() );
+	$docs = jinv_docs_for_order( $o->get_id() );
 	$back = $o->get_edit_order_url();
-	if ( $inv ) {
-		echo '<p><strong>č. ' . esc_html( $inv['number'] ) . '</strong> ' . jinv_status_badge( $inv ) . '</p>'; // phpcs:ignore
-		echo '<p>Vystavená ' . esc_html( jinv_date( $inv['issue_date'] ) ) . ', splatná ' . esc_html( jinv_date( $inv['due_date'] ) ) . '</p>';
-		echo '<p><a class="button" href="' . esc_url( jinv_admin_url( array( 'view' => $inv['id'] ) ) ) . '">Zobraziť faktúru</a></p>';
+	if ( $docs ) {
+		echo '<ul class="jinv-box-docs">';
+		foreach ( $docs as $d ) {
+			echo '<li><a href="' . esc_url( jinv_admin_url( array( 'view' => $d['id'] ) ) ) . '"><strong>' . esc_html( jinv_kind_label( $d['kind'] ) ) . ' ' . esc_html( $d['number'] ) . '</strong></a> ' . jinv_status_badge( $d ) // phpcs:ignore
+				. '<br><small>' . esc_html( jinv_date( $d['issue_date'] ) ) . ' · ' . esc_html( jinv_money( $d['total'], $d['currency'] ) ) . ( 'woo-faktura' === $d['source'] ? ' · Woo Faktura' : '' ) . '</small></li>';
+		}
+		echo '</ul>';
 	} else {
-		echo '<p>Faktúra zatiaľ nie je vystavená.</p>';
-		echo '<p class="description">Automaticky: prevod na účet po zaplatení, dobierka a osobný odber po vybavení objednávky.</p>';
-		echo '<p><a class="button button-primary" href="' . esc_url( jinv_action_url( 'create', $o->get_id(), $back ) ) . '">Vystaviť faktúru teraz</a></p>';
+		echo '<p>K objednávke zatiaľ nie je vystavený žiadny doklad.</p>';
+	}
+	$has = function ( $kind ) use ( $o ) {
+		return (bool) jinv_by_order( $o->get_id(), $kind );
+	};
+	echo '<p class="jinv-box-actions">';
+	if ( ! $has( 'issued' ) ) {
+		echo '<a class="button button-primary" href="' . esc_url( jinv_action_url( 'create', $o->get_id(), $back ) ) . '">Vystaviť faktúru</a> ';
+	}
+	if ( ! $has( 'proforma' ) && ! $has( 'issued' ) ) {
+		echo '<a class="button" href="' . esc_url( jinv_action_url( 'create_proforma', $o->get_id(), $back ) ) . '">Vystaviť zálohovú faktúru</a> ';
+	}
+	if ( $has( 'issued' ) ) {
+		echo '<a class="button" href="' . esc_url( jinv_action_url( 'create_creditnote', $o->get_id(), $back ) ) . '" onclick="return confirm(\'Vystaviť dobropis? Ak má objednávka vrátenie peňazí (Refund) bez dobropisu, dobropis bude na vrátenú sumu, inak na celú faktúru.\');">Vystaviť dobropis</a>';
+	}
+	echo '</p>';
+	if ( jinv_woo_faktura_active() ) {
+		echo '<p class="description">Režim prechodu: kým beží Woo Faktura, J-Fakturácia nevystavuje doklady automaticky.</p>';
+	} else {
+		echo '<p class="description">Automaticky: prevod na účet – zálohová faktúra pri objednávke, faktúra po zaplatení; ostatné platby – faktúra po vybavení.</p>';
 	}
 }
 

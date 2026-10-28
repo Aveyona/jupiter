@@ -4,7 +4,7 @@ Tags: woocommerce, faktúry, faktúra, slovensko, jupiter
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.4.2
+Stable tag: 0.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,16 @@ Faktúry pre slovenské e-shopy na WooCommerce. Súčasť rodiny doplnkov Jupite
 Pripravuje sa: PDF s QR kódom PAY by square, odoslanie zákazníkovi e-mailom po potvrdení, ručné faktúry, dobropisy, prijaté faktúry, export pre účtovníka.
 
 == Changelog ==
+
+= 0.9.0 =
+* Druhy dokladov: faktúra, zálohová faktúra, dobropis (z vrátenia peňazí vo WooCommerce alebo ručne). Box Doklady v objednávke so všetkými dokladmi a tlačidlami.
+* Číslovanie: číslo dokladu = číslo objednávky (ako Woo Faktura; ďalší doklad toho istého druhu s príponou -2) alebo vlastný ročný rad pre každý druh (2026001, ZF2026001, D2026001). Sprievodca importom môže nastaviť číslovanie ako Woo Faktura.
+* Automatika: prevod na účet – zálohová faktúra pri objednávke (Čaká na platbu), faktúra po zaplatení; ostatné platby – faktúra po vybavení; zrušená objednávka stornuje zálohovú faktúru; voliteľne dobropis pri vrátení peňazí. Hromadné vystavenie faktúr v zozname objednávok. Kým beží Woo Faktura, automatika aj automatické e-maily sú vypnuté.
+* PDF dokladu (tFPDF, písmo DejaVu) s QR kódom PAY by square 1.2.0 (s názvom príjemcu), pečiatka Uhradené / Vrátené / Stornovaný doklad. Tlačidlá Otvoriť PDF a Stiahnuť PDF.
+* E-maily: doklad s PDF zákazníkovi cez poštu WooCommerce – automaticky podľa nastavení (zálohová faktúra s platobnými údajmi, faktúra, dobropis) alebo tlačidlom Poslať e-mailom; dátum odoslania v detaile.
+* Môj účet: zákazník si stiahne doklady k vlastnej objednávke (aj prevzaté z Woo Faktura) – v zozname objednávok aj v detaile.
+* Export pre účtovníka: CSV (Excel), XML pre Pohodu (vydané faktúry, zálohové faktúry, dobropisy) a ZIP so všetkými PDF za obdobie.
+* Nastavenia: nová záložka E-maily a Môj účet; výberové polia.
 
 = 0.4.2 =
 * Prevzatý doklad z Woo Faktura sa v detaile zobrazí ako pôvodné PDF (platný doklad s dodávateľom, ktorý bol v čase vystavenia); náhľad z údajov objednávky len ak PDF chýba.

@@ -286,6 +286,9 @@ add_action( 'admin_post_jinv_wf_settings', function () {
 			$s[ $k ] = sanitize_text_field( $v );
 		}
 	}
+	if ( ! empty( $_POST['numbering'] ) ) { // phpcs:ignore
+		$s['numbering'] = 'order'; // ako Woo Faktura: číslo dokladu = číslo objednávky
+	}
 	$due = (int) get_option( 'woocommerce_wi_invoice_payment_due' );
 	if ( $due > 0 && ! empty( $_POST['due'] ) ) { // phpcs:ignore
 		$s['due_days'] = min( 365, $due );
@@ -368,6 +371,7 @@ function jinv_render_import() {
 				<?php wp_nonce_field( 'jinv_wf_settings' ); ?>
 				<input type="hidden" name="action" value="jinv_wf_settings">
 				<label><input type="checkbox" name="due" value="1" checked> prevziať aj splatnosť</label>
+				<label><input type="checkbox" name="numbering" value="1" checked> číslovať ako Woo Faktura (číslo dokladu = číslo objednávky)</label>
 				<button class="button">Prevziať údaje</button>
 			</form>
 			<p>

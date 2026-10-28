@@ -9,8 +9,8 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		'Druhy dokladov',
 		array(
 			'Faktúra – daňový doklad k objednávke; vystavuje sa automaticky alebo tlačidlom v objednávke.',
-			'Zálohová faktúra – výzva na platbu pri platbe prevodom; vzniká automaticky, keď objednávka prejde do stavu Pozastavené, a hneď sa pošle zákazníkovi (pripravuje sa).',
-			'Dobropis – opravný doklad k faktúre pri vrátení tovaru alebo zľave (pripravuje sa).',
+			'Zálohová faktúra – výzva na platbu pri platbe prevodom; vzniká automaticky, keď objednávka prejde do stavu Čaká na platbu (Pozastavené), a hneď sa pošle zákazníkovi s QR kódom. Po zaplatení sa označí ako uhradená; pri zrušení objednávky sa stornuje.',
+			'Dobropis – opravný doklad k faktúre: pri vrátení peňazí (Refund) vo WooCommerce na vrátenú sumu (ak je to zapnuté), alebo ručne v boxe Doklady – na vrátenie bez dobropisu alebo na celú faktúru.',
 			'Každý doklad má číslo, dátum vystavenia, dodania a splatnosti, variabilný symbol a pri položkách katalógové číslo (SKU).',
 			'Pri platbe na dobierku je na faktúre položka „Dobierka“ s poplatkom z objednávky (názov sa dá zmeniť v Nastaveniach); ak objednávka poplatok nemá, položka má cenu 0 €.',
 		),
@@ -19,30 +19,29 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 	$guides[] = array(
 		'Kedy vznikne faktúra',
 		array(
-			'Prevod na účet: keď je objednávka zaplatená (stav Spracováva sa).',
-			'Dobierka a osobný odber: keď je objednávka vybavená.',
-			'Kedykoľvek ručne: detail objednávky → box Faktúra → Vystaviť faktúru teraz.',
+			'Prevod na účet: zálohová faktúra hneď pri objednávke, faktúra keď je objednávka zaplatená (stav Vybavuje sa / Spracováva sa).',
+			'Dobierka, osobný odber a ostatné platby: faktúra, keď je objednávka vybavená.',
+			'Kedykoľvek ručne: detail objednávky → box Doklady → Vystaviť faktúru / zálohovú faktúru / dobropis.',
 			'Automatiku vypneš v J-Fakturácia → Nastavenia → Vystaviť faktúru automaticky.',
-			'Hromadne: v zozname objednávok vyber objednávky → Hromadné akcie → Vystaviť faktúry (pripravuje sa).',
+			'Hromadne: v zozname objednávok WooCommerce vyber objednávky → Hromadné akcie → Vystaviť faktúry (J-Fakturácia).', 'Kým beží doplnok Woo Faktura, nič sa nevystavuje ani neposiela automaticky (režim prechodu).',
 		),
 		'J-Fakturácia',
 	);
 	$guides[] = array(
-		'Box Faktúry v objednávke',
+		'Box Doklady v objednávke',
 		array(
 			'Vystaviť – vytvorí doklad k objednávke.',
-			'Zobraziť – otvorí doklad (náhľad, tlač / PDF).',
-			'Znova vystaviť – prepočíta doklad podľa aktuálnej objednávky s rovnakým číslom (pripravuje sa).',
-			'Poslať e-mailom – pošle zákazníkovi e-mail s PDF v prílohe (pripravuje sa).',
-			'Zmazať / Stornovať – stornovaná faktúra ostáva v evidencii, jej číslo sa znova nepoužije.',
+			'Klik na doklad – detail s tlačidlami Otvoriť PDF, Stiahnuť PDF, Poslať e-mailom, Označiť ako uhradený, Stornovať.',
+			'Poslať e-mailom – pošle zákazníkovi e-mail s PDF v prílohe (aj znova); dátum odoslania je v detaile dokladu.',
+			'Stornovať – stornovaný doklad ostáva v evidencii, jeho číslo sa znova nepoužije.',
 		),
 		'J-Fakturácia',
 	);
 	$guides[] = array(
 		'Číslovanie a splatnosť',
 		array(
-			'Predvolene vlastný ročný rad bez medzier: {RRRR}{nnn} → 2026001, 2026002…',
-			'Možnosť: číslo dokladu = číslo objednávky (ako vo Woo Faktura) (pripravuje sa).',
+			'Nastavenia → Doklady a číslovanie: číslo dokladu = číslo objednávky (napr. 220260244, ako vo Woo Faktura; ďalší dobropis k tej istej objednávke 220260244-2), alebo vlastný ročný rad bez medzier.',
+			'Vlastný rad: faktúra {RRRR}{nnn} → 2026001, zálohová ZF{RRRR}{nnn} → ZF2026001, dobropis D{RRRR}{nnn} → D2026001 (formáty sa dajú zmeniť).',
 			'Splatnosť v dňoch nastavíš v Nastaveniach (napr. 7 alebo 14 dní).',
 			'Variabilný symbol = číslo dokladu (len číslice).',
 		),
@@ -51,9 +50,9 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 	$guides[] = array(
 		'Faktúra pre zákazníka',
 		array(
-			'PDF dokladu s QR kódom PAY by square – zákazník zaplatí naskenovaním v bankovej aplikácii (pripravuje sa).',
-			'E-mail „Doklad k objednávke … z {obchod}“ s PDF v prílohe; faktúra po potvrdení, zálohová automaticky (pripravuje sa).',
-			'Zákazník si doklad stiahne sám v Môj účet → Objednávky – zabezpečeným odkazom, nie cez administráciu (pripravuje sa).',
+			'PDF dokladu s QR kódom PAY by square (na neuhradenej faktúre a zálohovej faktúre) – zákazník zaplatí naskenovaním v bankovej aplikácii.',
+			'E-mail s PDF v prílohe: automaticky podľa Nastavenia → E-maily a Môj účet (predvolene zálohová faktúra a faktúra áno, dobropis nie), alebo tlačidlom Poslať e-mailom.',
+			'Zákazník si doklady stiahne sám v Môj účet → Objednávky a v detaile objednávky (aj prevzaté z Woo Faktura) – len k vlastnej objednávke.',
 		),
 		'J-Fakturácia',
 	);
@@ -81,8 +80,8 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 	$guides[] = array(
 		'Export pre účtovníctvo',
 		array(
-			'J-Fakturácia → Export: vyber obdobie a stiahni XML na import do účtovníctva Pohoda (pripravuje sa).',
-			'Export pre účtovníka: tabuľka (XLSX/CSV) a ZIP so všetkými PDF za obdobie (pripravuje sa).',
+			'J-Fakturácia → Export: vyber obdobie a druhy dokladov a stiahni XML na import do účtovníctva Pohoda.',
+			'Ďalej tabuľka CSV (otvorí sa v Exceli) a ZIP so všetkými PDF za obdobie.',
 		),
 		'J-Fakturácia',
 	);

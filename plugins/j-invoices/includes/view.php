@@ -61,8 +61,13 @@ function jinv_render_invoice_html( array $inv ) {
 			<div><span>Spôsob úhrady</span><strong><?php echo $e( $d, 'payment' ); ?></strong></div>
 			<div><span>Variabilný symbol</span><strong><?php echo esc_html( $inv['vs'] ); ?></strong></div>
 			<?php if ( ! empty( $d['order_no'] ) ) : ?><div><span>Objednávka</span><strong>#<?php echo $e( $d, 'order_no' ); ?></strong></div><?php endif; ?>
+			<?php if ( ! empty( $d['invoice'] ) ) : ?><div><span>K faktúre</span><strong><?php echo $e( $d, 'invoice' ); ?></strong></div><?php endif; ?>
+			<?php if ( ! empty( $d['proforma'] ) ) : ?><div><span>Zálohová faktúra</span><strong><?php echo $e( $d, 'proforma' ); ?></strong></div><?php endif; ?>
 			<?php if ( ! empty( $sup['iban'] ) ) : ?><div class="jinv-wide"><span>IBAN</span><strong><?php echo esc_html( trim( chunk_split( (string) $sup['iban'], 4, ' ' ) ) ); ?></strong><?php if ( ! empty( $sup['swift'] ) ) : ?> <em>SWIFT <?php echo $e( $sup, 'swift' ); ?></em><?php endif; ?><?php if ( ! empty( $sup['bank'] ) ) : ?> <em><?php echo $e( $sup, 'bank' ); ?></em><?php endif; ?></div><?php endif; ?>
 		</section>
+		<?php if ( 'creditnote' === $inv['kind'] ) : ?><p class="jinv-lead">Opravný doklad k faktúre č. <strong><?php echo $e( $d, 'invoice' ); ?></strong><?php echo ! empty( $d['reason'] ) ? ' – dôvod: ' . $e( $d, 'reason' ) : ''; ?>.</p><?php endif; ?>
+		<?php if ( 'proforma' === $inv['kind'] ) : ?><p class="jinv-lead">Zálohová faktúra – výzva na úhradu, nie je daňovým dokladom. Faktúru vystavíme po prijatí platby.</p><?php endif; ?>
+		<?php if ( ! empty( $d['note'] ) ) : ?><p class="jinv-lead"><?php echo nl2br( $e( $d, 'note' ) ); // phpcs:ignore ?></p><?php endif; ?>
 		<table class="jinv-items">
 			<thead><tr><th>Položka</th><th class="n">Množstvo</th><th class="n">Cena za MJ</th><th class="n">Spolu</th></tr></thead>
 			<tbody>
@@ -77,9 +82,10 @@ function jinv_render_invoice_html( array $inv ) {
 		</table>
 		<section class="jinv-sum">
 			<?php if ( empty( $sup['vat_payer'] ) ) : ?><p class="jinv-vat"><?php echo $e( $sup, 'vat_note' ); ?></p><?php endif; ?>
-			<p class="jinv-total"><span>Celkom na úhradu</span><strong><?php echo esc_html( jinv_money( $inv['total'], $cur ) ); ?></strong></p>
-			<?php if ( 'paid' === $inv['status'] ) : ?><p class="jinv-paid">Uhradené<?php echo $inv['paid_at'] ? ' ' . esc_html( jinv_date( substr( $inv['paid_at'], 0, 10 ) ) ) : ''; ?> – neuhrádzajte.</p><?php endif; ?>
-			<?php if ( 'cancelled' === $inv['status'] ) : ?><p class="jinv-paid jinv-cancel">Stornovaná faktúra</p><?php endif; ?>
+			<?php if ( ! empty( $d['proforma'] ) && 'issued' === $inv['kind'] ) : ?><p class="jinv-vat">Uhradené na základe zálohovej faktúry č. <?php echo $e( $d, 'proforma' ); ?>.</p><?php endif; ?>
+			<p class="jinv-total"><span><?php echo 'creditnote' === $inv['kind'] ? 'Celkom na vrátenie' : 'Celkom na úhradu'; ?></span><strong><?php echo esc_html( jinv_money( $inv['total'], $cur ) ); ?></strong></p>
+			<?php if ( 'paid' === $inv['status'] ) : ?><p class="jinv-paid"><?php echo 'creditnote' === $inv['kind'] ? 'Vrátené' : 'Uhradené'; ?><?php echo $inv['paid_at'] ? ' ' . esc_html( jinv_date( substr( $inv['paid_at'], 0, 10 ) ) ) : ''; ?><?php echo 'creditnote' === $inv['kind'] ? '' : ' – neuhrádzajte'; ?>.</p><?php endif; ?>
+			<?php if ( 'cancelled' === $inv['status'] ) : ?><p class="jinv-paid jinv-cancel">Stornovaný doklad</p><?php endif; ?>
 		</section>
 		<footer class="jinv-foot">
 			<?php if ( ! empty( $sup['issued_by'] ) ) : ?><p>Vystavil: <?php echo $e( $sup, 'issued_by' ); ?></p><?php endif; ?>
@@ -99,6 +105,6 @@ function jinv_invoice_css() {
 		. '.jinv-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 16px;padding:12px 14px;margin-bottom:18px;background:#f6f7f9;border-radius:6px}.jinv-meta span{display:block;font-size:11px;color:#6b7280}.jinv-meta .jinv-wide{grid-column:1/-1}.jinv-meta em{font-style:normal;color:#4b5563;margin-left:8px}'
 		. '.jinv-items{width:100%;border-collapse:collapse;margin-bottom:14px}.jinv-items th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;border-bottom:2px solid #162D4F;padding:6px 4px}.jinv-items td{padding:7px 4px;border-bottom:1px solid #eef0f3;vertical-align:top}.jinv-items .n{text-align:right;white-space:nowrap}.jinv-items tr.info td{color:#6b7280;font-style:italic}'
 		. '.jinv-sum{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-bottom:24px}.jinv-total{display:flex;gap:18px;align-items:baseline;margin:0;padding:10px 14px;border-radius:6px;background:#162D4F;color:#fff}.jinv-total strong{font-size:20px}.jinv-vat{margin:0;color:#4b5563}.jinv-paid{margin:6px 0 0;padding:4px 10px;border:2px solid #145A2A;border-radius:4px;color:#145A2A;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.jinv-cancel{border-color:#A3121B;color:#A3121B}'
-		. '.jinv-foot{border-top:1px solid #eef0f3;padding-top:10px;color:#4b5563}.jinv-foot p{margin:0 0 4px}.jinv-small{font-size:11px;color:#6b7280}'
+		. '.jinv-lead{margin:0 0 12px;color:#374151}.jinv-foot{border-top:1px solid #eef0f3;padding-top:10px;color:#4b5563}.jinv-foot p{margin:0 0 4px}.jinv-small{font-size:11px;color:#6b7280}'
 		. '@media print{body *{visibility:hidden}.jinv-doc,.jinv-doc *{visibility:visible}.jinv-doc{position:absolute;left:0;top:0;border:0;max-width:none;width:100%;padding:0}}';
 }

@@ -9,11 +9,11 @@
       "notes": "Plán vývoja: J-Emails 0.1."
     },
     "j-invoices": {
-      "version": "0.4.2",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.4.2/j-invoices-v0.4.2.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.4.2",
+      "version": "0.9.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.9.0/j-invoices-v0.9.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.9.0",
       "published": "2026-10-28",
-      "notes": "Režim prechodu pri Woo Faktura; nastavenia v záložkách; sprievodca importom dokladov z Woo Faktura (Importy údajov)."
+      "notes": "Zálohové faktúry, dobropisy, číslovanie podľa objednávky, automatika podľa platby, PDF s QR PAY by square, e-maily, Môj účet, export Pohoda/CSV/ZIP."
     },
     "j-emails": {
       "version": "0.2.0",

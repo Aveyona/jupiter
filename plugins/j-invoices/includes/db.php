@@ -54,10 +54,17 @@ function jinv_get( $id ) {
 	return $row;
 }
 
-function jinv_by_order( $order_id ) {
+/** Posledný platný (nestornovaný) doklad daného druhu k objednávke. */
+function jinv_by_order( $order_id, $kind = 'issued' ) {
 	global $wpdb;
-	$id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . jinv_table() . " WHERE order_id = %d AND kind = 'issued' AND status <> 'cancelled' ORDER BY id DESC LIMIT 1", $order_id ) ); // phpcs:ignore
+	$id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . jinv_table() . " WHERE order_id = %d AND kind = %s AND status <> 'cancelled' ORDER BY id DESC LIMIT 1", $order_id, $kind ) ); // phpcs:ignore
 	return $id ? jinv_get( $id ) : null;
+}
+
+/** Všetky doklady k objednávke (aj stornované), najstaršie prvé. */
+function jinv_docs_for_order( $order_id ) {
+	global $wpdb;
+	return (array) $wpdb->get_results( $wpdb->prepare( 'SELECT id, kind, number, status, issue_date, due_date, total, currency, source, file FROM ' . jinv_table() . ' WHERE order_id = %d ORDER BY id ASC', $order_id ), ARRAY_A ); // phpcs:ignore
 }
 
 function jinv_update( $id, array $fields ) {

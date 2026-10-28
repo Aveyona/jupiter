@@ -3,7 +3,7 @@
  * Plugin Name:       J-Fakturácia
  * Plugin URI:        https://github.com/Aveyona/jupiter
  * Description:       Doklady pre WooCommerce: faktúry z objednávok s číselným radom, splatnosťou a variabilným symbolom, prehľad a tlačový náhľad; pripravujú sa zálohové faktúry, dobropisy, PDF s QR PAY by square, e-mail, Pohoda a prechod z Woo Faktura. Súčasť rodiny Jupiter.
- * Version:           0.4.2
+ * Version:           0.9.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JINV_VERSION', '0.4.2' );
+define( 'JINV_VERSION', '0.9.0' );
 define( 'JINV_DB_VERSION', 2 );
 define( 'JINV_FILE', __FILE__ );
 define( 'JINV_DIR', plugin_dir_path( __FILE__ ) );
@@ -26,6 +26,12 @@ define( 'JINV_URL', plugin_dir_url( __FILE__ ) );
 require_once JINV_DIR . 'includes/db.php';
 require_once JINV_DIR . 'includes/settings.php';
 require_once JINV_DIR . 'includes/create.php';
+require_once JINV_DIR . 'includes/documents.php';
+require_once JINV_DIR . 'includes/paybysquare.php';
+require_once JINV_DIR . 'includes/pdf.php';
+require_once JINV_DIR . 'includes/email.php';
+require_once JINV_DIR . 'includes/account.php';
+require_once JINV_DIR . 'includes/export.php';
 require_once JINV_DIR . 'includes/view.php';
 require_once JINV_DIR . 'includes/admin.php';
 require_once JINV_DIR . 'includes/order.php';
