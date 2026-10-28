@@ -1,0 +1,20 @@
+.jinv { max-width: 1200px; }
+.jinv h1 .jinv-ver { font-size: 13px; font-weight: 400; color: #646970; }
+.jinv-tabs { display: flex; gap: 4px; padding: 4px; margin: 10px 0 18px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; width: fit-content; }
+.jinv-tabs a { padding: 8px 16px; border-radius: 7px; color: #50575E; font-weight: 600; text-decoration: none; }
+.jinv-tabs a:hover { background: #F0F0F1; color: #1D2327; }
+.jinv-tabs a.is-active { background: #7F54B3; color: #FFFFFF; }
+.jinv-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.jinv-filter input[type="search"] { min-width: 240px; }
+.jinv-table .n { text-align: right; white-space: nowrap; }
+.jinv-st { display: inline-block; padding: 2px 9px; border-radius: 999px; background: #F0F0F1; color: #50575E; font-size: 12px; font-weight: 600; }
+.jinv-st-paid { background: #E8F6EC; color: #145A2A; }
+.jinv-st-issued { background: #E5F0FF; color: #0B3D91; }
+.jinv-st-overdue { background: #FFF4E5; color: #8A4B00; }
+.jinv-st-cancelled { background: #FCE8E8; color: #8A1520; text-decoration: line-through; }
+.jinv-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.jinv-danger { color: #A3121B !important; border-color: #A3121B !important; }
+.jinv-note { flex-basis: 100%; color: #646970; font-size: 12px; }
+.jinv-panel { background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; padding: 4px 20px 6px; margin-bottom: 14px; }
+.jinv-panel h2 { margin: 14px 0 0; font-size: 15px; }
+#jinv-order-box .jinv-st { margin-left: 4px; }
