@@ -134,7 +134,7 @@ function jinv_create_from_order( $order ) {
 	);
 	$total = round( (float) $o->get_total(), 2 );
 	for ( $try = 0; $try < 5; $try++ ) {
-		$seq = 1 + (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(seq) FROM ' . jinv_table() . " WHERE kind = 'issued' AND year = %d", $year ) ); // phpcs:ignore
+		$seq = 1 + (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(seq) FROM ' . jinv_table() . " WHERE kind = 'issued' AND source = '' AND year = %d", $year ) ); // phpcs:ignore – prevzaté doklady (Woo Faktura) majú vlastné čísla
 		$num = jinv_format_number( $year, $seq, $s['format'] );
 		$ok  = $wpdb->insert( jinv_table(), array(
 			'kind'           => 'issued',

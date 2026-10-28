@@ -44,6 +44,16 @@ function jinv_opt( $k ) {
 	return isset( $s[ $k ] ) ? $s[ $k ] : null;
 }
 
+/** Záložky stránky Nastavenia: kľúč => [názov, skupiny polí]. Záložka „import“ má vlastný obsah (import.php). */
+function jinv_settings_sections() {
+	return array(
+		'dodavatel' => array( 'Dodávateľ', array( 'Dodávateľ (údaje na faktúre)', 'Platba', 'Kontakt' ) ),
+		'doklady'   => array( 'Doklady a číslovanie', array( 'Číslovanie a vystavovanie' ) ),
+		'firma'     => array( 'Nákup na firmu', array( 'Nákup na firmu' ) ),
+		'import'    => array( 'Importy údajov', array() ),
+	);
+}
+
 /** Polia nastavení: kľúč => [popis, typ, nápoveda]. */
 function jinv_setting_fields() {
 	return array(
@@ -91,9 +101,14 @@ add_action( 'admin_post_jinv_save_settings', function () {
 		wp_die( 'Nemáte oprávnenie.' );
 	}
 	check_admin_referer( 'jinv_settings' );
-	$in  = wp_unslash( $_POST );
-	$out = array();
-	foreach ( jinv_setting_fields() as $group ) {
+	$in       = wp_unslash( $_POST );
+	$sections = jinv_settings_sections();
+	$section  = isset( $in['section'] ) && isset( $sections[ $in['section'] ] ) ? $in['section'] : 'dodavatel';
+	$out      = jinv_settings(); // ukladajú sa len polia odoslanej záložky, ostatné ostávajú
+	foreach ( jinv_setting_fields() as $gname => $group ) {
+		if ( ! in_array( $gname, $sections[ $section ][1], true ) ) {
+			continue;
+		}
 		foreach ( $group as $k => $f ) {
 			if ( 'checkbox' === $f[1] ) {
 				$out[ $k ] = empty( $in[ $k ] ) ? 0 : 1;
@@ -116,6 +131,6 @@ add_action( 'admin_post_jinv_save_settings', function () {
 		$out['format'] = '{RRRR}{nnn}';
 	}
 	update_option( 'jinv_settings', $out, false );
-	wp_safe_redirect( admin_url( 'admin.php?page=j-invoices-settings&saved=1' ) );
+	wp_safe_redirect( admin_url( 'admin.php?page=j-invoices-settings&section=' . $section . '&saved=1' ) );
 	exit;
 } );

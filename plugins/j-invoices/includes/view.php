@@ -30,7 +30,7 @@ function jinv_render_invoice_html( array $inv ) {
 	<div class="jinv-doc">
 		<header class="jinv-head">
 			<div><?php if ( $logo ) : ?><img src="<?php echo esc_url( $logo ); ?>" alt="" class="jinv-logo"><?php endif; ?></div>
-			<div class="jinv-title"><h1>Faktúra</h1><p>č. <strong><?php echo esc_html( $inv['number'] ); ?></strong></p></div>
+			<div class="jinv-title"><h1><?php echo esc_html( 'proforma' === $inv['kind'] ? 'Zálohová faktúra' : ( 'creditnote' === $inv['kind'] ? 'Dobropis' : 'Faktúra' ) ); ?></h1><p>č. <strong><?php echo esc_html( $inv['number'] ); ?></strong></p></div>
 		</header>
 		<section class="jinv-parties">
 			<div>

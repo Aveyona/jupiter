@@ -31,12 +31,15 @@ function jinv_install() {
   customer_name varchar(200) NOT NULL DEFAULT '',
   customer_email varchar(200) NOT NULL DEFAULT '',
   data longtext NOT NULL,
+  source varchar(20) NOT NULL DEFAULT '',
+  file varchar(255) NOT NULL DEFAULT '',
   sent_at datetime NULL DEFAULT NULL,
   paid_at datetime NULL DEFAULT NULL,
   created_at datetime NOT NULL,
   PRIMARY KEY  (id),
   UNIQUE KEY kind_year_seq (kind,year,seq),
   KEY order_id (order_id),
+  KEY source (source),
   KEY issue_date (issue_date)
 ) $c;" );
 	update_option( 'jinv_db_version', JINV_DB_VERSION, false );
@@ -80,6 +83,6 @@ function jinv_list( $args = array() ) {
 	$w     = implode( ' AND ', $where );
 	$t     = jinv_table();
 	$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t WHERE $w" ); // phpcs:ignore
-	$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $t WHERE $w ORDER BY year DESC, seq DESC LIMIT %d OFFSET %d", $a['limit'], $a['offset'] ), ARRAY_A ); // phpcs:ignore
+	$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $t WHERE $w ORDER BY issue_date DESC, id DESC LIMIT %d OFFSET %d", $a['limit'], $a['offset'] ), ARRAY_A ); // phpcs:ignore
 	return array( 'total' => $total, 'rows' => $rows );
 }

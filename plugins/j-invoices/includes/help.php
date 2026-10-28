@@ -89,8 +89,10 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 	$guides[] = array(
 		'Prechod z doplnku Woo Faktura',
 		array(
-			'J-Fakturácia načíta existujúce faktúry, zálohové faktúry a dobropisy z Woo Faktura aj s PDF (pripravuje sa).',
-			'Číslovanie pokračuje bez medzier, staré doklady ostanú dostupné zákazníkom aj v exporte.',
+			'J-Fakturácia → Nastavenia → záložka Importy údajov: sprievodca v 4 krokoch (zistenie, prevzatie IČO/DIČ/splatnosti, skúšobný beh bez zápisu, import).',
+			'Prevezmú sa faktúry, zálohové faktúry a dobropisy s pôvodnými číslami a dátumami; pri každom je tlačidlo Pôvodné PDF (Woo Faktura). Vo Woo Faktura ani v objednávkach sa nič nemení.',
+			'Import sa dá spustiť opakovane – už prevzaté doklady sa preskočia, doplnia sa len nové. Spusti ho ešte raz tesne pred vypnutím Woo Faktury.',
+			'Nové faktúry J-Fakturácie majú vlastný číselný rad (prevzaté čísla ho neovplyvnia). Zálohové faktúry a dobropisy nájdeš vo Vydaných faktúrach vo výbere druhu dokladu.',
 			'Až potom sa Woo Faktura vypne – nedostáva aktualizácie (robená pre WooCommerce 4.9) a odkaz na faktúru v Môj účet zákazníkom nefunguje.',
 		),
 		'J-Fakturácia',

@@ -123,7 +123,9 @@ function jinv_render_list() {
 	$st   = isset( $_GET['st'] ) ? sanitize_key( $_GET['st'] ) : ''; // phpcs:ignore
 	$q    = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : ''; // phpcs:ignore
 	$pg   = max( 1, isset( $_GET['paged'] ) ? (int) $_GET['paged'] : 1 ); // phpcs:ignore
-	$res  = jinv_list( array( 'year' => $year, 'status' => $st, 's' => $q, 'limit' => 50, 'offset' => ( $pg - 1 ) * 50 ) );
+	$kinds = array( 'issued' => 'Faktúry', 'proforma' => 'Zálohové faktúry', 'creditnote' => 'Dobropisy' );
+	$kind  = isset( $_GET['doc'] ) && isset( $kinds[ $_GET['doc'] ] ) ? sanitize_key( $_GET['doc'] ) : 'issued'; // phpcs:ignore
+	$res  = jinv_list( array( 'kind' => $kind, 'year' => $year, 'status' => $st, 's' => $q, 'limit' => 50, 'offset' => ( $pg - 1 ) * 50 ) );
 	$s    = jinv_settings();
 	$miss = array();
 	foreach ( array( 'company' => 'obchodné meno', 'ico' => 'IČO', 'iban' => 'IBAN' ) as $k => $l ) {
@@ -135,6 +137,7 @@ function jinv_render_list() {
 	<?php if ( $miss ) : ?><div class="notice notice-warning"><p>V nastaveniach chýba: <strong><?php echo esc_html( implode( ', ', $miss ) ); ?></strong>. <a href="<?php echo esc_url( jinv_admin_url( array( 'tab' => 'settings' ) ) ); ?>">Doplniť údaje dodávateľa →</a></p></div><?php endif; ?>
 	<form method="get" class="jinv-filter">
 		<input type="hidden" name="page" value="j-invoices">
+		<?php if ( jinv_has_other_kinds() ) : ?><select name="doc"><?php foreach ( $kinds as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $kind, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select><?php endif; ?>
 		<input type="search" name="s" value="<?php echo esc_attr( $q ); ?>" placeholder="Číslo, odberateľ, e-mail">
 		<select name="year"><option value="0">Všetky roky</option><?php for ( $y = (int) current_time( 'Y' ); $y >= (int) current_time( 'Y' ) - 5; $y-- ) : ?><option value="<?php echo (int) $y; ?>" <?php selected( $year, $y ); ?>><?php echo (int) $y; ?></option><?php endfor; ?></select>
 		<select name="st"><option value="">Všetky stavy</option><?php foreach ( array( 'issued' => 'Vystavená', 'paid' => 'Uhradená', 'cancelled' => 'Stornovaná' ) as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $st, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
@@ -165,6 +168,12 @@ function jinv_render_list() {
 	<?php
 }
 
+/** Sú v evidencii aj zálohové faktúry alebo dobropisy (napr. po importe)? */
+function jinv_has_other_kinds() {
+	global $wpdb;
+	return (bool) $wpdb->get_var( 'SELECT 1 FROM ' . jinv_table() . " WHERE kind IN ('proforma','creditnote') LIMIT 1" ); // phpcs:ignore
+}
+
 function jinv_render_view( $id ) {
 	$inv = jinv_get( $id );
 	if ( ! $inv ) {
@@ -180,23 +189,47 @@ function jinv_render_view( $id ) {
 		<?php if ( 'paid' === $inv['status'] ) : ?><a class="button" href="<?php echo esc_url( jinv_action_url( 'unpaid', $id, $back ) ); ?>">Zrušiť úhradu</a><?php endif; ?>
 		<?php if ( 'cancelled' !== $inv['status'] ) : ?><a class="button jinv-danger" href="<?php echo esc_url( jinv_action_url( 'cancel', $id, $back ) ); ?>" onclick="return confirm('Stornovať faktúru <?php echo esc_js( $inv['number'] ); ?>? Číslo ostane obsadené.');">Stornovať</a><?php endif; ?>
 		<?php echo jinv_status_badge( $inv ); // phpcs:ignore ?>
+		<?php if ( 'woo-faktura' === $inv['source'] ) : ?>
+			<?php if ( $inv['file'] && function_exists( 'jinv_wf_file_path' ) && jinv_wf_file_path( $inv['file'] ) ) : ?><a class="button button-primary" target="_blank" href="<?php echo esc_url( jinv_wf_pdf_url( $id ) ); ?>">Pôvodné PDF (Woo Faktura)</a><?php endif; ?>
+			<span class="jinv-note">Doklad je prevzatý z Woo Faktury – platný je pôvodný PDF doklad. Náhľad nižšie je zostavený z aktuálnych údajov objednávky.</span>
+		<?php else : ?>
 		<span class="jinv-note">Odoslanie zákazníkovi e-mailom (s PDF a QR kódom) pribudne v ďalšej verzii – vždy až po tvojom potvrdení.</span>
+		<?php endif; ?>
 	</p>
 	<?php
 	echo jinv_render_invoice_html( $inv ); // phpcs:ignore
 }
 
 function jinv_render_settings() {
-	$s = jinv_settings();
+	$s        = jinv_settings();
+	$sections = jinv_settings_sections();
+	$section  = isset( $_GET['section'] ) ? sanitize_key( $_GET['section'] ) : 'dodavatel'; // phpcs:ignore
+	if ( ! isset( $sections[ $section ] ) ) {
+		$section = 'dodavatel';
+	}
+	?>
+	<nav class="jinv-tabs" aria-label="Nastavenia">
+		<?php foreach ( $sections as $key => $sec ) : ?>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=j-invoices-settings&section=' . $key ) ); ?>" class="<?php echo $key === $section ? 'is-active' : ''; ?>"><?php echo esc_html( $sec[0] ); ?></a>
+		<?php endforeach; ?>
+	</nav>
+	<?php
+	if ( 'import' === $section ) {
+		jinv_render_import();
+		return;
+	}
+	$all = jinv_setting_fields();
 	?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="jinv-settings">
 		<?php wp_nonce_field( 'jinv_settings' ); ?>
 		<input type="hidden" name="action" value="jinv_save_settings">
-		<?php foreach ( jinv_setting_fields() as $title => $fields ) : ?>
+		<input type="hidden" name="section" value="<?php echo esc_attr( $section ); ?>">
+		<?php foreach ( $sections[ $section ][1] as $title ) : ?>
+			<?php if ( empty( $all[ $title ] ) ) { continue; } ?>
 			<div class="jinv-panel">
 				<h2><?php echo esc_html( $title ); ?></h2>
 				<table class="form-table" role="presentation">
-					<?php foreach ( $fields as $k => $f ) : ?>
+					<?php foreach ( $all[ $title ] as $k => $f ) : ?>
 						<tr>
 							<th><label for="jinv-<?php echo esc_attr( $k ); ?>"><?php echo esc_html( $f[0] ); ?></label></th>
 							<td>
@@ -212,9 +245,10 @@ function jinv_render_settings() {
 				</table>
 			</div>
 		<?php endforeach; ?>
-		<p class="description">Ukážka čísla ďalšej faktúry: <strong><?php echo esc_html( jinv_format_number( (int) current_time( 'Y' ), 1, $s['format'] ) ); ?></strong>. Zmena údajov platí pre nové faktúry, vystavené ostávajú nezmenené.</p>
+		<?php if ( 'doklady' === $section ) : ?>
+			<p class="description">Ukážka čísla ďalšej faktúry: <strong><?php echo esc_html( jinv_format_number( (int) current_time( 'Y' ), 1, $s['format'] ) ); ?></strong>. Zmena platí pre nové faktúry, vystavené ostávajú nezmenené.</p>
+		<?php endif; ?>
 		<?php submit_button( 'Uložiť nastavenia' ); ?>
 	</form>
 	<?php
 }
-
