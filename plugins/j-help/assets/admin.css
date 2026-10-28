@@ -66,3 +66,6 @@
 .jhelp-card header .dashicons { background: #7F54B3; }
 .jhelp-steps li.is-soon { color: #8C8F94; }
 .jhelp h1 .jhelp-ver { font-size: 13px; font-weight: 400; color: #646970; }
+.jhelp-upd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #50575E; }
+.jhelp-err { color: #A3121B; }
+.jhelp-new { padding: 1px 8px; border-radius: 999px; background: #FCF0E3; color: #8A4B00; font-size: 11px; font-weight: 700; text-decoration: none; }

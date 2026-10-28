@@ -72,6 +72,12 @@ function jhelp_tab_overview() {
 		<p><strong>Jupiter</strong> je rodina otvorených doplnkov pre <strong>WooCommerce</strong> pre malé slovenské e-shopy – faktúry, sklad a jednoduché účtovníctvo. Všetky doplnky začínajú písmenom <strong>J</strong> a v menu administrácie sú spolu hneď pod položkou <strong>Marketing</strong>.</p>
 		<p>Zdrojový kód je verejný na GitHube: <a href="https://github.com/Aveyona/jupiter" target="_blank" rel="noopener">github.com/Aveyona/jupiter</a> (licencia GPL-2.0-or-later).</p>
 		<p class="jhelp-count"><span><?php echo (int) count( $plugins ); ?></span> doplnkov · <span><?php echo (int) $active; ?></span> zapnutých</p>
+		<?php $remote = jhelp_remote_versions(); $err = get_site_option( 'jhelp_releases_error' ); ?>
+		<p class="jhelp-upd">Aktualizácie sa preberajú z GitHubu (vydania <a href="https://github.com/Aveyona/jupiter/releases" target="_blank" rel="noopener">Aveyona/jupiter</a>) – nová verzia sa ukáže v Pluginoch ako „Dostupná aktualizácia“ na každom webe, kde je J-Pomocník.
+			<?php if ( current_user_can( 'update_plugins' ) ) : ?><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=jhelp_check_updates' ), 'jhelp_check_updates' ) ); ?>">Skontrolovať aktualizácie teraz</a><?php endif; ?>
+			<?php if ( isset( $_GET['checked'] ) ) : // phpcs:ignore ?><strong>Skontrolované.</strong><?php endif; ?>
+			<?php if ( $err ) : ?><br><span class="jhelp-err">GitHub sa nepodarilo načítať: <?php echo esc_html( $err ); ?></span><?php endif; ?>
+		</p>
 	</div>
 	<div class="jhelp-grid">
 		<?php foreach ( $plugins as $slug => $p ) : $inst = isset( $installed[ $slug ] ) ? $installed[ $slug ] : null; $link = $inst && $inst['active'] && 'j-help' !== $slug ? jhelp_admin_link( $slug ) : ''; ?>
@@ -81,6 +87,7 @@ function jhelp_tab_overview() {
 					<h3><?php echo esc_html( $p['name'] ); ?></h3>
 					<?php if ( $inst ) : ?>
 						<span class="jhelp-ver">v<?php echo esc_html( $inst['version'] ); ?></span>
+						<?php if ( ! empty( $remote[ $slug ] ) && version_compare( $remote[ $slug ]['version'], $inst['version'], '>' ) ) : ?><a class="jhelp-new" href="<?php echo esc_url( admin_url( 'plugins.php?plugin_status=upgrade' ) ); ?>">nová v<?php echo esc_html( $remote[ $slug ]['version'] ); ?></a><?php endif; ?>
 						<span class="jhelp-state <?php echo $inst['active'] ? 'is-on' : ''; ?>"><?php echo $inst['active'] ? 'zapnutý' : 'vypnutý'; ?></span>
 					<?php else : ?>
 						<span class="jhelp-state"><?php echo esc_html( isset( $statuses[ $p['status'] ] ) ? $statuses[ $p['status'] ] : 'nenainštalovaný' ); ?></span>
