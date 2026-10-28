@@ -1,0 +1,23 @@
+name: Vydanie – ZIP doplnku
+# Značka v tvare <doplnok>-v<verzia>, napr. j-invoices-v1.0.0
+on:
+  push:
+    tags: ['j-*-v*']
+permissions:
+  contents: write
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zostavenie ZIP
+        id: b
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          plugin="${tag%-v*}"
+          test -d "plugins/$plugin"
+          (cd plugins && zip -r "../$tag.zip" "$plugin" -x '*.git*')
+          echo "zip=$tag.zip" >> "$GITHUB_OUTPUT"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.b.outputs.zip }}
