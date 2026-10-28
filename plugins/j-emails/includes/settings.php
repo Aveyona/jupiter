@@ -20,6 +20,7 @@ function jem_defaults() {
 		'trash_folder' => '',
 		'per_page'     => 30,
 		'signature'    => '',
+		'site_mail'    => 1,
 	);
 }
 
@@ -156,6 +157,7 @@ add_action( 'admin_post_jem_save_settings', function () {
 		$new[ $k ] = in_array( $in[ $k ] ?? '', array( 'ssl', 'tls', 'none' ), true ) ? $in[ $k ] : 'ssl';
 	}
 	$new['signature'] = sanitize_textarea_field( $in['signature'] ?? '' );
+	$new['site_mail'] = empty( $in['site_mail'] ) ? 0 : 1;
 	if ( isset( $in['pass'] ) && '' !== $in['pass'] ) {
 		$new['pass'] = jem_encrypt( $in['pass'] );
 	}
@@ -166,6 +168,29 @@ add_action( 'admin_post_jem_save_settings', function () {
 	delete_transient( 'jem_folders' );
 	delete_transient( 'jem_unseen' );
 	wp_safe_redirect( admin_url( 'admin.php?page=j-emails-settings&saved=1' ) );
+	exit;
+} );
+
+/** Skúšobný e-mail cez wp_mail (ako e-maily webu a e-shopu) do vlastnej schránky. */
+add_action( 'admin_post_jem_test_mail', function () {
+	if ( ! current_user_can( 'manage_options' ) || ! check_admin_referer( 'jem_test_mail' ) ) {
+		wp_die( 'Nemáte oprávnenie.' );
+	}
+	$to      = (string) jem_opt( 'email' );
+	$headers = array();
+	$woo     = (string) get_option( 'woocommerce_email_from_address' );
+	if ( is_email( $woo ) ) {
+		$headers[] = 'From: ' . wp_specialchars_decode( (string) get_option( 'woocommerce_email_from_name', get_bloginfo( 'name' ) ) ) . ' <' . $woo . '>';
+	}
+	$err = '';
+	$cb  = function ( $e ) use ( &$err ) {
+		$err = $e->get_error_message();
+	};
+	add_action( 'wp_mail_failed', $cb );
+	$ok = wp_mail( $to, 'Skúšobný e-mail z webu ' . wp_parse_url( home_url(), PHP_URL_HOST ), "Tento e-mail poslal web cez J-Emails, rovnako ako e-maily objednávok.\n\nOdoslané: " . wp_date( 'j. n. Y H:i' ), $headers );
+	remove_action( 'wp_mail_failed', $cb );
+	set_transient( 'jem_test_' . get_current_user_id(), array( $ok ? array( 'ok', 'Skúšobný e-mail je odoslaný na ' . $to . ( $headers ? ' (odosielateľ ' . $woo . ')' : '' ) . '. Po chvíli ho uvidíte v Doručenej pošte.' ) : array( 'err', 'Skúšobný e-mail sa nepodarilo odoslať: ' . $err ) ), 300 );
+	wp_safe_redirect( admin_url( 'admin.php?page=j-emails-settings&tested=1' ) );
 	exit;
 } );
 
@@ -248,6 +273,10 @@ function jem_render_settings() {
 			<?php $field( 'smtp_host', 'Server' ); ?>
 			<tr><th>Port a šifrovanie</th><td><input type="number" name="jem[smtp_port]" value="<?php echo esc_attr( (string) $s['smtp_port'] ); ?>" class="small-text"> <?php $secure( 'smtp_secure' ); ?></td></tr>
 		</table>
+		<h2>E-maily webu</h2>
+		<table class="form-table" role="presentation">
+			<tr><th>Odosielanie e-mailov webu</th><td><label><input type="checkbox" name="jem[site_mail]" value="1" <?php checked( ! empty( $s['site_mail'] ) ); ?>> Všetky e-maily webu (objednávky, faktúry, registrácia, obnova hesla) posielať cez túto schránku</label><p class="description">E-maily sa tak nedostanú do spamu. Odosielateľ z inej domény (napr. gmail) sa nahradí adresou schránky; adresy tej istej domény (napr. eshop@) ostanú.</p></td></tr>
+		</table>
 		<h2>Zobrazenie a podpis</h2>
 		<table class="form-table" role="presentation">
 			<tr><th>Správ na stránku</th><td><input type="number" name="jem[per_page]" min="5" max="100" value="<?php echo esc_attr( (string) $s['per_page'] ); ?>" class="small-text"></td></tr>
@@ -260,6 +289,12 @@ function jem_render_settings() {
 		<?php wp_nonce_field( 'jem_test' ); ?>
 		<p><strong>Test pripojenia</strong> – overí prihlásenie na prijímanie aj odosielanie pošty s uloženými nastaveniami.</p>
 		<?php submit_button( 'Otestovať pripojenie', 'secondary', 'submit', false ); ?>
+	</form>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="jem-panel jem-test">
+		<input type="hidden" name="action" value="jem_test_mail">
+		<?php wp_nonce_field( 'jem_test_mail' ); ?>
+		<p><strong>Skúšobný e-mail</strong> – web pošle e-mail do tejto schránky rovnakou cestou ako e-maily objednávok (overí odosielanie e-mailov webu).</p>
+		<?php submit_button( 'Poslať skúšobný e-mail', 'secondary', 'submit', false ); ?>
 	</form>
 	<?php
 }

@@ -108,3 +108,30 @@ function jem_send( array $d ) {
 	}
 	return true;
 }
+
+/**
+ * Všetky e-maily webu (wp_mail – WooCommerce, faktúry, registrácia…) cez SMTP schránky.
+ * Odosielateľ z cudzej domény sa nahradí adresou schránky (inak by správy padali do spamu).
+ */
+add_action( 'phpmailer_init', function ( $m ) {
+	if ( ! jem_configured() || ! jem_opt( 'site_mail' ) ) {
+		return;
+	}
+	$s = jem_settings();
+	$m->isSMTP();
+	$m->Host        = $s['smtp_host'];
+	$m->Port        = (int) $s['smtp_port'];
+	$m->SMTPAuth    = true;
+	$m->Username    = '' !== $s['user'] ? $s['user'] : $s['email'];
+	$m->Password    = jem_decrypt( $s['pass'] );
+	$m->SMTPSecure  = 'ssl' === $s['smtp_secure'] ? 'ssl' : ( 'tls' === $s['smtp_secure'] ? 'tls' : '' );
+	$m->SMTPAutoTLS = 'none' !== $s['smtp_secure'];
+	$m->Timeout     = 20;
+	$domain         = strtolower( substr( strrchr( $s['email'], '@' ), 1 ) );
+	$from_domain    = strtolower( substr( strrchr( (string) $m->From, '@' ), 1 ) );
+	if ( $from_domain !== $domain ) {
+		$name = $m->FromName && 'WordPress' !== $m->FromName ? $m->FromName : $s['name'];
+		$m->setFrom( $s['email'], $name, false );
+	}
+	$m->Sender = $s['email'];
+}, 20 );
