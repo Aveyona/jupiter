@@ -33,9 +33,11 @@ function jord_search_ids( $term ) {
 	if ( $id ) {
 		$ids[] = $id;
 	}
-	$store = WC_Data_Store::load( 'order' );
-	if ( method_exists( $store, 'search_orders' ) ) {
-		$ids = array_merge( $ids, array_map( 'absint', (array) $store->search_orders( $term ) ) );
+	// WC_Data_Store odovzdáva volania cez __call – method_exists by vrátilo false, preto priamo s ochranou.
+	try {
+		$ids = array_merge( $ids, array_map( 'absint', (array) WC_Data_Store::load( 'order' )->search_orders( $term ) ) );
+	} catch ( Throwable $e ) {
+		unset( $e );
 	}
 	return array_values( array_unique( array_filter( $ids ) ) );
 }
