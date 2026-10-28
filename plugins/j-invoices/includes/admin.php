@@ -281,6 +281,7 @@ function jinv_render_settings() {
 		<?php endforeach; ?>
 		<?php if ( 'doklady' === $section ) : ?>
 			<p class="description">Ukážka čísla ďalšej faktúry: <strong><?php echo esc_html( 'order' === $s['numbering'] ? 'ako objednávka (napr. ' . ( ( $lo = wc_get_orders( array( 'limit' => 1, 'type' => 'shop_order' ) ) ) ? $lo[0]->get_order_number() : '1234' ) . ')' : jinv_next_number( 'issued', null, (int) current_time( 'Y' ) )[0] ); ?></strong>. Zmena platí pre nové doklady, vystavené ostávajú nezmenené.</p>
+			<p>Ukážka PDF z poslednej objednávky (nič sa neuloží ani neodošle): <a class="button" target="_blank" href="<?php echo esc_url( jinv_pdf_sample_url( 'issued' ) ); ?>">Faktúra</a> <a class="button" target="_blank" href="<?php echo esc_url( jinv_pdf_sample_url( 'proforma' ) ); ?>">Zálohová faktúra s QR</a></p>
 		<?php endif; ?>
 		<?php submit_button( 'Uložiť nastavenia' ); ?>
 	</form>

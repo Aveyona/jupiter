@@ -70,6 +70,22 @@ function jinv_pdf_lib() {
 	if ( ! class_exists( 'JINV_PDF' ) ) {
 		require_once JINV_DIR . 'includes/pdf-class.php';
 	}
+	// Vyrovnávacia pamäť písiem tFPDF obsahuje absolútnu cestu k písmu – po presune doplnku (iný server/priečinok) sa zmaže.
+	// Súbory sa načítavajú cez include – OPcache by mohol držať starú verziu, preto sa vždy zneplatnia.
+	$cache = glob( JINV_DIR . 'lib/tfpdf/font/unifont/dejavu*.mtx.php' );
+	foreach ( (array) glob( JINV_DIR . 'lib/tfpdf/font/unifont/dejavu*.php' ) as $php ) {
+		if ( function_exists( 'opcache_invalidate' ) ) {
+			@opcache_invalidate( $php, true ); // phpcs:ignore
+		}
+	}
+	foreach ( (array) $cache as $mtx ) {
+		if ( false === strpos( (string) file_get_contents( $mtx ), JINV_DIR ) ) { // phpcs:ignore
+			foreach ( (array) glob( JINV_DIR . 'lib/tfpdf/font/unifont/dejavu*' ) as $f ) {
+				@unlink( $f ); // phpcs:ignore
+			}
+			break;
+		}
+	}
 }
 
 /** Obsah PDF dokladu (reťazec). Prevzatý doklad z Woo Faktura → pôvodné PDF. */
@@ -116,6 +132,34 @@ add_action( 'admin_post_jinv_pdf', function () {
 	}
 	jinv_pdf_send( $inv, empty( $_GET['download'] ) ); // phpcs:ignore
 } );
+
+// Ukážka PDF z poslednej objednávky (nič sa neuloží) – kontrola údajov dodávateľa, vzhľadu a QR kódu.
+add_action( 'admin_post_jinv_pdf_sample', function () {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		wp_die( 'Nemáte oprávnenie.' );
+	}
+	check_admin_referer( 'jinv_pdf_sample' );
+	$kind   = isset( $_GET['kind'] ) && isset( jinv_kinds()[ $_GET['kind'] ] ) ? sanitize_key( $_GET['kind'] ) : 'issued'; // phpcs:ignore
+	$orders = wc_get_orders( array( 'limit' => 1, 'type' => 'shop_order', 'orderby' => 'date', 'order' => 'DESC' ) );
+	if ( ! $orders ) {
+		wp_die( 'Na ukážku je potrebná aspoň jedna objednávka.' );
+	}
+	$o     = $orders[0];
+	$today = current_time( 'Y-m-d' );
+	$num   = 'order' === jinv_opt( 'numbering' ) ? (string) $o->get_order_number() : jinv_next_number( $kind, null, (int) current_time( 'Y' ) )[0];
+	$items = jinv_items_from_order( $o );
+	$inv   = array(
+		'id' => 0, 'kind' => $kind, 'number' => $num, 'status' => 'issued', 'issue_date' => $today, 'supply_date' => $today,
+		'due_date' => gmdate( 'Y-m-d', strtotime( $today . ' +' . (int) jinv_opt( 'due_days' ) . ' days' ) ), 'vs' => preg_replace( '/\D/', '', $num ),
+		'currency' => $o->get_currency(), 'total' => round( (float) $o->get_total(), 2 ), 'paid_at' => null, 'source' => '', 'file' => '',
+		'data' => array( 'supplier' => jinv_supplier_snapshot(), 'customer' => jinv_customer_from_order( $o ), 'items' => $items, 'payment' => $o->get_payment_method_title(), 'pay_code' => $o->get_payment_method(), 'order_no' => $o->get_order_number(), 'note' => 'UKÁŽKA – nie je to vystavený doklad.' ),
+	);
+	jinv_pdf_send( $inv, true );
+} );
+
+function jinv_pdf_sample_url( $kind = 'issued' ) {
+	return wp_nonce_url( admin_url( 'admin-post.php?action=jinv_pdf_sample&kind=' . $kind ), 'jinv_pdf_sample' );
+}
 
 function jinv_pdf_url( $id, $download = false ) {
 	return wp_nonce_url( admin_url( 'admin-post.php?action=jinv_pdf&id=' . (int) $id . ( $download ? '&download=1' : '' ) ), 'jinv_pdf_' . (int) $id );
