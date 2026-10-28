@@ -65,3 +65,4 @@
 .jhelp-ms::before { background: linear-gradient(180deg, #145A2A, #7F54B3, #C3C4C7); }
 .jhelp-card header .dashicons { background: #7F54B3; }
 .jhelp-steps li.is-soon { color: #8C8F94; }
+.jhelp h1 .jhelp-ver { font-size: 13px; font-weight: 400; color: #646970; }

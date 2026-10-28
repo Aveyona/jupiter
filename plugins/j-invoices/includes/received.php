@@ -185,7 +185,7 @@ function jinv_render_received() {
 	</div>
 	<p><a class="button button-primary" href="<?php echo esc_url( jinv_admin_url( array( 'tab' => 'received', 'edit' => 'new' ) ) ); ?>">+ Pridať prijatú faktúru</a></p>
 	<form method="get" class="jinv-filter">
-		<input type="hidden" name="page" value="j-invoices"><input type="hidden" name="tab" value="received">
+		<input type="hidden" name="page" value="j-invoices-received">
 		<input type="search" name="s" value="<?php echo esc_attr( $q ); ?>" placeholder="Dodávateľ, číslo faktúry">
 		<select name="year"><option value="0">Všetky roky</option><?php for ( $y = (int) current_time( 'Y' ); $y >= (int) current_time( 'Y' ) - 5; $y-- ) : ?><option value="<?php echo (int) $y; ?>" <?php selected( $year, $y ); ?>><?php echo (int) $y; ?></option><?php endfor; ?></select>
 		<button class="button">Filtrovať</button>

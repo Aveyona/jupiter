@@ -103,6 +103,6 @@ add_action( 'admin_post_jinv_save_settings', function () {
 		$out['format'] = '{RRRR}{nnn}';
 	}
 	update_option( 'jinv_settings', $out, false );
-	wp_safe_redirect( admin_url( 'admin.php?page=j-invoices&tab=settings&saved=1' ) );
+	wp_safe_redirect( admin_url( 'admin.php?page=j-invoices-settings&saved=1' ) );
 	exit;
 } );

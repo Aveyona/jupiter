@@ -9,7 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'admin_menu', function () {
 	add_menu_page( 'J-Pomocník', 'J-Pomocník', 'manage_woocommerce', 'j-help', 'jhelp_render_admin', 'dashicons-sos', 58 );
-	add_submenu_page( 'j-help', 'J-Pomocník – Prehľad', 'Prehľad', 'manage_woocommerce', 'j-help', 'jhelp_render_admin' );
+	add_submenu_page( 'j-help', 'Prehľad', 'Prehľad', 'manage_woocommerce', 'j-help', 'jhelp_render_admin' );
+	add_submenu_page( 'j-help', 'Návody', 'Návody', 'manage_woocommerce', 'j-help-guides', function () {
+		jhelp_render_admin( 'guides' );
+	} );
+	add_submenu_page( 'j-help', 'Plán vývoja', 'Plán vývoja', 'manage_woocommerce', 'j-help-roadmap', function () {
+		jhelp_render_admin( 'roadmap' );
+	} );
 } );
 
 /** Je položka menu doplnkom Jupiter? */

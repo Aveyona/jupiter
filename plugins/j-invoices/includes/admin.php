@@ -7,8 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'admin_menu', function () {
 	add_menu_page( 'J-Fakturácia', 'J-Fakturácia', 'manage_woocommerce', 'j-invoices', 'jinv_render_admin', 'dashicons-media-spreadsheet', 58 );
 	add_submenu_page( 'j-invoices', 'Vydané faktúry', 'Vydané faktúry', 'manage_woocommerce', 'j-invoices', 'jinv_render_admin' );
-	add_submenu_page( 'j-invoices', 'Prijaté faktúry', 'Prijaté faktúry', 'manage_woocommerce', 'j-invoices&tab=received', '__return_null' );
-	add_submenu_page( 'j-invoices', 'Nastavenia faktúr', 'Nastavenia', 'manage_woocommerce', 'j-invoices&tab=settings', '__return_null' );
+	add_submenu_page( 'j-invoices', 'Prijaté faktúry', 'Prijaté faktúry', 'manage_woocommerce', 'j-invoices-received', function () {
+		jinv_render_admin( 'received' );
+	} );
+	add_submenu_page( 'j-invoices', 'Nastavenia', 'Nastavenia', 'manage_woocommerce', 'j-invoices-settings', function () {
+		jinv_render_admin( 'settings' );
+	} );
 } );
 
 add_action( 'admin_enqueue_scripts', function ( $hook ) {
@@ -18,8 +22,15 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
 	}
 } );
 
+/** Adresa stránky J-Fakturácie; 'tab' => received|settings vyberie samostatnú stránku. */
 function jinv_admin_url( $args = array() ) {
-	return add_query_arg( $args, admin_url( 'admin.php?page=j-invoices' ) );
+	$pages = array( 'received' => 'j-invoices-received', 'settings' => 'j-invoices-settings' );
+	$page  = 'j-invoices';
+	if ( isset( $args['tab'] ) ) {
+		$page = isset( $pages[ $args['tab'] ] ) ? $pages[ $args['tab'] ] : 'j-invoices';
+		unset( $args['tab'] );
+	}
+	return add_query_arg( $args, admin_url( 'admin.php?page=' . $page ) );
 }
 
 // Akcie s faktúrou: uhradená / storno / vystaviť k objednávke.
@@ -67,11 +78,13 @@ function jinv_status_badge( array $inv ) {
 	return '<span class="jinv-st jinv-st-' . esc_attr( $st ) . '">' . esc_html( isset( $l[ $st ] ) ? $l[ $st ] : $st ) . '</span>';
 }
 
-function jinv_render_admin() {
+/** Každá podpoložka J-Fakturácie je samostatná stránka: issued (Vydané faktúry), received (Prijaté faktúry), settings (Nastavenia). */
+function jinv_render_admin( $tab = 'issued' ) {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
 		return;
 	}
-	$tab  = isset( $_GET['tab'] ) && in_array( $_GET['tab'], array( 'settings', 'received' ), true ) ? sanitize_key( $_GET['tab'] ) : 'issued'; // phpcs:ignore
+	$tab    = in_array( $tab, array( 'issued', 'received', 'settings' ), true ) ? $tab : 'issued';
+	$titles = array( 'issued' => 'Vydané faktúry', 'received' => 'Prijaté faktúry', 'settings' => 'Nastavenia' );
 	$view = isset( $_GET['view'] ) ? (int) $_GET['view'] : 0; // phpcs:ignore
 	$msgs = array(
 		'created'   => 'Faktúra je vystavená.',
@@ -87,14 +100,9 @@ function jinv_render_admin() {
 	$msg  = isset( $_GET['jinv_msg'] ) ? sanitize_key( $_GET['jinv_msg'] ) : ''; // phpcs:ignore
 	?>
 	<div class="wrap jinv">
-		<h1>J-Fakturácia <span class="jinv-ver">v<?php echo esc_html( JINV_VERSION ); ?></span></h1>
+		<h1><?php echo esc_html( $titles[ $tab ] ); ?> <span class="jinv-ver">J-Fakturácia v<?php echo esc_html( JINV_VERSION ); ?></span></h1>
 		<?php if ( isset( $msgs[ $msg ] ) ) : ?><div class="notice notice-<?php echo 'err' === $msg ? 'error' : 'success'; ?> is-dismissible"><p><?php echo esc_html( $msgs[ $msg ] ); ?></p></div><?php endif; ?>
 		<?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore ?><div class="notice notice-success is-dismissible"><p>Nastavenia sú uložené.</p></div><?php endif; ?>
-		<nav class="jinv-tabs">
-			<a href="<?php echo esc_url( jinv_admin_url() ); ?>" class="<?php echo 'issued' === $tab ? 'is-active' : ''; ?>">Vydané faktúry</a>
-			<a href="<?php echo esc_url( jinv_admin_url( array( 'tab' => 'received' ) ) ); ?>" class="<?php echo 'received' === $tab ? 'is-active' : ''; ?>">Prijaté faktúry</a>
-			<a href="<?php echo esc_url( jinv_admin_url( array( 'tab' => 'settings' ) ) ); ?>" class="<?php echo 'settings' === $tab ? 'is-active' : ''; ?>">Nastavenia</a>
-		</nav>
 		<?php
 		if ( 'settings' === $tab ) {
 			jinv_render_settings();
@@ -210,10 +218,3 @@ function jinv_render_settings() {
 	<?php
 }
 
-// Zvýraznenie správnej podpoložky menu (Prijaté faktúry / Nastavenia).
-add_filter( 'submenu_file', function ( $file ) {
-	if ( isset( $_GET['page'] ) && 'j-invoices' === $_GET['page'] && isset( $_GET['tab'] ) && in_array( $_GET['tab'], array( 'received', 'settings' ), true ) ) { // phpcs:ignore
-		return 'j-invoices&tab=' . sanitize_key( $_GET['tab'] ); // phpcs:ignore
-	}
-	return $file;
-} );

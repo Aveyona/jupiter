@@ -31,19 +31,15 @@ function jhelp_admin_link( $slug ) {
 	return '';
 }
 
-function jhelp_render_admin() {
+/** Každá podpoložka J-Pomocníka je samostatná stránka: overview (Prehľad), guides (Návody), roadmap (Plán vývoja). */
+function jhelp_render_admin( $tab = 'overview' ) {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
 		return;
 	}
-	$tab = isset( $_GET['tab'] ) && isset( jhelp_tabs()[ $_GET['tab'] ] ) ? sanitize_key( $_GET['tab'] ) : 'overview'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$tab = is_string( $tab ) && isset( jhelp_tabs()[ $tab ] ) ? $tab : 'overview';
 	?>
 	<div class="wrap jhelp">
-		<h1>J-Pomocník</h1>
-		<nav class="jhelp-tabs" aria-label="Sekcie J-Pomocník">
-			<?php foreach ( jhelp_tabs() as $k => $label ) : ?>
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=j-help&tab=' . $k ) ); ?>" class="<?php echo $k === $tab ? 'is-active' : ''; ?>"<?php echo $k === $tab ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $label ); ?></a>
-			<?php endforeach; ?>
-		</nav>
+		<h1><?php echo esc_html( jhelp_tabs()[ $tab ] ); ?> <span class="jhelp-ver">J-Pomocník</span></h1>
 		<?php
 		if ( 'guides' === $tab ) {
 			jhelp_tab_guides();
@@ -122,6 +118,7 @@ function jhelp_tab_guides() {
 			array(
 				'Všetky doplnky Jupiter sú spolu hneď pod položkou WooCommerce Marketing.',
 				'Doplnky sú zoradené podľa abecedy, J-Pomocník je vždy posledný.',
+				'Každá podpoložka doplnku (napr. Vydané faktúry, Prijaté faktúry, Nastavenia) je samostatná stránka v menu.',
 				'Doplnky vidí používateľ s oprávnením spravovať WooCommerce (Správca obchodu alebo Administrátor).',
 			),
 		),
