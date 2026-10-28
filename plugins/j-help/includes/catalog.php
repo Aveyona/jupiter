@@ -33,7 +33,13 @@ function jhelp_plugins() {
 		'j-invoices' => array(
 			'name'   => 'J-Invoices',
 			'icon'   => 'dashicons-media-spreadsheet',
-			'what'   => 'Faktúry: vydané faktúry z objednávok WooCommerce (číselný rad, PDF, QR kód PAY by square, e-mail zákazníkovi), ručné faktúry a dobropisy, prijaté faktúry s prílohami a splatnosťou, export pre účtovníka.',
+			'what'   => 'Faktúry: vydané faktúry z objednávok WooCommerce (číselný rad RRRRnnn, splatnosť 14 dní, PDF, QR kód PAY by square; zákazníkovi sa pošlú e-mailom po tvojom potvrdení), ručné faktúry a dobropisy, prijaté faktúry s prílohami a splatnosťou, export pre účtovníka.',
+			'status' => 'planned',
+		),
+		'j-emails'   => array(
+			'name'   => 'J-Emails',
+			'icon'   => 'dashicons-email-alt',
+			'what'   => 'E-maily: správca e-mailovej schránky obchodu priamo v administrácii (prijaté a odoslané správy, odpovede zákazníkom) a prepojenie s Mailchimpom pre zákazníkov (zoznam odberateľov, súhlasy, kampane).',
 			'status' => 'planned',
 		),
 		'j-sklad'    => array(
@@ -67,7 +73,8 @@ function jhelp_roadmap() {
 			'points' => array(
 				'Faktúra vznikne z objednávky: pri prevode po zaplatení, pri dobierke a osobnom odbere po vybavení.',
 				'Ročný číselný rad bez medzier, dátum vystavenia, dodania a splatnosti, variabilný symbol, text pre neplatiteľa DPH.',
-				'PDF s logom a QR kódom PAY by square, e-mail zákazníkovi a faktúra aj v jeho účte.',
+				'PDF s logom a QR kódom PAY by square; faktúra je aj v účte zákazníka.',
+				'E-mailom sa faktúra pošle zákazníkovi až po tvojom potvrdení (tlačidlo Odoslať).',
 			),
 		),
 		array(
@@ -92,6 +99,15 @@ function jhelp_roadmap() {
 			'points' => array(
 				'Mesačný prehľad vydaných a prijatých faktúr.',
 				'Export za obdobie: tabuľka (XLSX/CSV) a ZIP so všetkými PDF.',
+			),
+		),
+		array(
+			'title'  => 'J-Emails – schránka a Mailchimp',
+			'state'  => 'next',
+			'points' => array(
+				'Správca e-mailovej schránky obchodu v administrácii: prijaté a odoslané správy, odpovede zákazníkom.',
+				'Mailchimp: synchronizácia zákazníkov so súhlasom, zoznamy a kampane.',
+				'Odosielanie faktúr a e-mailov e-shopu cez J-Emails.',
 			),
 		),
 		array(

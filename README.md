@@ -7,7 +7,8 @@
 | Doplnok | Stav | Na čo slúži |
 |---|---|---|
 | **J-Help** | vo vývoji | Dokumentácia doplnkov Jupiter priamo v administrácii – prehľad, návody, vývoj. |
-| **J-Invoices** | plánovaný | Vydané faktúry z objednávok (číselný rad, PDF, QR PAY by square, e-mail zákazníkovi), ručné faktúry, dobropisy, prijaté faktúry s prílohami a splatnosťou, export pre účtovníka. |
+| **J-Invoices** | plánovaný | Vydané faktúry z objednávok (číselný rad, PDF, QR PAY by square, e-mail zákazníkovi po potvrdení), ručné faktúry, dobropisy, prijaté faktúry s prílohami a splatnosťou, export pre účtovníka. |
+| **J-Emails** | plánovaný | Správca e-mailovej schránky obchodu v administrácii a prepojenie s Mailchimpom pre zákazníkov. |
 | J-Sklad | nápad | Príjemky, výdajky, inventúra. |
 
 ## Požiadavky
