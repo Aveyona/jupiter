@@ -17,6 +17,21 @@ function jinv_format_number( $year, $seq, $format = null ) {
 	return strtr( $format, $map );
 }
 
+/**
+ * Prvá neprázdna hodnota z viacerých polí objednávky.
+ * IČO/DIČ/IČ DPH ukladajú rôzne doplnky pod rôznymi kľúčmi (napr. Woo Faktura: billing_company_wi_id / _wi_tax / _wi_vat).
+ */
+function jinv_order_meta_any( WC_Order $o, array $keys ) {
+	$keys = apply_filters( 'jinv_order_meta_keys', $keys, $o );
+	foreach ( $keys as $k ) {
+		$v = trim( (string) $o->get_meta( $k ) );
+		if ( '' !== $v ) {
+			return $v;
+		}
+	}
+	return '';
+}
+
 /** Snímka odberateľa z objednávky. */
 function jinv_customer_from_order( WC_Order $o ) {
 	$name = trim( $o->get_billing_first_name() . ' ' . $o->get_billing_last_name() );
@@ -27,9 +42,9 @@ function jinv_customer_from_order( WC_Order $o ) {
 		'zip'     => $o->get_billing_postcode(),
 		'city'    => $o->get_billing_city(),
 		'country' => WC()->countries && isset( WC()->countries->countries[ $o->get_billing_country() ] ) ? WC()->countries->countries[ $o->get_billing_country() ] : $o->get_billing_country(),
-		'ico'     => (string) $o->get_meta( '_billing_ico' ),
-		'dic'     => (string) $o->get_meta( '_billing_dic' ),
-		'icdph'   => (string) $o->get_meta( '_billing_icdph' ),
+		'ico'     => jinv_order_meta_any( $o, array( '_billing_ico', 'billing_ico', '_billing_company_wi_id', 'billing_company_wi_id' ) ),
+		'dic'     => jinv_order_meta_any( $o, array( '_billing_dic', 'billing_dic', '_billing_company_wi_tax', 'billing_company_wi_tax' ) ),
+		'icdph'   => jinv_order_meta_any( $o, array( '_billing_icdph', 'billing_icdph', '_billing_company_wi_vat', 'billing_company_wi_vat' ) ),
 		'email'   => $o->get_billing_email(),
 		'phone'   => $o->get_billing_phone(),
 	);
