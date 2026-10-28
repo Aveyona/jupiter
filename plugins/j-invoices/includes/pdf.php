@@ -60,6 +60,25 @@ function jinv_doc_paybysquare( array $inv ) {
 	) );
 }
 
+/** Cesta k logu pre PDF (PNG/JPG): nastavenie „Logo na doklade“ (adresa z Knižnice médií), inak logo webu. */
+function jinv_logo_path() {
+	$url  = trim( (string) jinv_opt( 'logo' ) );
+	$path = '';
+	if ( '' !== $url ) {
+		$up  = wp_upload_dir();
+		$rel = str_replace( array( 'https:', 'http:' ), '', (string) $up['baseurl'] );
+		$u   = str_replace( array( 'https:', 'http:' ), '', $url );
+		if ( 0 === strpos( $u, $rel ) ) {
+			$path = $up['basedir'] . substr( $u, strlen( $rel ) );
+		}
+	}
+	if ( ! $path ) {
+		$id   = (int) get_theme_mod( 'custom_logo' );
+		$path = $id ? (string) get_attached_file( $id ) : '';
+	}
+	return ( $path && is_file( $path ) && preg_match( '/\.(png|jpe?g)$/i', $path ) ) ? $path : '';
+}
+
 function jinv_pdf_lib() {
 	if ( ! class_exists( 'tFPDF' ) ) {
 		require_once JINV_DIR . 'lib/tfpdf/tfpdf.php';

@@ -72,12 +72,8 @@ class JINV_PDF extends tFPDF {
 	}
 
 	protected function logo() {
-		$id = (int) get_theme_mod( 'custom_logo' );
-		if ( ! $id ) {
-			return 0;
-		}
-		$path = get_attached_file( $id );
-		if ( ! $path || ! is_file( $path ) || ! preg_match( '/\.(png|jpe?g)$/i', $path ) ) {
+		$path = jinv_logo_path();
+		if ( ! $path ) {
 			return 0;
 		}
 		$size = @getimagesize( $path ); // phpcs:ignore

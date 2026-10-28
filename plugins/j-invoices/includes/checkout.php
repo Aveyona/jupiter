@@ -190,3 +190,13 @@ add_filter( 'woocommerce_localisation_address_formats', function ( $formats ) {
 	}
 	return $formats;
 } );
+
+/** Predvyplnenie IČO / DIČ / IČ DPH v pokladni zo starších polí Woo Faktury (zákazník ich vyplnil ešte pred prechodom). */
+add_filter( 'woocommerce_checkout_get_value', function ( $value, $input ) {
+	$map = array( 'billing_ico' => 'billing_company_wi_id', 'billing_dic' => 'billing_company_wi_tax', 'billing_icdph' => 'billing_company_wi_vat' );
+	if ( ( null !== $value && '' !== $value ) || ! isset( $map[ $input ] ) || ! is_user_logged_in() || ! jinv_company_fields_on() ) {
+		return $value;
+	}
+	$old = trim( (string) get_user_meta( get_current_user_id(), $map[ $input ], true ) );
+	return '' !== $old ? $old : $value;
+}, 10, 2 );

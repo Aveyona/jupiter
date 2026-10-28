@@ -42,6 +42,7 @@ function jinv_defaults() {
 		'company_fields'   => 1,         // pokladňa: Nakupujem na firmu + IČO, DIČ, IČ DPH
 		'company_required' => 0,         // pri nákupe na firmu sú IČO a názov firmy povinné
 		'issued_by'    => '',
+		'logo'         => '',             // adresa obrázka loga (PNG/JPG) pre PDF; prázdne = logo webu
 		'footer'       => 'Ďakujeme za nákup.',
 	);
 }
@@ -131,6 +132,7 @@ function jinv_setting_fields() {
 			'cod_item'      => array( 'Položka dobierky na faktúre', 'checkbox', 'Pri platbe na dobierku sa poplatok z objednávky uvedie ako položka s týmto názvom. Ak objednávka poplatok nemá, pridá sa položka s cenou 0 €.' ),
 			'cod_item_name' => array( 'Názov položky dobierky', 'text', 'Napr. „Dobierka“ alebo „Poplatok za dobierku“.' ),
 			'issued_by' => array( 'Vystavil', 'text', 'Meno na faktúre (nepovinné).' ),
+			'logo'      => array( 'Logo na doklade', 'url', 'Adresa obrázka PNG alebo JPG z Knižnice médií (napr. …/uploads/…/logo.png). Prázdne = logo webu, ak je PNG/JPG.' ),
 			'footer'    => array( 'Text v päte faktúry', 'text', '' ),
 		),
 	);

@@ -286,6 +286,10 @@ add_action( 'admin_post_jinv_wf_settings', function () {
 			$s[ $k ] = sanitize_text_field( $v );
 		}
 	}
+	$wf_logo = trim( (string) get_option( 'woocommerce_wi_invoice_logo' ) );
+	if ( '' === trim( (string) ( $s['logo'] ?? '' ) ) && preg_match( '/\.(png|jpe?g)$/i', $wf_logo ) ) {
+		$s['logo'] = esc_url_raw( $wf_logo ); // logo z Woo Faktury
+	}
 	if ( ! empty( $_POST['numbering'] ) ) { // phpcs:ignore
 		$s['numbering'] = 'order'; // ako Woo Faktura: číslo dokladu = číslo objednávky
 	}
