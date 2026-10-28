@@ -47,7 +47,22 @@ function jinv_defaults() {
 }
 
 function jinv_settings() {
-	return wp_parse_args( (array) get_option( 'jinv_settings', array() ), jinv_defaults() );
+	$s = wp_parse_args( (array) get_option( 'jinv_settings', array() ), jinv_defaults() );
+	// Bez vlastného IBAN-u sa použije prvý účet z WooCommerce → Platby → Priamy bankový prevod.
+	if ( '' === trim( (string) $s['iban'] ) ) {
+		$acc = get_option( 'woocommerce_bacs_accounts', array() );
+		if ( is_array( $acc ) && ! empty( $acc[0]['iban'] ) ) {
+			$s['iban'] = strtoupper( preg_replace( '/\s+/', '', (string) $acc[0]['iban'] ) );
+			if ( '' === trim( (string) $s['swift'] ) && ! empty( $acc[0]['bic'] ) ) {
+				$s['swift'] = (string) $acc[0]['bic'];
+			}
+			if ( '' === trim( (string) $s['bank'] ) && ! empty( $acc[0]['bank_name'] ) ) {
+				$s['bank'] = (string) $acc[0]['bank_name'];
+			}
+			$s['iban_from_woo'] = 1;
+		}
+	}
+	return $s;
 }
 
 function jinv_opt( $k ) {
@@ -83,7 +98,7 @@ function jinv_setting_fields() {
 			'vat_note' => array( 'Text pre neplatiteľa DPH', 'text', '' ),
 		),
 		'Platba' => array(
-			'iban'     => array( 'IBAN', 'text', 'Číslo účtu pre úhradu faktúr prevodom.' ),
+			'iban'     => array( 'IBAN', 'text', 'Číslo účtu pre úhradu faktúr prevodom. Ak je prázdne, použije sa účet z WooCommerce → Platby → Priamy bankový prevod.' ),
 			'swift'    => array( 'SWIFT / BIC', 'text', '' ),
 			'bank'     => array( 'Banka', 'text', '' ),
 			'due_days' => array( 'Splatnosť (dni)', 'number', '' ),
@@ -129,7 +144,7 @@ add_action( 'admin_post_jinv_save_settings', function () {
 	$in       = wp_unslash( $_POST );
 	$sections = jinv_settings_sections();
 	$section  = isset( $in['section'] ) && isset( $sections[ $in['section'] ] ) ? $in['section'] : 'dodavatel';
-	$out      = jinv_settings(); // ukladajú sa len polia odoslanej záložky, ostatné ostávajú
+	$out      = wp_parse_args( (array) get_option( 'jinv_settings', array() ), jinv_defaults() ); // ukladajú sa len polia odoslanej záložky, ostatné ostávajú
 	foreach ( jinv_setting_fields() as $gname => $group ) {
 		if ( ! in_array( $gname, $sections[ $section ][1], true ) ) {
 			continue;
