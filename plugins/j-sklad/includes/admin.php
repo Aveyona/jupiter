@@ -84,7 +84,8 @@ function jsk_render_overview() {
 	$cat  = isset( $_GET['cat'] ) ? (int) $_GET['cat'] : 0; // phpcs:ignore
 	$pg   = max( 1, isset( $_GET['paged'] ) ? (int) $_GET['paged'] : 1 ); // phpcs:ignore
 	$low  = (float) jsk_opt( 'low_stock' );
-	$meta = array(
+	// Všetky = všetky produkty (aj služby a produkty bez sledovania zásob); ostatné filtre len sledované zásoby.
+	$meta = '' === $f ? array() : array(
 		array( 'key' => '_manage_stock', 'value' => 'yes' ),
 	);
 	if ( 'low' === $f ) {
@@ -94,6 +95,8 @@ function jsk_render_overview() {
 		$meta[] = array( 'key' => '_stock', 'value' => 0, 'compare' => '<=', 'type' => 'DECIMAL(14,4)' );
 	} elseif ( 'nocost' === $f ) {
 		$meta[] = array( 'key' => '_jsk_cost', 'compare' => 'NOT EXISTS' );
+	} elseif ( 'tracked' !== $f ) {
+		$f = '';
 	}
 	$args = array(
 		'post_type'      => array( 'product', 'product_variation' ),
@@ -104,6 +107,8 @@ function jsk_render_overview() {
 		'orderby'        => 'title',
 		'order'          => 'ASC',
 		'fields'         => 'ids',
+		// Variabilný produkt sa zobrazí cez svoje varianty (zásoba je pri nich).
+		'tax_query'      => array( array( 'taxonomy' => 'product_type', 'field' => 'slug', 'terms' => array( 'variable', 'grouped', 'external' ), 'operator' => 'NOT IN' ) ), // phpcs:ignore
 	);
 	if ( '' !== $q ) {
 		$ids = class_exists( 'WC_Data_Store' ) ? WC_Data_Store::load( 'product' )->search_products( $q, '', true, true, 500 ) : array();
@@ -140,7 +145,7 @@ function jsk_render_overview() {
 	</div>
 	<ul class="subsubsub jsk-filters">
 		<?php
-		$fl = array( '' => 'Všetky', 'low' => 'Dochádza (≤ ' . jsk_qty( $low ) . ')', 'out' => 'Vypredané', 'nocost' => 'Bez nákupnej ceny' );
+		$fl = array( '' => 'Všetky', 'tracked' => 'So sledovaním zásob', 'low' => 'Dochádza (≤ ' . jsk_qty( $low ) . ')', 'out' => 'Vypredané', 'nocost' => 'Bez nákupnej ceny' );
 		$i  = 0;
 		foreach ( $fl as $k => $l ) {
 			echo ( $i++ ? ' | ' : '' ) . '<li><a class="' . ( $f === $k ? 'current' : '' ) . '" href="' . esc_url( jsk_url( 'j-sklad', array_filter( array( 'f' => $k, 's' => $q, 'cat' => $cat ) ) ) ) . '">' . esc_html( $l ) . '</a></li>';
@@ -158,26 +163,27 @@ function jsk_render_overview() {
 	<table class="widefat striped jsk-table">
 		<thead><tr><th class="jsk-img-col"></th><th>Produkt</th><th>SKU</th><th class="n">Na sklade</th><th class="n">Predajná cena</th><th class="n">Nákupná cena (priemer)</th><th class="n">Hodnota (nákup)</th><th>Posledný pohyb</th><th></th></tr></thead>
 		<tbody>
-		<?php if ( ! $wq->posts ) : ?><tr><td colspan="9">Žiadne produkty. Zásoby sa sledujú len pri produktoch so zapnutým „Spravovať zásoby“.</td></tr><?php endif; ?>
+		<?php if ( ! $wq->posts ) : ?><tr><td colspan="9">Žiadne produkty. Filtre okrem Všetky ukazujú len produkty so zapnutým „Spravovať zásoby“.</td></tr><?php endif; ?>
 		<?php foreach ( $wq->posts as $pid ) : ?>
 			<?php
 			$p = wc_get_product( $pid );
 			if ( ! $p ) {
 				continue;
 			}
+			$trk  = 'yes' === get_post_meta( $pid, '_manage_stock', true );
 			$st   = (float) $p->get_stock_quantity();
 			$cost = jsk_cost( $pid );
 			$last = jsk_last_move( $pid );
 			$edit = get_edit_post_link( $p->is_type( 'variation' ) ? $p->get_parent_id() : $pid );
 			?>
-			<tr class="jsk-prow <?php echo $st <= 0 ? 'jsk-out' : ( $st <= $low ? 'jsk-low' : '' ); ?>">
+			<tr class="jsk-prow <?php echo ! $trk ? 'jsk-untracked' : ( $st <= 0 ? 'jsk-out' : ( $st <= $low ? 'jsk-low' : '' ) ); ?>">
 				<td class="jsk-img-col"><a href="<?php echo esc_url( $edit ); ?>" tabindex="-1"><?php echo jsk_thumb( $p, 56 ); // phpcs:ignore ?></a></td>
 				<td class="jsk-pname"><a href="<?php echo esc_url( $edit ); ?>"><?php echo esc_html( $p->get_name() ); ?></a></td>
 				<td><?php echo esc_html( $p->get_sku() ); ?></td>
-				<td class="n jsk-stock"><?php echo esc_html( jsk_qty( $st ) ); ?></td>
+				<td class="n jsk-stock"><?php echo $trk ? esc_html( jsk_qty( $st ) ) : '<small class="jsk-muted" title="Zásoby sa pri tomto produkte nesledujú (Zásoby → Spravovať zásoby).">' . ( $p->is_virtual() ? 'služba' : 'nesleduje sa' ) . '</small>'; ?></td>
 				<td class="n jsk-price"><?php echo '' === (string) $p->get_price() ? '—' : esc_html( jsk_money( $p->get_price() ) ); ?><?php if ( $p->is_on_sale() && '' !== (string) $p->get_regular_price() ) : ?><br><del><?php echo esc_html( jsk_money( $p->get_regular_price() ) ); ?></del><?php endif; ?></td>
 				<td class="n"><input type="number" class="jsk-cost" data-id="<?php echo (int) $pid; ?>" data-qty="<?php echo esc_attr( max( 0, $st ) ); ?>" value="<?php echo null === $cost ? '' : esc_attr( round( $cost, 4 ) ); ?>" min="0" step="0.01" placeholder="zadať" aria-label="Nákupná cena"></td>
-				<td class="n jsk-val"><?php echo null === $cost ? '—' : esc_html( jsk_money( max( 0, $st ) * $cost ) ); ?></td>
+				<td class="n jsk-val"><?php echo null === $cost || ! $trk ? '—' : esc_html( jsk_money( max( 0, $st ) * $cost ) ); ?></td>
 				<td><?php echo $last ? esc_html( jsk_move_sources()[ $last['source'] ] ?? $last['source'] ) . '<br><small>' . esc_html( date_i18n( 'j. n. Y H:i', strtotime( $last['created_at'] ) ) ) . '</small>' : '—'; ?></td>
 				<td><a href="<?php echo esc_url( jsk_url( 'j-sklad-moves', array( 'product' => $pid ) ) ); ?>">História</a></td>
 			</tr>

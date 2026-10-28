@@ -30,11 +30,11 @@
       "notes": "Zoznam objednávok a číslovanie objednávok (náhrada My Order Numbers); oprava vyhľadávania podľa mena."
     },
     "j-sklad": {
-      "version": "0.2.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.2.0/j-sklad-v0.2.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.2.0",
+      "version": "0.2.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.2.1/j-sklad-v0.2.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.2.1",
       "published": "2026-10-28",
-      "notes": "Voliteľná evidencia obrázkov produktov (J-Sklad → Obrázky); Knižnica multimédií potom ukazuje len obrázky webu."
+      "notes": "Prehľad skladu ukazuje všetky produkty (aj služby a produkty bez sledovania zásob), nový filter So sledovaním zásob; evidencia obrázkov produktov (J-Sklad → Obrázky)."
     }
   }
 }

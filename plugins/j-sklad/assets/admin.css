@@ -65,3 +65,4 @@
 .jsk-mt-x { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: #A3121B; color: #FFFFFF; font-size: 14px; line-height: 20px; cursor: pointer; opacity: 0; transition: opacity .15s; }
 .jsk-mt:hover .jsk-mt-x, .jsk-mt-x:focus { opacity: 1; }
 .jsk-mbtn { vertical-align: middle; }
+.jsk-table tr.jsk-untracked td.jsk-stock { font-size: 13px; font-weight: 400; }
