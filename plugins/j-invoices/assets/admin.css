@@ -48,3 +48,6 @@
 .jinv-import details { margin: 10px 0; }
 .jinv-import details table { margin-top: 8px; }
 .jinv-done { font-weight: 600; color: #00733A; }
+
+.jinv a.button[hidden], .jinv button[hidden] { display: none; }
+.jinv-pdf { display: block; width: 100%; max-width: 1000px; height: 80vh; min-height: 600px; border: 1px solid #DCDCDE; border-radius: 10px; background: #FFFFFF; }

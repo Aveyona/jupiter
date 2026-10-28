@@ -192,12 +192,17 @@ function jinv_render_view( $id ) {
 		<?php echo jinv_status_badge( $inv ); // phpcs:ignore ?>
 		<?php if ( 'woo-faktura' === $inv['source'] ) : ?>
 			<?php if ( $inv['file'] && function_exists( 'jinv_wf_file_path' ) && jinv_wf_file_path( $inv['file'] ) ) : ?><a class="button button-primary" target="_blank" href="<?php echo esc_url( jinv_wf_pdf_url( $id ) ); ?>">Pôvodné PDF (Woo Faktura)</a><?php endif; ?>
-			<span class="jinv-note">Doklad je prevzatý z Woo Faktury – platný je pôvodný PDF doklad. Náhľad nižšie je zostavený z aktuálnych údajov objednávky.</span>
+			<span class="jinv-note">Doklad je prevzatý z Woo Faktury – platný je pôvodný PDF doklad. <?php echo $inv['file'] ? '' : 'PDF sa nezachovalo – náhľad nižšie je zostavený z aktuálnych údajov objednávky.'; ?></span>
 		<?php else : ?>
 		<span class="jinv-note">Odoslanie zákazníkovi e-mailom (s PDF a QR kódom) pribudne v ďalšej verzii – vždy až po tvojom potvrdení.</span>
 		<?php endif; ?>
 	</p>
 	<?php
+	// Prevzatý doklad s PDF: zobrazí sa pôvodné PDF (platný doklad), nie náhľad zostavený z dnešných údajov.
+	if ( 'woo-faktura' === $inv['source'] && $inv['file'] && jinv_wf_file_path( $inv['file'] ) ) {
+		echo '<iframe class="jinv-pdf" src="' . esc_url( jinv_wf_pdf_url( $id ) ) . '" title="' . esc_attr( $inv['number'] ) . '"></iframe>';
+		return;
+	}
 	echo jinv_render_invoice_html( $inv ); // phpcs:ignore
 }
 

@@ -181,7 +181,7 @@ function jinv_wf_process_order( $order_id, $write ) {
 		}
 		$supply = $o->get_date_completed() ? $o->get_date_completed()->date_i18n( 'Y-m-d' ) : $date;
 		$data   = array(
-			'supplier' => jinv_wf_supplier(),
+			'supplier' => jinv_wf_supplier(), // len orientačne – platné údaje dodávateľa sú v pôvodnom PDF
 			'customer' => jinv_customer_from_order( $o ),
 			'items'    => jinv_items_from_order( $o ),
 			'payment'  => $o->get_payment_method_title(),
