@@ -11,6 +11,7 @@ function jsk_defaults() {
 		'format_opening' => 'OP{RRRR}{nnn}',   // otváracia príjemka (počiatočný stav)
 		'low_stock'      => (int) get_option( 'woocommerce_notify_low_stock_amount', 2 ),
 		'reasons'        => 'Poškodenie, Vlastná spotreba, Darček / reklama, Strata, Iné',
+		'media'          => 0,                 // obrázky produktov spravuje J-Sklad (Knižnica multimédií ich nezobrazuje)
 		'currency'       => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'EUR',
 	);
 }

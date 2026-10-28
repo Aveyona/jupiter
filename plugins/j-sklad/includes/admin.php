@@ -643,6 +643,7 @@ function jsk_render_settings() {
 			<tr><th>Formát čísla výdajky</th><td><input type="text" name="format_issue" value="<?php echo esc_attr( $s['format_issue'] ); ?>"></td></tr>
 			<tr><th>Formát otváracej príjemky</th><td><input type="text" name="format_opening" value="<?php echo esc_attr( $s['format_opening'] ); ?>"></td></tr>
 			<tr><th>Hranica „dochádza“</th><td><input type="number" name="low_stock" min="0" step="any" value="<?php echo esc_attr( $s['low_stock'] ); ?>" class="small-text"> ks</td></tr>
+			<tr><th>Obrázky produktov</th><td><label><input type="checkbox" name="media" value="1" <?php checked( ! empty( $s['media'] ) ); ?>> Obrázky produktov spravuje J-Sklad</label><p class="description">Hlavné obrázky a galérie produktov sa spravujú v J-Sklad → Obrázky a Knižnica multimédií ich nezobrazuje (ostanú v nej len obrázky webu). Súbory sa nepresúvajú – po vypnutí je Knižnica opäť kompletná.</p></td></tr>
 			<tr><th>Dôvody výdaja</th><td><input type="text" name="reasons" value="<?php echo esc_attr( $s['reasons'] ); ?>" class="large-text"><p class="description">Oddelené čiarkou.</p></td></tr>
 		</table>
 		<?php submit_button( 'Uložiť nastavenia' ); ?>
@@ -664,6 +665,7 @@ add_action( 'admin_post_jsk_settings', function () {
 	}
 	$out['low_stock'] = max( 0, (float) ( $in['low_stock'] ?? 0 ) );
 	$out['reasons']   = sanitize_text_field( $in['reasons'] ?? '' );
+	$out['media']     = empty( $in['media'] ) ? 0 : 1;
 	update_option( 'jsk_settings', $out, false );
 	wp_safe_redirect( jsk_url( 'j-sklad-settings', array( 'jsk_msg' => 'settings' ) ) );
 	exit;

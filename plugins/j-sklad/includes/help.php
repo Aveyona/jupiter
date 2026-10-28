@@ -27,6 +27,16 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		'J-Sklad',
 	);
 	$guides[] = array(
+		'Obrázky produktov',
+		array(
+			'J-Sklad → Nastavenia → Obrázky produktov spravuje J-Sklad (predvolene vypnuté).',
+			'Po zapnutí pribudne J-Sklad → Obrázky: hlavný obrázok a galéria každého produktu, varianty pod ním. Zmeniť / Pridať vyberie alebo nahrá obrázok, + Galéria pridá viac obrázkov naraz, × obrázok z produktu odoberie (súbor ostane).',
+			'Knižnica multimédií potom obrázky produktov nezobrazuje – ostanú v nej len obrázky webu (články, logo…). Okno výberu obrázka v úprave produktu ukazuje všetky obrázky ako doteraz.',
+			'Súbory sa nikam nepresúvajú; po vypnutí voľby je Knižnica opäť kompletná.',
+		),
+		'J-Sklad',
+	);
+	$guides[] = array(
 		'Prehľad skladu',
 		array(
 			'J-Sklad → Prehľad: zásoba, priemerná nákupná cena a hodnota každého produktu; súčet hodnoty skladu.',

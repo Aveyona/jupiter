@@ -53,3 +53,15 @@
 .jsk-table tr.jsk-out td.jsk-stock { color: #A3121B; }
 #jsk-results img { vertical-align: middle; border-radius: 4px; margin-right: 6px; object-fit: cover; }
 .jsk-st-posting, .jsk-st-cancelling { background: #FCE8D5; color: #8A3B00; }
+/* Obrázky produktov */
+.jsk-media td { vertical-align: middle; }
+.jsk-mname a { font-size: 14px; font-weight: 600; text-decoration: none; }
+.jsk-mrow-var .jsk-mname { padding-left: 28px; }
+.jsk-mrow-var .jsk-mname a { font-weight: 400; }
+.jsk-mmain, .jsk-mgal { white-space: normal; }
+.jsk-mt { position: relative; display: inline-block; margin: 3px 6px 3px 0; vertical-align: middle; }
+.jsk-mt img { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #DCDCDE; background: #F6F7F7; }
+.jsk-mmain .jsk-mt img { width: 80px; height: 80px; }
+.jsk-mt-x { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: #A3121B; color: #FFFFFF; font-size: 14px; line-height: 20px; cursor: pointer; opacity: 0; transition: opacity .15s; }
+.jsk-mt:hover .jsk-mt-x, .jsk-mt-x:focus { opacity: 1; }
+.jsk-mbtn { vertical-align: middle; }
