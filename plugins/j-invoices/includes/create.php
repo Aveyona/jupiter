@@ -52,7 +52,15 @@ function jinv_customer_from_order( WC_Order $o ) {
 
 /** Beží doplnok Woo Faktura? (režim prechodu – automatika J-Fakturácie je vtedy vypnutá) */
 function jinv_woo_faktura_active() {
-	return class_exists( 'WC_WI_Invoice_Manager' ) || function_exists( 'wi_invoicemanager_init' );
+	if ( class_exists( 'WC_WI_Invoice_Manager' ) || function_exists( 'wi_invoicemanager_init' ) ) {
+		return true;
+	}
+	foreach ( (array) get_option( 'active_plugins', array() ) as $p ) {
+		if ( 0 === strpos( (string) $p, 'woo-faktura/' ) ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /** Je objednávka platená na dobierku? Spôsoby platby sa dajú doplniť filtrom jinv_cod_methods. */
@@ -118,9 +126,16 @@ function jinv_statuses() {
 	);
 }
 
+/** Doklad k objednávke na dobierku (platí sa pri prevzatí – nie je „po splatnosti“, bez QR kódu). */
+function jinv_doc_is_cod( array $inv ) {
+	$d = isset( $inv['data'] ) ? ( is_array( $inv['data'] ) ? $inv['data'] : json_decode( (string) $inv['data'], true ) ) : array();
+	$code = (string) ( $d['pay_code'] ?? '' );
+	return '' !== $code && in_array( $code, (array) apply_filters( 'jinv_cod_methods', array( 'cod', 'jetpack_custom_gateway' ) ), true );
+}
+
 /** Stav na zobrazenie (vystavená po dátume splatnosti = po splatnosti). */
 function jinv_display_status( array $inv ) {
-	if ( 'issued' === $inv['status'] && 'creditnote' !== $inv['kind'] && $inv['due_date'] < current_time( 'Y-m-d' ) ) {
+	if ( 'issued' === $inv['status'] && 'creditnote' !== $inv['kind'] && $inv['due_date'] < current_time( 'Y-m-d' ) && ! jinv_doc_is_cod( $inv ) ) {
 		return 'overdue';
 	}
 	return $inv['status'];

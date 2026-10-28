@@ -4,7 +4,7 @@ Tags: woocommerce, faktúry, faktúra, slovensko, jupiter
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.9.2
+Stable tag: 0.9.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,18 @@ Faktúry pre slovenské e-shopy na WooCommerce. Súčasť rodiny doplnkov Jupite
 Pripravuje sa: PDF s QR kódom PAY by square, odoslanie zákazníkovi e-mailom po potvrdení, ručné faktúry, dobropisy, prijaté faktúry, export pre účtovníka.
 
 == Changelog ==
+
+= 0.9.3 =
+* Ochrana pred dvojitými dokladmi: doklad, ktorý vystavila Woo Faktura po poslednom importe, sa prevezme (nevystaví sa druhý); zámok na objednávku proti súbežnému vystaveniu; po neúspešnom zápise sa použije už vystavený doklad.
+* Chyba pri tvorbe dokladu, PDF alebo e-mailu nikdy nezablokuje objednávku ani pokladňu – zapíše sa do denníka WooCommerce (zdroj j-invoices) a do poznámky objednávky. E-maily s dokladmi sa posielajú na pozadí (Action Scheduler).
+* Režim prechodu: kým beží Woo Faktura, J-Fakturácia nemení stavy dokladov ani IČO v adresách a hromadné vystavenie je vypnuté; spoľahlivejšie rozpoznanie Woo Faktury.
+* Hromadné vystavenie faktúr: preskočí zrušené, nezaplatené a vrátené objednávky a neposiela e-maily.
+* Dobierka: faktúra po vybavení je neuhradená (platí sa pri prevzatí), bez QR kódu, s textom „Úhrada dobierkou pri prevzatí zásielky“; nezobrazuje sa ako po splatnosti.
+* Variabilný symbol = číslo objednávky (aj pri vlastnom číselnom rade a pri dokladoch s príponou -2).
+* Vlastný rad: bez preskočených čísel pri súbežnom vystavení.
+* Zálohová faktúra: „Objednávka zo dňa“ je dátum objednávky.
+* Import z Woo Faktura: dobropisy s položkami z vrátení (záporné), skutočný dátum úhrady, upozornenie, ak k objednávke už je doklad J-Fakturácie.
+* Export: doklady z Woo Faktura predvolene nezahrnuté; CSV chránené pred vzorcami v Exceli.
 
 = 0.9.2 =
 * Nákup na firmu aj v blokovej pokladni (WooCommerce Checkout block): „Nakupujem na firmu“, názov firmy, IČO, DIČ, IČ DPH – polia sa zobrazia po zaškrtnutí a uložia sa do fakturačných údajov objednávky.

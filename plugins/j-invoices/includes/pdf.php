@@ -43,7 +43,7 @@ function jinv_qr_matrix( $text ) {
 /** Reťazec PAY by square pre doklad (len neuhradený doklad na úhradu s IBAN), inak ''. */
 function jinv_doc_paybysquare( array $inv ) {
 	$sup = (array) ( $inv['data']['supplier'] ?? array() );
-	if ( 'creditnote' === $inv['kind'] || in_array( $inv['status'], array( 'paid', 'cancelled' ), true ) || empty( $sup['iban'] ) || (float) $inv['total'] <= 0 || 'EUR' !== $inv['currency'] ) {
+	if ( 'creditnote' === $inv['kind'] || jinv_doc_is_cod( $inv ) || in_array( $inv['status'], array( 'paid', 'cancelled' ), true ) || empty( $sup['iban'] ) || (float) $inv['total'] <= 0 || 'EUR' !== $inv['currency'] ) {
 		return '';
 	}
 	return jinv_paybysquare( array(

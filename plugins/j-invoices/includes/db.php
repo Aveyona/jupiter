@@ -64,7 +64,7 @@ function jinv_by_order( $order_id, $kind = 'issued' ) {
 /** Všetky doklady k objednávke (aj stornované), najstaršie prvé. */
 function jinv_docs_for_order( $order_id ) {
 	global $wpdb;
-	return (array) $wpdb->get_results( $wpdb->prepare( 'SELECT id, kind, number, status, issue_date, due_date, total, currency, source, file FROM ' . jinv_table() . ' WHERE order_id = %d ORDER BY id ASC', $order_id ), ARRAY_A ); // phpcs:ignore
+	return (array) $wpdb->get_results( $wpdb->prepare( 'SELECT id, kind, number, status, issue_date, due_date, total, currency, source, file, data FROM ' . jinv_table() . ' WHERE order_id = %d ORDER BY id ASC', $order_id ), ARRAY_A ); // phpcs:ignore
 }
 
 function jinv_update( $id, array $fields ) {

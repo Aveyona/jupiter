@@ -28,7 +28,7 @@ function jinv_email_body( array $inv ) {
 	} elseif ( 'creditnote' === $inv['kind'] ) {
 		$h .= '<p>v prílohe posielame dobropis č. <strong>' . esc_html( $inv['number'] ) . '</strong> k faktúre č. ' . esc_html( $d['invoice'] ?? '' ) . $ord . ' na sumu ' . esc_html( jinv_money( abs( (float) $inv['total'] ), $inv['currency'] ) ) . '.</p>';
 	} else {
-		$h .= '<p>v prílohe posielame faktúru č. <strong>' . esc_html( $inv['number'] ) . '</strong>' . $ord . '.' . ( 'paid' === $inv['status'] ? ' Faktúra je uhradená, nič neplaťte.' : '' ) . '</p>';
+		$h .= '<p>v prílohe posielame faktúru č. <strong>' . esc_html( $inv['number'] ) . '</strong>' . $ord . '.' . ( 'paid' === $inv['status'] ? ' Faktúra je uhradená, nič neplaťte.' : ( jinv_doc_is_cod( $inv ) ? ' Suma sa uhrádza dobierkou pri prevzatí zásielky – neplaťte prevodom.' : '' ) ) . '</p>';
 	}
 	$extra = trim( (string) jinv_opt( 'email_text' ) );
 	if ( '' !== $extra ) {
@@ -76,7 +76,28 @@ add_action( 'jinv_document_created', function ( $id, $kind, $order, $opts ) {
 	} else {
 		$send = (bool) jinv_opt( 'send_' . $kind ) && ! jinv_woo_faktura_active();
 	}
-	if ( $send ) {
-		jinv_send_doc( $id );
+	if ( ! $send ) {
+		return;
 	}
+	// Odoslanie mimo spracovania objednávky (Action Scheduler) – PDF a SMTP nespomalia ani nezablokujú pokladňu.
+	if ( function_exists( 'as_enqueue_async_action' ) ) {
+		as_enqueue_async_action( 'jinv_send_doc_async', array( (int) $id ), 'j-invoices' );
+		return;
+	}
+	jinv_send_doc_safe( $id );
 }, 10, 4 );
+
+add_action( 'jinv_send_doc_async', 'jinv_send_doc_safe' );
+
+/** Odoslanie dokladu bez rizika pádu (chyba sa zapíše do denníka a poznámky objednávky). */
+function jinv_send_doc_safe( $id ) {
+	try {
+		$r = jinv_send_doc( (int) $id );
+		if ( is_wp_error( $r ) ) {
+			throw new \RuntimeException( $r->get_error_message() );
+		}
+	} catch ( \Throwable $e ) {
+		$inv = jinv_get( (int) $id );
+		jinv_log_error( $inv && $inv['order_id'] ? wc_get_order( $inv['order_id'] ) : null, $e, 'odoslanie dokladu e-mailom' );
+	}
+}

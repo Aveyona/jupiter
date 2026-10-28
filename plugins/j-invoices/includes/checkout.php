@@ -167,8 +167,8 @@ add_filter( 'woocommerce_customer_meta_fields', function ( $fields ) {
 
 /** Firemné údaje v adrese (e-maily, Môj účet, objednávka). */
 add_filter( 'woocommerce_order_formatted_billing_address', function ( $address, $order ) {
-	if ( ! $order instanceof WC_Order ) {
-		return $address;
+	if ( ! $order instanceof WC_Order || jinv_woo_faktura_active() ) {
+		return $address; // kým beží Woo Faktura, IČO/DIČ v adrese dopĺňa ona
 	}
 	$ico = jinv_order_meta_any( $order, array( '_billing_ico', 'billing_ico', '_billing_company_wi_id', 'billing_company_wi_id' ) );
 	$dic = jinv_order_meta_any( $order, array( '_billing_dic', 'billing_dic', '_billing_company_wi_tax', 'billing_company_wi_tax' ) );

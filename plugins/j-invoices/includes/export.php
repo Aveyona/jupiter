@@ -60,7 +60,7 @@ function jinv_render_export() {
 						<p class="description">Zálohové faktúry nie sú daňové doklady – účtovník ich zvyčajne nepotrebuje.</p>
 					</td></tr>
 					<tr><th>Zahrnúť</th><td>
-						<label><input type="checkbox" name="wf" value="1" checked> doklady prevzaté z Woo Faktura</label><br>
+						<label><input type="checkbox" name="wf" value="1"> doklady prevzaté z Woo Faktura</label> <span class="description">(zvyčajne nie – účtovník ich už dostal z Woo Faktury)</span><br>
 						<label><input type="checkbox" name="cancelled" value="1"> stornované doklady</label>
 					</td></tr>
 					<tr><th>Formát</th><td>
@@ -129,9 +129,12 @@ add_action( 'admin_post_jinv_export', function () {
 	fwrite( $out, "\xEF\xBB\xBF" ); // phpcs:ignore – BOM, aby Excel čítal diakritiku
 	fputcsv( $out, array( 'Druh', 'Číslo', 'Stav', 'Dátum vystavenia', 'Dátum dodania', 'Splatnosť', 'VS', 'Objednávka', 'Odberateľ', 'IČO', 'DIČ', 'IČ DPH', 'E-mail', 'Spôsob úhrady', 'Suma', 'Mena', 'Uhradené', 'K faktúre', 'Zdroj' ), ';' );
 	$st = jinv_statuses();
+	$safe = function ( $v ) { // ochrana pred vzorcami v Exceli (=, +, -, @ na začiatku textu)
+		return is_string( $v ) && '' !== $v && in_array( $v[0], array( '=', '+', '-', '@' ), true ) && ! is_numeric( $v ) ? "'" . $v : $v;
+	};
 	foreach ( $rows as $r ) {
 		$c = (array) ( $r['data']['customer'] ?? array() );
-		fputcsv( $out, array(
+		fputcsv( $out, array_map( $safe, array(
 			jinv_kind_label( $r['kind'] ),
 			$r['number'],
 			$st[ $r['status'] ] ?? $r['status'],
@@ -151,7 +154,7 @@ add_action( 'admin_post_jinv_export', function () {
 			$r['paid_at'] ? jinv_date( substr( $r['paid_at'], 0, 10 ) ) : '',
 			$r['data']['invoice'] ?? '',
 			'woo-faktura' === $r['source'] ? 'Woo Faktura' : 'J-Fakturácia',
-		), ';' );
+		)), ';' );
 	}
 	fclose( $out ); // phpcs:ignore
 	exit;

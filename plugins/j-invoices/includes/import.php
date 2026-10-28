@@ -150,10 +150,18 @@ function jinv_wf_process_order( $order_id, $write ) {
 		}
 		$t = jinv_table();
 		// Už prevzatý (rovnaká objednávka, druh a číslo)?
-		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $t WHERE kind = %s AND order_id = %d AND number = %s LIMIT 1", $kind, $o->get_id(), $number ) ); // phpcs:ignore
+		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $t WHERE kind = %s AND order_id = %d AND number = %s AND source = 'woo-faktura' LIMIT 1", $kind, $o->get_id(), $number ) ); // phpcs:ignore
 		if ( $exists ) {
 			$out[] = array( $type, 'exists', $number, '', (bool) $fpath );
 			continue;
+		}
+		// K objednávke už vystavila doklad toho istého druhu J-Fakturácia – neprevziať druhý platný doklad, len upozorniť.
+		if ( 'creditnote' !== $kind ) {
+			$native = $wpdb->get_var( $wpdb->prepare( "SELECT number FROM $t WHERE kind = %s AND order_id = %d AND source = '' AND status <> 'cancelled' LIMIT 1", $kind, $o->get_id() ) ); // phpcs:ignore
+			if ( $native ) {
+				$out[] = array( $type, 'duplicate', $number, sprintf( 'K objednávke už je doklad J-Fakturácie č. %s – doklad Woo Faktury sa nepreberie (skontrolujte, ktorý je platný).', $native ), (bool) $fpath );
+				continue;
+			}
 		}
 		$year = (int) substr( $date, 0, 4 );
 		$seq  = jinv_wf_seq( $number );
@@ -183,7 +191,7 @@ function jinv_wf_process_order( $order_id, $write ) {
 		$data   = array(
 			'supplier' => jinv_wf_supplier(), // len orientačne – platné údaje dodávateľa sú v pôvodnom PDF
 			'customer' => jinv_customer_from_order( $o ),
-			'items'    => jinv_items_from_order( $o ),
+			'items'    => 'creditnote' === $kind ? jinv_wf_creditnote_items( $o, $total ) : jinv_items_from_order( $o ),
 			'payment'  => $o->get_payment_method_title(),
 			'pay_code' => $o->get_payment_method(),
 			'order_no' => $o->get_order_number(),
@@ -214,7 +222,7 @@ function jinv_wf_process_order( $order_id, $write ) {
 			'data'           => wp_json_encode( $data, JSON_UNESCAPED_UNICODE ),
 			'source'         => 'woo-faktura',
 			'file'           => $fpath ? $file : '',
-			'paid_at'        => 'paid' === $status ? current_time( 'mysql' ) : null,
+			'paid_at'        => 'paid' === $status ? ( $o->get_date_paid() ? $o->get_date_paid()->date( 'Y-m-d H:i:s' ) : ( $o->get_date_completed() ? $o->get_date_completed()->date( 'Y-m-d H:i:s' ) : $date . ' 00:00:00' ) ) : null,
 			'created_at'     => current_time( 'mysql' ),
 		) );
 		if ( ! $ok ) {
@@ -228,6 +236,18 @@ function jinv_wf_process_order( $order_id, $write ) {
 		$out[] = array( $type, 'new', $number, $fpath ? '' : 'Prevzaté bez PDF (súbor sa nenašiel).', (bool) $fpath );
 	}
 	return $out;
+}
+
+/** Položky prevzatého dobropisu: z vrátení objednávky (záporné), inak jeden riadok na vrátenú sumu. */
+function jinv_wf_creditnote_items( WC_Order $o, $total ) {
+	$items = array();
+	foreach ( $o->get_refunds() as $r ) {
+		$items = array_merge( $items, jinv_creditnote_items( $o, $r, null ) );
+	}
+	if ( ! $items || abs( array_sum( wp_list_pluck( $items, 'total' ) ) - (float) $total ) >= 0.01 ) {
+		$items = array( array( 'name' => 'Dobropis k objednávke ' . $o->get_order_number(), 'sku' => '', 'qty' => -1, 'unit' => '', 'price' => abs( (float) $total ), 'total' => (float) $total ) );
+	}
+	return $items;
 }
 
 /** AJAX: jedna dávka skúšobného behu alebo importu. */

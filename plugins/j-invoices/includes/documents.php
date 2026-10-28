@@ -81,11 +81,20 @@ function jinv_next_number( $kind, $o, $year, $try = 0 ) {
 	}
 	// Vlastný ročný rad: len natívne doklady s malým poradím (prevzaté a „podľa objednávky“ majú veľké čísla).
 	$max = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(seq) FROM ' . jinv_table() . " WHERE kind = %s AND source = '' AND year = %d AND seq < 1000000", $kind, $year ) ); // phpcs:ignore
-	$seq = $max + 1 + $try;
+	$seq = $max + 1;
 	while ( jinv_number_taken( $kind, $year, $seq, jinv_format_number( $year, $seq, jinv_kind_format( $kind ) ) ) ) {
 		$seq++;
 	}
 	return array( jinv_format_number( $year, $seq, jinv_kind_format( $kind ) ), $seq );
+}
+
+/** Variabilný symbol dokladu = číslo objednávky (len číslice, max. 10) – platby sa párujú podľa objednávky; inak číslice čísla dokladu. */
+function jinv_doc_vs( $o, $number ) {
+	$vs = $o instanceof WC_Order ? preg_replace( '/\D/', '', (string) $o->get_order_number() ) : '';
+	if ( '' === $vs ) {
+		$vs = preg_replace( '/\D/', '', (string) $number );
+	}
+	return substr( $vs, 0, 10 );
 }
 
 /** Údaje dodávateľa z nastavení (snímka do dokladu). */
@@ -155,6 +164,32 @@ function jinv_create_doc( $order, $kind = 'issued', $opts = array() ) {
 	if ( ! $o || ! isset( jinv_kinds()[ $kind ] ) ) {
 		return new WP_Error( 'jinv_no_order', 'Objednávka neexistuje.' );
 	}
+	// Doklad z Woo Faktura, ktorý ešte nie je prevzatý (vystavený po poslednom importe) – prevezme sa, nevystaví sa druhý.
+	if ( function_exists( 'jinv_wf_process_order' ) ) {
+		$wf_types = array( 'issued' => 'invoice', 'proforma' => 'proforma', 'creditnote' => 'creditnote' );
+		if ( '' !== trim( (string) $o->get_meta( 'wc_wi_' . $wf_types[ $kind ] . '_id' ) ) && ! jinv_by_order( $o->get_id(), $kind ) ) {
+			jinv_wf_process_order( $o->get_id(), true );
+			$imp = jinv_by_order( $o->get_id(), $kind );
+			if ( $imp && 'creditnote' !== $kind ) {
+				return (int) $imp['id'];
+			}
+		}
+	}
+	// Zámok na objednávku – dve súbežné požiadavky (napr. platobná brána a klik v administrácii) nevystavia dva doklady.
+	$lock   = 'jinv_doc_' . $o->get_id();
+	$locked = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 15)', $lock ) );
+	try {
+		return jinv_create_doc_locked( $o, $kind, $opts );
+	} finally {
+		if ( $locked ) {
+			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+		}
+	}
+}
+
+/** Vystavenie dokladu (volá sa pod zámkom objednávky). */
+function jinv_create_doc_locked( WC_Order $o, $kind, $opts ) {
+	global $wpdb;
 	if ( 'creditnote' !== $kind ) {
 		$existing = jinv_by_order( $o->get_id(), $kind );
 		if ( $existing ) {
@@ -168,7 +203,9 @@ function jinv_create_doc( $order, $kind = 'issued', $opts = array() ) {
 	$s       = jinv_settings();
 	$today   = current_time( 'Y-m-d' );
 	$year    = (int) current_time( 'Y' );
-	$paid    = $o->is_paid() || $o->has_status( 'completed' );
+	$cod     = jinv_is_cod_order( $o );
+	// Dobierka: vybavená (odoslaná) objednávka ešte nie je zaplatená – faktúra je neuhradená, platí sa pri prevzatí.
+	$paid    = $cod ? false : ( $o->is_paid() || $o->has_status( 'completed' ) );
 	$refund  = ! empty( $opts['refund_id'] ) ? wc_get_order( (int) $opts['refund_id'] ) : null;
 	if ( 'creditnote' === $kind && ! $refund ) {
 		$refund = jinv_uncredited_refund( $o );
@@ -194,7 +231,7 @@ function jinv_create_doc( $order, $kind = 'issued', $opts = array() ) {
 		}
 	} elseif ( 'proforma' === $kind ) {
 		$status = $paid ? 'paid' : 'issued';
-		$supply = $today;
+		$supply = $o->get_date_created() ? $o->get_date_created()->date_i18n( 'Y-m-d' ) : $today; // na zálohovej faktúre „Objednávka zo dňa“
 	} else {
 		$data['invoice'] = $invoice['number'];
 		$data['reason']  = $refund instanceof WC_Order_Refund ? (string) $refund->get_reason() : '';
@@ -218,7 +255,7 @@ function jinv_create_doc( $order, $kind = 'issued', $opts = array() ) {
 			'issue_date'     => $today,
 			'supply_date'    => $supply,
 			'due_date'       => $due,
-			'vs'             => substr( preg_replace( '/\D/', '', $num ), 0, 10 ),
+			'vs'             => jinv_doc_vs( $o, $num ),
 			'currency'       => $o->get_currency(),
 			'total'          => $total,
 			'customer_name'  => $data['customer']['company'] ? $data['customer']['company'] : $data['customer']['name'],
@@ -227,6 +264,9 @@ function jinv_create_doc( $order, $kind = 'issued', $opts = array() ) {
 			'paid_at'        => 'paid' === $status ? current_time( 'mysql' ) : null,
 			'created_at'     => current_time( 'mysql' ),
 		) );
+		if ( ! $ok && 'creditnote' !== $kind && ( $again = jinv_by_order( $o->get_id(), $kind ) ) ) {
+			return (int) $again['id']; // medzičasom ho vystavila iná požiadavka
+		}
 		if ( $ok ) {
 			$id = (int) $wpdb->insert_id;
 			$o->update_meta_data( jinv_kinds()[ $kind ][1], $num );
@@ -256,39 +296,54 @@ function jinv_auto_on( $key = 'auto' ) {
 	return jinv_opt( $key ) && ! jinv_woo_faktura_active();
 }
 
+/** Zapíše chybu automatiky do denníka WooCommerce a do poznámky objednávky – objednávka sa nikdy nezablokuje. */
+function jinv_log_error( $order, \Throwable $e, $what ) {
+	if ( function_exists( 'wc_get_logger' ) ) {
+		wc_get_logger()->error( $what . ': ' . $e->getMessage() . ' (' . basename( $e->getFile() ) . ':' . $e->getLine() . ')', array( 'source' => 'j-invoices' ) );
+	}
+	if ( $order instanceof WC_Order ) {
+		$order->add_order_note( 'J-Fakturácia: chyba – ' . $what . ': ' . $e->getMessage() );
+	}
+}
+
 add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to, $order ) {
-	if ( ! $order instanceof WC_Order || 'shop_order' !== $order->get_type() ) {
-		return;
+	if ( ! $order instanceof WC_Order || 'shop_order' !== $order->get_type() || jinv_woo_faktura_active() ) {
+		return; // režim prechodu: doklady aj ich stavy rieši Woo Faktura
 	}
-	$transfer = jinv_is_transfer_order( $order );
-	// Zálohová faktúra pri prevode: objednávka čaká na platbu.
-	if ( $transfer && jinv_auto_on( 'auto_proforma' ) && 'on-hold' === $to && ! $order->is_paid() ) {
-		jinv_create_doc( $order, 'proforma' );
-	}
-	if ( jinv_auto_on( 'auto' ) ) {
-		$paid_now = in_array( $to, array( 'processing', 'completed' ), true ) && $order->is_paid();
-		if ( ( $transfer && ( $paid_now || 'completed' === $to ) ) || ( ! $transfer && 'completed' === $to ) ) {
-			jinv_create_doc( $order, 'issued' );
+	try {
+		$transfer = jinv_is_transfer_order( $order );
+		// Zálohová faktúra pri prevode: objednávka čaká na platbu.
+		if ( $transfer && jinv_auto_on( 'auto_proforma' ) && 'on-hold' === $to && ! $order->is_paid() ) {
+			jinv_create_doc( $order, 'proforma' );
 		}
-	}
-	// Objednávka zrušená: zálohová faktúra sa stornuje (faktúru rieši dobropis).
-	if ( in_array( $to, array( 'cancelled', 'failed' ), true ) ) {
-		$pf = jinv_by_order( $order_id, 'proforma' );
-		if ( $pf && 'issued' === $pf['status'] ) {
-			jinv_update( $pf['id'], array( 'status' => 'cancelled' ) );
-			$order->add_order_note( sprintf( 'J-Fakturácia: zálohová faktúra č. %s stornovaná (objednávka zrušená).', $pf['number'] ) );
+		if ( jinv_auto_on( 'auto' ) ) {
+			$paid_now = in_array( $to, array( 'processing', 'completed' ), true ) && $order->is_paid();
+			if ( ( $transfer && ( $paid_now || 'completed' === $to ) ) || ( ! $transfer && 'completed' === $to ) ) {
+				jinv_create_doc( $order, 'issued' );
+			}
 		}
+		// Objednávka zrušená: zálohová faktúra sa stornuje (faktúru rieši dobropis).
+		if ( in_array( $to, array( 'cancelled', 'failed' ), true ) ) {
+			$pf = jinv_by_order( $order_id, 'proforma' );
+			if ( $pf && 'issued' === $pf['status'] ) {
+				jinv_update( $pf['id'], array( 'status' => 'cancelled' ) );
+				$order->add_order_note( sprintf( 'J-Fakturácia: zálohová faktúra č. %s stornovaná (objednávka zrušená).', $pf['number'] ) );
+			}
+		}
+	} catch ( \Throwable $e ) {
+		jinv_log_error( $order, $e, 'automatické vystavenie dokladu' );
 	}
 }, 20, 4 );
 
 // Objednávka zaplatená alebo vybavená → faktúra aj zálohová faktúra uhradené.
 add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to, $order ) {
-	if ( ! $order instanceof WC_Order || ! ( 'completed' === $to || ( 'processing' === $to && $order->is_paid() ) ) ) {
+	if ( ! $order instanceof WC_Order || jinv_woo_faktura_active() || ! ( 'completed' === $to || ( 'processing' === $to && $order->is_paid() ) ) ) {
 		return;
 	}
 	foreach ( array( 'issued', 'proforma' ) as $kind ) {
 		$d = jinv_by_order( $order_id, $kind );
-		if ( $d && 'issued' === $d['status'] ) {
+		// Dobierka: faktúra ostáva neuhradená aj po vybavení (zákazník platí pri prevzatí); zálohová áno.
+		if ( $d && 'issued' === $d['status'] && ! ( 'issued' === $kind && jinv_is_cod_order( $order ) ) ) {
 			jinv_update( $d['id'], array( 'status' => 'paid', 'paid_at' => current_time( 'mysql' ) ) );
 		}
 	}
@@ -297,7 +352,11 @@ add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to
 // Vrátenie peňazí vo WooCommerce → dobropis (ak je zapnuté a objednávka má faktúru).
 add_action( 'woocommerce_order_refunded', function ( $order_id, $refund_id ) {
 	if ( jinv_auto_on( 'auto_creditnote' ) && jinv_by_order( $order_id, 'issued' ) ) {
-		jinv_create_doc( $order_id, 'creditnote', array( 'refund_id' => $refund_id ) );
+		try {
+			jinv_create_doc( $order_id, 'creditnote', array( 'refund_id' => $refund_id ) );
+		} catch ( \Throwable $e ) {
+			jinv_log_error( wc_get_order( $order_id ), $e, 'dobropis pri vrátení' );
+		}
 	}
 }, 20, 2 );
 
@@ -313,12 +372,23 @@ foreach ( array( 'handle_bulk_actions-edit-shop_order', 'handle_bulk_actions-woo
 		if ( 'jinv_bulk_invoice' !== $action || ! current_user_can( 'manage_woocommerce' ) ) {
 			return $redirect;
 		}
+		if ( jinv_woo_faktura_active() ) {
+			return add_query_arg( 'jinv_bulk', 'wf', $redirect ); // režim prechodu – faktúry vystavuje Woo Faktura
+		}
 		$n = 0;
 		foreach ( (array) $ids as $id ) {
-			$had = jinv_by_order( (int) $id, 'issued' );
-			$r   = jinv_create_doc( (int) $id, 'issued' );
-			if ( ! $had && ! is_wp_error( $r ) ) {
-				$n++;
+			$o = wc_get_order( (int) $id );
+			// Len platné objednávky; bez e-mailu zákazníkovi (hromadné dopĺňanie dokladov).
+			if ( ! $o || $o->has_status( array( 'cancelled', 'failed', 'pending', 'refunded', 'checkout-draft' ) ) || jinv_by_order( $o->get_id(), 'issued' ) ) {
+				continue;
+			}
+			try {
+				$r = jinv_create_doc( $o, 'issued', array( 'send' => false ) );
+				if ( ! is_wp_error( $r ) ) {
+					$n++;
+				}
+			} catch ( \Throwable $e ) {
+				jinv_log_error( $o, $e, 'hromadné vystavenie' );
 			}
 		}
 		return add_query_arg( 'jinv_bulk', $n, $redirect );
@@ -326,6 +396,10 @@ foreach ( array( 'handle_bulk_actions-edit-shop_order', 'handle_bulk_actions-woo
 }
 add_action( 'admin_notices', function () {
 	if ( isset( $_GET['jinv_bulk'] ) ) { // phpcs:ignore
-		echo '<div class="notice notice-success is-dismissible"><p>J-Fakturácia: vystavené faktúry – ' . (int) $_GET['jinv_bulk'] . '.</p></div>'; // phpcs:ignore
+		if ( 'wf' === $_GET['jinv_bulk'] ) { // phpcs:ignore
+			echo '<div class="notice notice-warning is-dismissible"><p>J-Fakturácia: kým beží Woo Faktura, hromadné vystavenie je vypnuté.</p></div>';
+		} else {
+			echo '<div class="notice notice-success is-dismissible"><p>J-Fakturácia: vystavené faktúry – ' . (int) $_GET['jinv_bulk'] . ' (bez e-mailu zákazníkom; zrušené a nezaplatené objednávky sa preskočili).</p></div>'; // phpcs:ignore
+		}
 	}
 } );

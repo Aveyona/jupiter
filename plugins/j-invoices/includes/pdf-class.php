@@ -209,6 +209,9 @@ class JINV_PDF extends tFPDF {
 		if ( 'proforma' === $kind ) {
 			$lead[] = 'Zálohová faktúra – výzva na úhradu, nie je daňovým dokladom. Faktúru vystavíme po prijatí platby.';
 		}
+		if ( 'issued' === $kind && 'issued' === $inv['status'] && jinv_doc_is_cod( $inv ) ) {
+			$lead[] = 'Úhrada dobierkou pri prevzatí zásielky – neplaťte prevodom.';
+		}
 		if ( ! empty( $d['note'] ) ) {
 			$lead[] = $d['note'];
 		}
