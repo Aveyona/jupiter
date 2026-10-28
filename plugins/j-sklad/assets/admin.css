@@ -1,0 +1,37 @@
+/* J-Sklad – administrácia */
+.jsk-ver { font-size: 12px; font-weight: 400; color: #8C8F94; margin-left: 6px; }
+.jsk-panel { background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; padding: 12px 20px; margin: 14px 0; }
+.jsk-cards { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; }
+.jsk-cards > div { min-width: 200px; padding: 12px 16px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; }
+.jsk-cards span { display: block; font-size: 12px; color: #646970; }
+.jsk-cards strong { font-size: 22px; }
+.jsk-cards small { display: block; color: #996800; }
+.jsk-filters { float: none; margin: 4px 0 8px; }
+.jsk-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 12px; }
+.jsk-total { margin-left: auto; color: #50575E; }
+.jsk-table .n { text-align: right; white-space: nowrap; }
+.jsk-table tr.jsk-low td:nth-child(3) { color: #996800; }
+.jsk-table tr.jsk-out td:nth-child(3) { color: #A3121B; }
+.jsk-neg { color: #A3121B; }
+.jsk-pos { color: #00733A; }
+.jsk-st { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #F0F0F1; }
+.jsk-st-posted { background: #DCF2E3; color: #00733A; }
+.jsk-st-draft { background: #FFF4D6; color: #7A5B00; }
+.jsk-st-cancelled { background: #FBE3E4; color: #A3121B; }
+.jsk-head-fields { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; }
+.jsk-head-fields label { font-weight: 600; }
+.jsk-head-fields .jsk-wide { flex: 1 1 100%; }
+.jsk-search { position: relative; max-width: 640px; margin: 6px 0 10px; }
+.jsk-search input { width: 100%; padding: 6px 10px; font-size: 14px; }
+#jsk-results { position: absolute; z-index: 10; left: 0; right: 0; margin: 2px 0 0; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 6px; max-height: 320px; overflow: auto; box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+#jsk-results li { margin: 0; padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #F0F0F1; }
+#jsk-results li:hover { background: #F6F7F7; }
+#jsk-results small { color: #646970; }
+.jsk-items input.small-text { width: 90px; }
+.jsk-warn { color: #A3121B; }
+.jsk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+.jsk-danger { color: #A3121B !important; }
+.jsk-meta { display: flex; flex-wrap: wrap; gap: 18px; }
+.jsk-mini { width: 100%; font-size: 12px; border-collapse: collapse; }
+.jsk-mini td { padding: 3px 2px; border-bottom: 1px solid #F0F0F1; }
+.jsk-mini .n { text-align: right; }

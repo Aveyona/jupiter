@@ -28,6 +28,13 @@
       "url": "https://github.com/Aveyona/jupiter/releases/tag/j-orders-v0.1.1",
       "published": "2026-10-28",
       "notes": "Zoznam objednávok a číslovanie objednávok (náhrada My Order Numbers); oprava vyhľadávania podľa mena."
+    },
+    "j-sklad": {
+      "version": "0.1.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.1.0/j-sklad-v0.1.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.1.0",
+      "published": "2026-10-28",
+      "notes": "Prvá verzia: príjemky, výdajky, kniha pohybov zásob, prehľad a hodnota skladu."
     }
   }
 }

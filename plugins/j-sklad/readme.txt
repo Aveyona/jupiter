@@ -1,0 +1,27 @@
+=== J-Sklad ===
+Contributors: aveyona
+Tags: woocommerce, stock, inventory, warehouse, jupiter
+Requires at least: 6.5
+Tested up to: 6.9
+Requires PHP: 8.1
+Stable tag: 0.1.0
+License: GPLv2 or later
+
+Sklad pre WooCommerce: príjemky, výdajky, kniha pohybov zásob a hodnota skladu. Súčasť rodiny Jupiter.
+
+== Description ==
+
+Zásoba ostáva v produktoch WooCommerce (Spravovať zásoby, Množstvo na sklade) – J-Sklad k nej pridáva doklady a úplnú históriu. Vhodný pre ľubovoľný e-shop WooCommerce; funguje s variantmi produktov a s HPOS.
+
+* Príjemka (s nákupnou cenou → priemerná nákupná cena, vážený priemer) a výdajka s dôvodom; koncept, zaúčtovanie s číslom (PR2026001, VY2026001), storno protipohybom.
+* Kniha pohybov: každá zmena zásoby – predaj v objednávke, vrátenie na sklad, doklady, ručná zmena v produkte, iný doplnok.
+* Otváracia príjemka pri zapnutí – súčasné zásoby ako počiatočný stav (zásoby sa nemenia).
+* Prehľad skladu: zásoba, nákupná cena, hodnota, filtre dochádza / vypredané / bez nákupnej ceny; box v detaile produktu.
+* Vyhľadanie produktov podľa názvu a SKU, aj čítačkou čiarových kódov.
+
+Pripravuje sa: inventúra, PDF dokladov, import príjemky z CSV, dodávatelia, prepojenie s J-Fakturáciou, viac skladov.
+
+== Changelog ==
+
+= 0.1.0 =
+* Prvá verzia: príjemky, výdajky, kniha pohybov, prehľad a hodnota skladu.
