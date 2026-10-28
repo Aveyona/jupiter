@@ -21,6 +21,13 @@
       "url": "https://github.com/Aveyona/jupiter/releases/tag/j-emails-v0.1.1",
       "published": "2026-10-28",
       "notes": "Automatické vytvorenie priečinkov Odoslané a Kôš."
+    },
+    "j-orders": {
+      "version": "0.1.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-orders-v0.1.0/j-orders-v0.1.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-orders-v0.1.0",
+      "published": "2026-10-28",
+      "notes": "Prvá verzia: zoznam objednávok a číslovanie objednávok (náhrada My Order Numbers)."
     }
   }
 }

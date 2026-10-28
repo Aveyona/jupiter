@@ -9,6 +9,7 @@
 | **J-Pomocník** | vo vývoji | Dokumentácia doplnkov Jupiter priamo v administrácii – prehľad, návody, vývoj. |
 | **J-Fakturácia** | vo vývoji (0.1.0) | Vydané faktúry z objednávok (číselný rad, PDF, QR PAY by square, e-mail zákazníkovi po potvrdení), ručné faktúry, dobropisy, prijaté faktúry s prílohami a splatnosťou, export pre účtovníka. |
 | **J-Emails** | vo vývoji (0.1) | E-mailová schránka obchodu v administrácii (IMAP/SMTP): doručená pošta, odoslané, kôš, odpovede, prílohy. Pripravuje sa Mailchimp pre zákazníkov. |
+| **J-Orders** | vo vývoji (0.1) | Prehľadný zoznam objednávok nad WooCommerce (stavy s počtami, vyhľadávanie aj podľa čísla, filtre, platba, doprava, faktúra, hromadná zmena stavu) a vlastné čísla objednávok s prefixom – náhrada doplnku My Order Numbers. |
 | J-Sklad | nápad | Príjemky, výdajky, inventúra. |
 
 ## Požiadavky

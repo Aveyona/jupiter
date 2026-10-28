@@ -1,0 +1,29 @@
+/* J-Orders – administrácia */
+.jord-ver { font-size: 12px; font-weight: 400; color: #8C8F94; margin-left: 6px; }
+.jord-panel { background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; padding: 4px 20px 12px; margin: 14px 0; }
+.jord-panel h2 { margin: 14px 0 10px; font-size: 15px; }
+.jord-narrow { max-width: 760px; }
+.jord-narrow th { width: 240px; }
+.jord-big { font-size: 1.25em; }
+.jord-status { float: none; margin: 10px 0 6px; }
+.jord-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 12px; }
+.jord-filter input[type=search] { min-width: 280px; }
+.jord-total { margin-left: auto; color: #50575E; }
+.jord-bulk { display: flex; gap: 8px; margin: 0 0 8px; }
+.jord-table td, .jord-table th { vertical-align: top; }
+.jord-table .n { text-align: right; white-space: nowrap; }
+.jord-table .check-column { width: 2.2em; }
+.jord-num { white-space: nowrap; }
+.jord-note { color: #7F54B3; font-size: 16px; cursor: help; }
+.jord-paid { color: #00733A; }
+.jord-table mark.order-status { display: inline-flex; line-height: 2.5em; border-radius: 4px; border-bottom: 1px solid rgba(0,0,0,.05); margin: -.25em 0; cursor: inherit; max-width: 100%; color: #454545; background: #E5E5E5; }
+.jord-table mark.order-status > span { margin: 0 1em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.jord-table mark.status-processing { background: #C6E1C6; color: #2C4700; }
+.jord-table mark.status-completed { background: #C8D7E1; color: #003D66; }
+.jord-table mark.status-on-hold { background: #F8DDA7; color: #573B00; }
+.jord-table mark.status-failed, .jord-table mark.status-cancelled { background: #ECA3A3; color: #550202; }
+.jord-pages { margin: 12px 0; }
+@media (max-width: 782px) {
+	.jord-filter input[type=search] { min-width: 0; width: 100%; }
+	.jord-total { margin-left: 0; }
+}
