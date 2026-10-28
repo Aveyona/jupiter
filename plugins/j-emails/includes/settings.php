@@ -111,6 +111,19 @@ function jem_folder_map( JEM_Imap $imap ) {
 				}
 			}
 		}
+		// Nová schránka nemusí mať priečinky Odoslané a Kôš – vytvoria sa (najprv „Sent“, potom „INBOX.Sent“ pre servery s predponou).
+		foreach ( array( 'sent' => 'Sent', 'trash' => 'Trash' ) as $k => $name ) {
+			if ( '' !== $cached[ $k ] ) {
+				continue;
+			}
+			foreach ( array( $name, 'INBOX.' . $name, 'INBOX/' . $name ) as $try ) {
+				if ( $imap->create( $try ) ) {
+					$cached[ $k ] = $try;
+					break;
+				}
+			}
+		}
+		$cached['all'] = array_keys( $list );
 		set_transient( 'jem_folders', $cached, DAY_IN_SECONDS );
 	}
 	$s = jem_settings();
@@ -169,7 +182,7 @@ add_action( 'admin_post_jem_test', function () {
 		delete_transient( 'jem_folders' );
 		$f     = jem_folder_map( $imap );
 		$n     = $imap->select( 'INBOX', true );
-		$res[] = array( 'ok', 'Prijímanie (IMAP): pripojené, v Doručenej pošte je ' . (int) $n . ' správ. Odoslané: „' . ( $f['sent'] ? $f['sent'] : 'nenájdené' ) . '“, Kôš: „' . ( $f['trash'] ? $f['trash'] : 'nenájdený' ) . '“.' );
+		$res[] = array( 'ok', 'Prijímanie (IMAP): pripojené, v Doručenej pošte je ' . (int) $n . ' správ. Odoslané: „' . ( $f['sent'] ? $f['sent'] : 'nenájdené' ) . '“, Kôš: „' . ( $f['trash'] ? $f['trash'] : 'nenájdený' ) . '“. Priečinky v schránke: ' . implode( ', ', isset( $f['all'] ) ? $f['all'] : array() ) . '.' );
 		$imap->close();
 	}
 	$smtp  = jem_smtp_test();

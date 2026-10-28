@@ -168,6 +168,17 @@ class JEM_Imap {
 		return $out;
 	}
 
+	/** Vytvorenie priečinka (a prihlásenie na odber, aby ho videli aj iné programy). */
+	public function create( $folder ) {
+		$r = $this->cmd( 'CREATE ' . self::q( $folder ) );
+		if ( $r['ok'] || false !== stripos( $r['text'], 'exists' ) ) {
+			$this->cmd( 'SUBSCRIBE ' . self::q( $folder ) );
+			return true;
+		}
+		$this->error = $r['text'];
+		return false;
+	}
+
 	/** Výber priečinka; vráti počet správ alebo false. */
 	public function select( $folder, $readonly = false ) {
 		$r = $this->cmd( ( $readonly ? 'EXAMINE ' : 'SELECT ' ) . self::q( $folder ) );

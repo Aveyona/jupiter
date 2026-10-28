@@ -3,7 +3,7 @@
  * Plugin Name:       J-Emails
  * Plugin URI:        https://github.com/Aveyona/jupiter
  * Description:       E-mailová schránka obchodu priamo v administrácii WordPressu: doručená pošta, odoslané, kôš, čítanie správ s prílohami, nová správa, odpoveď a preposlanie. Pripája sa k schránke cez IMAP a SMTP (napr. WebSupport). Súčasť rodiny Jupiter.
- * Version:           0.1.0
+ * Version:           0.1.1
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Aveyona, s. r. o.
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JEM_VERSION', '0.1.0' );
+define( 'JEM_VERSION', '0.1.1' );
 define( 'JEM_FILE', __FILE__ );
 define( 'JEM_DIR', plugin_dir_path( __FILE__ ) );
 define( 'JEM_URL', plugin_dir_url( __FILE__ ) );
