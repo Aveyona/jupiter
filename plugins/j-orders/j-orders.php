@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       J-Orders
+ * Plugin Name:       J-Objednávky
  * Plugin URI:        https://github.com/Aveyona/jupiter
  * Description:       Objednávky WooCommerce prehľadnejšie: vlastný zoznam objednávok (stavy s počtami, vyhľadávanie aj podľa čísla, filtre platby a dátumu, platba, doprava, faktúra, hromadná zmena stavu) a vlastné čísla objednávok (prefix + poradové číslo, napr. 220260001) – náhrada doplnku My Order Numbers. Súčasť rodiny Jupiter.
- * Version:           0.1.1
+ * Version:           0.1.2
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JORD_VERSION', '0.1.1' );
+define( 'JORD_VERSION', '0.1.2' );
 define( 'JORD_FILE', __FILE__ );
 define( 'JORD_DIR', plugin_dir_path( __FILE__ ) );
 define( 'JORD_URL', plugin_dir_url( __FILE__ ) );
@@ -39,7 +39,7 @@ add_action( 'before_woocommerce_init', function () {
 // Zápis do J-Pomocník (prehľad doplnkov Jupiter).
 add_filter( 'jupiter_plugins', function ( $plugins ) {
 	$plugins['j-orders'] = array(
-		'name'   => 'J-Orders',
+		'name'   => 'J-Objednávky',
 		'icon'   => 'dashicons-clipboard',
 		'what'   => 'Objednávky: prehľadný zoznam objednávok nad WooCommerce (stavy s počtami, vyhľadávanie aj podľa čísla objednávky, filtre platby a dátumu, stĺpce platba, doprava a faktúra, hromadná zmena stavu) a vlastné čísla objednávok s prefixom (náhrada doplnku My Order Numbers).',
 		'status' => 'dev',

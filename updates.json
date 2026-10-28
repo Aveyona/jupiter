@@ -23,9 +23,9 @@
       "notes": "E-maily webu a e-shopu cez SMTP schránky, skúšobný e-mail."
     },
     "j-orders": {
-      "version": "0.1.1",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-orders-v0.1.1/j-orders-v0.1.1.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-orders-v0.1.1",
+      "version": "0.1.2",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-orders-v0.1.2/j-orders-v0.1.2.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-orders-v0.1.2",
       "published": "2026-10-28",
       "notes": "Zoznam objednávok a číslovanie objednávok (náhrada My Order Numbers); oprava vyhľadávania podľa mena."
     },

@@ -1,6 +1,6 @@
 <?php
 /**
- * Zoznam objednávok J-Orders – nadstavba nad WooCommerce (objednávky sa čítajú cez wc_get_orders, funguje s HPOS).
+ * Zoznam objednávok J-Objednávky – nadstavba nad WooCommerce (objednávky sa čítajú cez wc_get_orders, funguje s HPOS).
  * Stavy s počtami, vyhľadávanie (aj podľa čísla objednávky), filter platby a dátumu, stĺpce platba, doprava,
  * faktúra (J-Fakturácia) a hromadná zmena stavu. Úprava objednávky prebieha v štandardnom detaile WooCommerce.
  */
@@ -88,7 +88,7 @@ function jord_render_list() {
 	$msg    = isset( $_GET['jord_msg'] ) ? (int) $_GET['jord_msg'] : -1; // phpcs:ignore
 	?>
 	<div class="wrap jord">
-		<h1 class="wp-heading-inline">Objednávky <span class="jord-ver">J-Orders v<?php echo esc_html( JORD_VERSION ); ?></span></h1>
+		<h1 class="wp-heading-inline">Objednávky <span class="jord-ver">J-Objednávky v<?php echo esc_html( JORD_VERSION ); ?></span></h1>
 		<a class="page-title-action" href="<?php echo esc_url( admin_url( jord_hpos() ? 'admin.php?page=wc-orders&action=new' : 'post-new.php?post_type=shop_order' ) ); ?>">Pridať objednávku</a>
 		<a class="page-title-action" href="<?php echo esc_url( admin_url( jord_hpos() ? 'admin.php?page=wc-orders' : 'edit.php?post_type=shop_order' ) ); ?>">Zoznam WooCommerce</a>
 		<hr class="wp-header-end">
@@ -176,7 +176,7 @@ add_action( 'admin_post_jord_bulk_status', function () {
 		foreach ( $ids as $id ) {
 			$o = wc_get_order( $id );
 			if ( $o && $o->get_status() !== preg_replace( '/^wc-/', '', $to ) ) {
-				$o->update_status( preg_replace( '/^wc-/', '', $to ), 'J-Orders: hromadná zmena stavu.', true );
+				$o->update_status( preg_replace( '/^wc-/', '', $to ), 'J-Objednávky: hromadná zmena stavu.', true );
 				$n++;
 			}
 		}

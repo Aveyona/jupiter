@@ -4,7 +4,7 @@
  *
  * Číslo sa ukladá do meta `_wcson_order_number` – rovnako ako doplnky My Order Numbers a „Woo Custom and Sequential
  * Order Number“, takže existujúce objednávky si čísla ponechajú. Pri aktivácii sa prevezme nastavenie aj počítadlo
- * z My Order Numbers (alebo z pôvodného doplnku). Kým beží niektorý z nich, čísla prideľuje on a J-Orders ich len
+ * z My Order Numbers (alebo z pôvodného doplnku). Kým beží niektorý z nich, čísla prideľuje on a J-Objednávky ich len
  * zobrazuje – dve počítadlá nikdy nebežia naraz. Funguje s klasickým ukladaním objednávok aj s HPOS.
  */
 if ( ! defined( 'ABSPATH' ) ) {
@@ -59,7 +59,7 @@ function jord_numbers_settings( $fresh = false ) {
 	return wp_parse_args( is_array( $s ) ? $s : array(), jord_numbers_defaults() );
 }
 
-/** Číslovanie J-Orders prideľuje čísla (zapnuté a nebeží iný doplnok). */
+/** Číslovanie J-Objednávky prideľuje čísla (zapnuté a nebeží iný doplnok). */
 function jord_numbers_active() {
 	$s = jord_numbers_settings();
 	return ! empty( $s['enabled'] ) && '' === jord_other_numbering();
@@ -151,7 +151,7 @@ function jord_stored_number( WC_Order $order ) {
 
 /**
  * Posledné poradové číslo. Pred prvým pridelením po prechode z My Order Numbers sa nadviaže na jeho počítadlo
- * (ak bežal po aktivácii J-Orders ďalej) – len pri rovnakom formáte čísla. $consume = poznačiť, že prechod prebehol.
+ * (ak bežal po aktivácii J-Objednávky ďalej) – len pri rovnakom formáte čísla. $consume = poznačiť, že prechod prebehol.
  */
 function jord_effective_last( $s, $consume = false ) {
 	$last = absint( $s['last'] );

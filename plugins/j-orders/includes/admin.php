@@ -1,11 +1,11 @@
 <?php
-/** Menu J-Orders a stránka Číslovanie (náhrada My Order Numbers). */
+/** Menu J-Objednávky a stránka Číslovanie (náhrada My Order Numbers). */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 add_action( 'admin_menu', function () {
-	add_menu_page( 'J-Orders', 'J-Orders', 'edit_shop_orders', 'j-orders', 'jord_render_list', 'dashicons-clipboard', 58 );
+	add_menu_page( 'J-Objednávky', 'J-Objednávky', 'edit_shop_orders', 'j-orders', 'jord_render_list', 'dashicons-clipboard', 58 );
 	add_submenu_page( 'j-orders', 'Objednávky', 'Objednávky', 'edit_shop_orders', 'j-orders', 'jord_render_list' );
 	add_submenu_page( 'j-orders', 'Číslovanie objednávok', 'Číslovanie', 'manage_woocommerce', 'j-orders-numbers', 'jord_render_numbers' );
 } );
@@ -32,17 +32,17 @@ function jord_render_numbers() {
 	$notice = isset( $_GET['jord_notice'] ) ? sanitize_key( $_GET['jord_notice'] ) : ''; // phpcs:ignore
 	?>
 	<div class="wrap jord">
-		<h1>Číslovanie objednávok <span class="jord-ver">J-Orders v<?php echo esc_html( JORD_VERSION ); ?></span></h1>
+		<h1>Číslovanie objednávok <span class="jord-ver">J-Objednávky v<?php echo esc_html( JORD_VERSION ); ?></span></h1>
 		<?php if ( 'saved' === $notice ) : ?><div class="notice notice-success is-dismissible"><p>Nastavenie je uložené.</p></div><?php endif; ?>
 		<?php if ( 'invalid' === $notice ) : ?><div class="notice notice-error is-dismissible"><p>Nastavenie nie je uložené – skontrolujte hodnoty.</p></div><?php endif; ?>
 		<?php if ( $other ) : ?>
-			<div class="notice notice-warning"><p><strong>Čísla objednávok zatiaľ prideľuje doplnok <?php echo esc_html( $other ); ?>.</strong> J-Orders ich len zobrazuje a vyhľadáva. Po vypnutí doplnku <?php echo esc_html( $other ); ?> prevezme číslovanie J-Orders a nadviaže na jeho posledné číslo.</p></div>
+			<div class="notice notice-warning"><p><strong>Čísla objednávok zatiaľ prideľuje doplnok <?php echo esc_html( $other ); ?>.</strong> J-Objednávky ich len zobrazuje a vyhľadáva. Po vypnutí doplnku <?php echo esc_html( $other ); ?> prevezme číslovanie J-Objednávky a nadviaže na jeho posledné číslo.</p></div>
 		<?php endif; ?>
 
 		<div class="jord-panel">
 			<h2>Stav</h2>
 			<table class="widefat striped jord-narrow"><tbody>
-				<tr><th>Číslovanie J-Orders</th><td><?php echo $s['enabled'] ? ( $other ? 'zapnuté – čaká na vypnutie doplnku ' . esc_html( $other ) : '<strong>zapnuté</strong>' ) : 'vypnuté (objednávky majú čísla WooCommerce = ID)'; ?></td></tr>
+				<tr><th>Číslovanie J-Objednávky</th><td><?php echo $s['enabled'] ? ( $other ? 'zapnuté – čaká na vypnutie doplnku ' . esc_html( $other ) : '<strong>zapnuté</strong>' ) : 'vypnuté (objednávky majú čísla WooCommerce = ID)'; ?></td></tr>
 				<tr><th>Posledná objednávka</th><td><?php if ( $last ) : ?><strong><?php echo esc_html( $last->get_order_number() ); ?></strong> – <a href="<?php echo esc_url( $last->get_edit_order_url() ); ?>">ID <?php echo (int) $last->get_id(); ?></a>, <?php echo esc_html( wc_format_datetime( $last->get_date_created(), 'j. n. Y H:i' ) ); ?>, <?php echo esc_html( wc_get_order_status_name( $last->get_status() ) ); ?><?php else : ?>—<?php endif; ?></td></tr>
 				<tr><th>Posledné použité poradové číslo</th><td><?php echo esc_html( jord_format( $s['last'], $s ) ); ?> (<?php echo (int) $s['last']; ?>)</td></tr>
 				<tr><th>Ďalšia objednávka dostane číslo</th><td><strong class="jord-big"><?php echo esc_html( $s['enabled'] ? jord_format( $next, $s ) : '—' ); ?></strong></td></tr>
