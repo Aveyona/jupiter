@@ -9,11 +9,11 @@
       "notes": "Plán vývoja: J-Emails 0.1."
     },
     "j-invoices": {
-      "version": "0.9.1",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.9.1/j-invoices-v0.9.1.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.9.1",
+      "version": "0.9.2",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.9.2/j-invoices-v0.9.2.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.9.2",
       "published": "2026-10-28",
-      "notes": "IBAN z nastavení bankového prevodu WooCommerce, ak nie je vyplnený."
+      "notes": "Nákup na firmu aj v blokovej pokladni."
     },
     "j-emails": {
       "version": "0.2.0",
