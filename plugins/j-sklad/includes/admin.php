@@ -181,8 +181,8 @@ function jsk_render_overview() {
 				<td class="jsk-pname"><a href="<?php echo esc_url( $edit ); ?>"><?php echo esc_html( $p->get_name() ); ?></a></td>
 				<td><?php echo esc_html( $p->get_sku() ); ?></td>
 				<td class="n jsk-stock"><?php echo $trk ? esc_html( jsk_qty( $st ) ) : '<small class="jsk-muted" title="Zásoby sa pri tomto produkte nesledujú (Zásoby → Spravovať zásoby).">' . ( $p->is_virtual() ? 'služba' : 'nesleduje sa' ) . '</small>'; ?></td>
-				<td class="n jsk-price"><?php echo '' === (string) $p->get_price() ? '—' : esc_html( jsk_money( $p->get_price() ) ); ?><?php if ( $p->is_on_sale() && '' !== (string) $p->get_regular_price() ) : ?><br><del><?php echo esc_html( jsk_money( $p->get_regular_price() ) ); ?></del><?php endif; ?></td>
-				<td class="n"><input type="number" class="jsk-cost" data-id="<?php echo (int) $pid; ?>" data-qty="<?php echo esc_attr( max( 0, $st ) ); ?>" value="<?php echo null === $cost ? '' : esc_attr( round( $cost, 4 ) ); ?>" min="0" step="0.01" placeholder="zadať" aria-label="Nákupná cena"></td>
+				<td class="n jsk-price"><input type="number" class="jsk-sell" data-id="<?php echo (int) $pid; ?>" value="<?php echo esc_attr( (string) $p->get_regular_price() ); ?>" min="0" step="0.01" placeholder="cena" aria-label="Predajná cena"><?php if ( $p->is_on_sale() && '' !== (string) $p->get_sale_price() ) : ?><br><small class="jsk-sale">v akcii <?php echo esc_html( jsk_money( $p->get_sale_price() ) ); ?></small><?php endif; ?></td>
+				<td class="n"><?php if ( $trk ) : ?><input type="number" class="jsk-cost" data-id="<?php echo (int) $pid; ?>" data-qty="<?php echo esc_attr( max( 0, $st ) ); ?>" value="<?php echo null === $cost ? '' : esc_attr( round( $cost, 4 ) ); ?>" min="0" step="0.01" placeholder="zadať" aria-label="Nákupná cena"><?php else : ?><span class="jsk-muted">—</span><?php endif; ?></td>
 				<td class="n jsk-val"><?php echo null === $cost || ! $trk ? '—' : esc_html( jsk_money( max( 0, $st ) * $cost ) ); ?></td>
 				<td><?php echo $last ? esc_html( jsk_move_sources()[ $last['source'] ] ?? $last['source'] ) . '<br><small>' . esc_html( date_i18n( 'j. n. Y H:i', strtotime( $last['created_at'] ) ) ) . '</small>' : '—'; ?></td>
 				<td><a href="<?php echo esc_url( jsk_url( 'j-sklad-moves', array( 'product' => $pid ) ) ); ?>">História</a></td>
@@ -190,25 +190,27 @@ function jsk_render_overview() {
 		<?php endforeach; ?>
 		</tbody>
 	</table>
-	<p class="description">Nákupnú cenu zadáš priamo v tabuľke – uloží sa po opustení poľa alebo klávesom Enter (zmena sa zapíše do Pohybov). Pri príjemke s cenou sa prepočíta automaticky.</p>
+	<p class="description">Predajnú aj nákupnú cenu zmeníš priamo v tabuľke – uloží sa po opustení poľa alebo klávesom Enter. Predajná cena sa hneď prejaví v e-shope (akciová cena ostáva, ak je nastavená). Zmena nákupnej ceny sa zapíše do Pohybov; pri príjemke s cenou sa prepočíta automaticky. Nákupná cena sa zadáva len pri produktoch so sledovaním zásob.</p>
 	<script>
 	(function(){
 		var nonce='<?php echo esc_js( wp_create_nonce( 'jsk_cost' ) ); ?>';
 		function fmt(v){return v.toLocaleString('sk-SK',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
 		function save(inp){
 			if(inp.value===inp.getAttribute('data-saved')){return;}
-			var f=new FormData();f.append('action','jsk_set_cost');f.append('_ajax_nonce',nonce);f.append('id',inp.dataset.id);f.append('cost',inp.value);
+			var sell=inp.classList.contains('jsk-sell');
+			var f=new FormData();f.append('action',sell?'jsk_set_price':'jsk_set_cost');f.append('_ajax_nonce',nonce);f.append('id',inp.dataset.id);f.append(sell?'price':'cost',inp.value);
 			inp.classList.remove('jsk-ok','jsk-bad');inp.disabled=true;
 			fetch(ajaxurl,{method:'POST',body:f,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
 				inp.disabled=false;
-				if(j&&j.success){inp.setAttribute('data-saved',inp.value);inp.classList.add('jsk-ok');var c=inp.closest('tr').querySelector('.jsk-val');c.textContent=inp.value===''?'—':fmt(parseFloat(inp.dataset.qty)*parseFloat(inp.value));}
+				if(j&&j.success){inp.setAttribute('data-saved',inp.value);inp.classList.add('jsk-ok');if(!sell){var c=inp.closest('tr').querySelector('.jsk-val');c.textContent=inp.value===''?'—':fmt(parseFloat(inp.dataset.qty)*parseFloat(inp.value));}}
 				else{inp.classList.add('jsk-bad');alert((j&&j.data)||'Nepodarilo sa uložiť.');}
 			}).catch(function(){inp.disabled=false;inp.classList.add('jsk-bad');});
 		}
-		document.querySelectorAll('.jsk-cost').forEach(function(inp){
+		document.querySelectorAll('.jsk-cost, .jsk-sell').forEach(function(inp){
+			var cls=inp.classList.contains('jsk-sell')?'.jsk-sell':'.jsk-cost';
 			inp.setAttribute('data-saved',inp.value);
 			inp.addEventListener('change',function(){save(inp);});
-			inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();save(inp);var all=[].slice.call(document.querySelectorAll('.jsk-cost')),i=all.indexOf(inp);if(all[i+1]){all[i+1].focus();}}});
+			inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();save(inp);var all=[].slice.call(document.querySelectorAll(cls)),i=all.indexOf(inp);if(all[i+1]){all[i+1].focus();}}});
 		});
 	})();
 	</script>
@@ -518,6 +520,32 @@ add_action( 'wp_ajax_jsk_search', function () {
 } );
 
 // Ručné zadanie nákupnej ceny v Prehľade skladu (zapíše sa do knihy ako zmena ceny, zásoba sa nemení).
+/* Predajná (bežná) cena priamo z Prehľadu skladu. */
+add_action( 'wp_ajax_jsk_set_price', function () {
+	if ( ! current_user_can( JSK_CAP ) ) {
+		wp_send_json_error( 'Nemáte oprávnenie.', 403 );
+	}
+	check_ajax_referer( 'jsk_cost' );
+	$p   = wc_get_product( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 );
+	$raw = isset( $_POST['price'] ) ? trim( str_replace( ',', '.', sanitize_text_field( wp_unslash( $_POST['price'] ) ) ) ) : '';
+	if ( ! $p || $p->is_type( array( 'variable', 'grouped' ) ) ) {
+		wp_send_json_error( 'Produkt neexistuje alebo cenu nemá (variabilný produkt má ceny pri variantoch).' );
+	}
+	if ( '' !== $raw && ( ! is_numeric( $raw ) || (float) $raw < 0 ) ) {
+		wp_send_json_error( 'Zadajte kladné číslo.' );
+	}
+	$price = '' === $raw ? '' : wc_format_decimal( $raw, wc_get_price_decimals() );
+	$p->set_regular_price( $price );
+	if ( '' !== $price && '' !== (string) $p->get_sale_price() && (float) $p->get_sale_price() >= (float) $price ) {
+		$p->set_sale_price( '' ); // akcia vyššia ako nová cena nedáva zmysel
+	}
+	$p->save();
+	if ( function_exists( 'wc_delete_product_transients' ) ) {
+		wc_delete_product_transients( $p->get_id() );
+	}
+	wp_send_json_success( array( 'price' => $price ) );
+} );
+
 add_action( 'wp_ajax_jsk_set_cost', function () {
 	if ( ! current_user_can( JSK_CAP ) ) {
 		wp_send_json_error( 'Nemáte oprávnenie.', 403 );
