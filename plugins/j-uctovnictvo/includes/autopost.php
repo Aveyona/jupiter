@@ -178,6 +178,13 @@ function juc_build_received( array $d ) {
 	);
 }
 
+/** Účet podľa pravidla pre protiúčet (Nastavenia → Pravidlá pre pohyby v banke), alebo ''. */
+function juc_bank_rule( array $t ) {
+	$iban = strtoupper( str_replace( ' ', '', (string) $t['counter_account'] ) );
+	$r    = (array) juc_opt( 'bank_rules' );
+	return ( $iban && ! empty( $r[ $iban ] ) ) ? (string) $r[ $iban ] : '';
+}
+
 /** Pohyb v banke. Vráti zápis, alebo null (čaká na rozhodnutie v „Na zaúčtovanie“). */
 function juc_build_banktx( array $t ) {
 	$bank = juc_bank_account( $t['account_id'] );
@@ -206,6 +213,8 @@ function juc_build_banktx( array $t ) {
 	} elseif ( 'matched' === $t['status'] && (int) $t['order_id'] ) {
 		$line            = array( 'md' => $bank, 'd' => juc_acc_opt( 'acc_adv_recv', '324' ), 'amount' => $abs, 'text' => 'Platba za objednávku (preddavok) – VS ' . $t['vs'], 'vs' => $t['vs'] );
 		$head['adv_key'] = 'order:' . (int) $t['order_id'];
+	} elseif ( ( $rule = juc_bank_rule( $t ) ) ) {
+		$line = $amt > 0 ? array( 'md' => $bank, 'd' => $rule, 'amount' => $abs, 'text' => trim( ( $t['message'] ? $t['message'] : 'Príjem' ) . ' – ' . $t['counter_name'], ' –' ) ) : array( 'md' => $rule, 'd' => $bank, 'amount' => $abs, 'text' => trim( ( $t['message'] ? $t['message'] : 'Výdaj' ) . ' – ' . $t['counter_name'], ' –' ) );
 	} elseif ( preg_match( '/transak\S* da/iu', $t['tx_type'] ) ) {
 		$line = array( 'md' => juc_acc_opt( 'acc_tx_tax', '538' ), 'd' => $bank, 'amount' => $amt < 0 ? $abs : -$abs, 'text' => 'Transakčná daň' );
 	} elseif ( preg_match( '/poplat/iu', $t['tx_type'] ) ) {

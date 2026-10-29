@@ -4,6 +4,7 @@
  *
  * Pokladničný doklad = účtovný doklad s jedným zápisom: príjem 211/protiúčet, výdaj protiúčet/211.
  * Zostatok pokladne nesmie byť záporný – výdaj nad aktuálny zostatok sa nezaúčtuje.
+ * Stornované doklady a ich storná sa v pokladničnej knihe nezobrazujú (navzájom sa rušia).
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -55,7 +56,7 @@ function juc_cash_book( $year_id, $from = '', $to = '' ) {
 	$acc  = juc_cash_account();
 	$like = $wpdb->esc_like( $acc ) . '%';
 	$rows = $wpdb->get_results( $wpdb->prepare(
-		'SELECT l.*, e.number, e.descr, e.partner_name, e.status, e.series, e.id eid FROM ' . juc_t( 'lines' ) . ' l JOIN ' . juc_t( 'entries' ) . ' e ON e.id = l.entry_id WHERE l.year_id = %d AND (l.md LIKE %s OR l.d LIKE %s) ORDER BY l.opening DESC, l.entry_date, e.seq, l.id',
+		'SELECT l.*, e.number, e.descr, e.partner_name, e.status, e.series, e.id eid FROM ' . juc_t( 'lines' ) . ' l JOIN ' . juc_t( 'entries' ) . ' e ON e.id = l.entry_id WHERE l.year_id = %d AND e.status = \'posted\' AND (l.md LIKE %s OR l.d LIKE %s) ORDER BY l.opening DESC, l.entry_date, e.seq, l.id',
 		$year_id, $like, $like
 	), ARRAY_A ); // phpcs:ignore
 	$out = array( 'ps' => 0.0, 'rows' => array(), 'in' => 0.0, 'out' => 0.0, 'end' => 0.0, 'negative' => array() );

@@ -30,6 +30,10 @@ Program nenahrádza odborné posúdenie – pred podaním účtovnej závierky a
 
 == Changelog ==
 
+= 0.5.2 =
+* Pravidlá pre pohyby v banke: protiúčet (IBAN) → účet, napr. súkromný účet konateľa → 355 pohľadávka; takéto pohyby sa zaúčtujú automaticky.
+* Predkontácie: splátka pohľadávky od konateľa (221/355), výplata konateľovi (355/221).
+
 = 0.5.1 =
 * Na riešenie: stĺpec Priorita (vysoká / stredná / nízka) so zmenou priamo v zozname, zoradenie od najvyššej priority, chýbajúci doklad dostane prioritu podľa sumy; súhrn a tlač zoradené podľa priority.
 

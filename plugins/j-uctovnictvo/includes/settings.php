@@ -62,6 +62,7 @@ function juc_defaults() {
 		'cat_default'    => '518',
 		'issue_map'      => array(),      // dôvod výdajky J-Skladu => účet (predvolene 549 / 501)
 		'bank_map'       => array(),      // ID účtu v J-Fakturácii => analytický účet 221xxx
+		'bank_rules'     => array(),      // protiúčet (IBAN) => účet, napr. súkromný účet konateľa => 355001
 	);
 }
 
@@ -107,6 +108,8 @@ function juc_templates() {
 		'PD-MAT' => array( 'Výdavok z pokladne – drobný materiál', '501', '211' ),
 		'PD-PHM' => array( 'Výdavok z pokladne – pohonné hmoty', '501', '211' ),
 		'SP-POZ' => array( 'Pôžička od spoločníka na účet', '221', '365' ),
+		'KO-SPL' => array( 'Splátka pohľadávky od konateľa / spoločníka na účet', '221', '355' ),
+		'KO-VYP' => array( 'Výplata konateľovi / spoločníkovi z účtu (pohľadávka)', '355', '221' ),
 		'SP-VR'  => array( 'Vrátenie pôžičky spoločníkovi', '365', '221' ),
 		'FP-SL'  => array( 'Prijatá faktúra – služby', '518', '321' ),
 		'FP-TOV' => array( 'Prijatá faktúra – tovar (obstaranie)', '131', '321' ),
@@ -182,6 +185,9 @@ function juc_page_settings() {
 			<?php endforeach; ?>
 		</table>
 		<?php juc_accounts_datalist(); ?>
+		<h2>Pravidlá pre pohyby v banke</h2>
+		<p class="description">Pohyby z / na tieto protiúčty sa zaúčtujú automaticky na zadaný účet (napr. súkromný účet konateľa → 355001 pohľadávka voči konateľovi). Jeden riadok = <code>IBAN = účet</code> (voliteľne <code># poznámka</code>).</p>
+		<textarea name="bank_rules" rows="4" class="large-text code"><?php foreach ( (array) $s['bank_rules'] as $iban => $acc ) { echo esc_textarea( $iban . ' = ' . $acc ) . "\n"; } ?></textarea>
 		<p class="description">Kategórie prijatých faktúr a bankové účty sa nastavujú v sprievodcovi (kroky 6 a 7).</p>
 		<p><button class="button button-primary">Uložiť</button></p>
 	</form>
@@ -203,6 +209,14 @@ add_action( 'admin_post_juc_settings', function () {
 		'format_ID'    => false !== strpos( (string) ( $in['format_ID'] ?? '' ), '{n' ) ? sanitize_text_field( $in['format_ID'] ) : 'ID{RRRR}{nnnn}',
 		'format_PD'    => false !== strpos( (string) ( $in['format_PD'] ?? '' ), '{n' ) ? sanitize_text_field( $in['format_PD'] ) : 'PD{RRRR}{nnnn}',
 	);
+	$rules = array();
+	foreach ( preg_split( '/\R/', (string) ( $in['bank_rules'] ?? '' ) ) as $line ) {
+		$line = trim( preg_replace( '/#.*$/', '', $line ) );
+		if ( preg_match( '/^([A-Za-z]{2}[0-9A-Za-z ]{10,40})\s*=\s*(\d{3,9})$/', $line, $m ) ) {
+			$rules[ strtoupper( str_replace( ' ', '', $m[1] ) ) ] = $m[2];
+		}
+	}
+	$set['bank_rules'] = $rules;
 	foreach ( array_keys( juc_defaults() ) as $k ) {
 		if ( ( 0 === strpos( $k, 'acc_' ) || 'cat_default' === $k ) && isset( $in[ $k ] ) && preg_replace( '/\D/', '', $in[ $k ] ) ) {
 			$set[ $k ] = preg_replace( '/\D/', '', $in[ $k ] );
