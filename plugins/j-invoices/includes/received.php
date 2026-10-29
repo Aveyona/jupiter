@@ -44,6 +44,9 @@ add_action( 'admin_post_jinv_received_save', function () {
 	$in    = wp_unslash( $_POST );
 	$id    = isset( $in['id'] ) ? (int) $in['id'] : 0;
 	$old   = $id ? jinv_get( $id ) : null;
+	if ( $id && ( ! $old || 'received' !== $old['kind'] ) ) {
+		wp_die( 'Doklad nie je prijatá faktúra – úprava sa neuložila.' );
+	}
 	$date  = function ( $k, $def ) use ( $in ) {
 		$v = isset( $in[ $k ] ) ? sanitize_text_field( $in[ $k ] ) : '';
 		return preg_match( '/^\d{4}-\d{2}-\d{2}$/', $v ) ? $v : $def;

@@ -130,7 +130,8 @@ add_action( 'admin_post_jinv_export', function () {
 	fputcsv( $out, array( 'Druh', 'Číslo', 'Stav', 'Dátum vystavenia', 'Dátum dodania', 'Splatnosť', 'VS', 'Objednávka', 'Odberateľ', 'IČO', 'DIČ', 'IČ DPH', 'E-mail', 'Spôsob úhrady', 'Suma', 'Mena', 'Uhradené', 'K faktúre', 'Zdroj' ), ';' );
 	$st = jinv_statuses();
 	$safe = function ( $v ) { // ochrana pred vzorcami v Exceli (=, +, -, @ na začiatku textu)
-		return is_string( $v ) && '' !== $v && in_array( $v[0], array( '=', '+', '-', '@' ), true ) && ! is_numeric( $v ) ? "'" . $v : $v;
+		$num = is_string( $v ) && preg_match( '/^-?\d+(?:[.,]\d+)?$/', $v ); // suma (aj záporná s desatinnou čiarkou) ostáva číslom
+		return is_string( $v ) && '' !== $v && in_array( $v[0], array( '=', '+', '-', '@' ), true ) && ! $num ? "'" . $v : $v;
 	};
 	foreach ( $rows as $r ) {
 		$c = (array) ( $r['data']['customer'] ?? array() );

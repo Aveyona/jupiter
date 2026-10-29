@@ -23,6 +23,14 @@ define( 'JINV_FILE', __FILE__ );
 define( 'JINV_DIR', plugin_dir_path( __FILE__ ) );
 define( 'JINV_URL', plugin_dir_url( __FILE__ ) );
 
+// Kompatibilita s HPOS (tabuľky objednávok) a s blokovou pokladňou WooCommerce.
+add_action( 'before_woocommerce_init', function () {
+	if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', JINV_FILE, true );
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', JINV_FILE, true );
+	}
+} );
+
 require_once JINV_DIR . 'includes/db.php';
 require_once JINV_DIR . 'includes/settings.php';
 require_once JINV_DIR . 'includes/create.php';

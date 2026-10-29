@@ -41,7 +41,7 @@ function jinv_order_box( $post_or_order ) {
 	if ( ! $has( 'proforma' ) && ! $has( 'issued' ) ) {
 		echo '<a class="button" href="' . esc_url( jinv_action_url( 'create_proforma', $o->get_id(), $back ) ) . '">Vystaviť zálohovú faktúru</a> ';
 	}
-	if ( $has( 'issued' ) ) {
+	if ( $has( 'issued' ) && jinv_credit_remaining( $o->get_id() ) >= 0.01 ) {
 		echo '<a class="button" href="' . esc_url( jinv_action_url( 'create_creditnote', $o->get_id(), $back ) ) . '" onclick="return confirm(\'Vystaviť dobropis? Ak má objednávka vrátenie peňazí (Refund) bez dobropisu, dobropis bude na vrátenú sumu, inak na celú faktúru.\');">Vystaviť dobropis</a>';
 	}
 	echo '</p>';
