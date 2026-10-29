@@ -88,7 +88,7 @@ function jinv_items_from_order( WC_Order $o ) {
 			'unit'  => 'ks',
 			'price' => round( $total / $qty, 2 ),
 			'total' => round( $total, 2 ),
-			'type'  => 'product',
+			'type'  => $product && $product->is_virtual() ? 'service' : 'product', // služba (virtuálny produkt) / tovar
 		);
 	}
 	foreach ( $o->get_shipping_methods() as $sh ) {

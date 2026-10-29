@@ -198,6 +198,7 @@ function juc_page_trial() {
 			$csum = array_fill_keys( array_keys( $csum ), 0.0 );
 		};
 		foreach ( $t as $a => $r ) :
+			$a = (string) $a;
 			if ( $class && $class !== $a[0] ) {
 				$flush( $class );
 			}

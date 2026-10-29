@@ -44,10 +44,10 @@ function juc_bank_account( $jinv_account_id ) {
 	return $num;
 }
 
-/** Druh položky vydanej faktúry: product | service (doprava, dobierka, poplatky). */
+/** Druh položky vydanej faktúry: product (tovar) | virtual (služba – virtuálny produkt) | service (doprava, dobierka, poplatky). */
 function juc_item_kind( array $it ) {
 	if ( ! empty( $it['type'] ) ) {
-		return 'product' === $it['type'] ? 'product' : 'service';
+		return array( 'product' => 'product', 'service' => 'virtual' )[ $it['type'] ] ?? 'service';
 	}
 	$name = (string) ( $it['name'] ?? '' );
 	if ( 0 === strpos( $name, 'Doprava:' ) ) {
@@ -82,12 +82,15 @@ function juc_build_issued( array $d ) {
 	$cust  = juc_acc_opt( 'acc_customers', '311' );
 	$goods = juc_acc_opt( 'acc_sales_goods', '604' );
 	$serv  = juc_acc_opt( 'acc_sales_serv', '602' );
-	$sum   = array( $goods => 0.0, $serv => 0.0 );
+	$virt  = juc_acc_opt( 'acc_sales_virtual', $serv );
+	$sum   = array( $goods => 0.0, $virt => 0.0, $serv => 0.0 );
 	foreach ( (array) ( $d['data']['items'] ?? array() ) as $it ) {
 		if ( ! empty( $it['info'] ) ) {
 			continue;
 		}
-		$sum[ 'product' === juc_item_kind( (array) $it ) ? $goods : $serv ] += (float) ( $it['total'] ?? 0 );
+		$k          = juc_item_kind( (array) $it );
+		$acc        = 'product' === $k ? $goods : ( 'virtual' === $k ? $virt : $serv );
+		$sum[ $acc ] = ( $sum[ $acc ] ?? 0 ) + (float) ( $it['total'] ?? 0 );
 	}
 	$diff = round( (float) $d['total'] - array_sum( $sum ), 2 );
 	if ( abs( $diff ) >= 0.005 ) {
@@ -98,7 +101,7 @@ function juc_build_issued( array $d ) {
 	$lines = array();
 	foreach ( $sum as $acc => $amt ) {
 		if ( abs( $amt ) >= 0.005 ) {
-			$lines[] = array( 'md' => $cust, 'd' => $acc, 'amount' => round( $amt, 2 ), 'text' => ( $acc === $goods ? 'Tržba za tovar' : 'Tržba za služby' ) . ' – ' . $d['number'], 'vs' => $vs );
+			$lines[] = array( 'md' => $cust, 'd' => $acc, 'amount' => round( $amt, 2 ), 'text' => ( $acc === $goods ? 'Tržba za tovar' : ( $acc === $virt && $virt !== $serv ? 'Tržba za služby' : 'Tržba za dopravu a poplatky' ) ) . ' – ' . $d['number'], 'vs' => $vs );
 		}
 	}
 	// Zúčtovanie prijatých preddavkov (zálohová faktúra / platba objednávky) k faktúre.

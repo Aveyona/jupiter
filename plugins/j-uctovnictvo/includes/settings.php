@@ -36,6 +36,7 @@ function juc_defaults() {
 		'acc_adv_recv'   => '324',
 		'acc_sales_goods' => '604',
 		'acc_sales_serv' => '602',
+		'acc_sales_virtual' => '602',   // služby predávané ako virtuálne produkty
 		'acc_goods_buy'  => '131',
 		'acc_goods'      => '132',
 		'acc_cogs'       => '504',
@@ -165,7 +166,7 @@ function juc_page_settings() {
 			<?php
 			$labels = array(
 				'acc_customers' => 'Odberatelia', 'acc_suppliers' => 'Dodávatelia', 'acc_bank' => 'Banka (syntetický)', 'acc_cash' => 'Pokladňa', 'acc_card' => 'Karta / platobná brána', 'acc_adv_recv' => 'Prijaté preddavky',
-				'acc_sales_goods' => 'Tržby za tovar', 'acc_sales_serv' => 'Tržby za služby a dopravu', 'acc_goods_buy' => 'Obstaranie tovaru', 'acc_goods' => 'Tovar na sklade', 'acc_cogs' => 'Predaný tovar',
+				'acc_sales_goods' => 'Tržby za tovar', 'acc_sales_virtual' => 'Tržby za služby (virtuálne produkty)', 'acc_sales_serv' => 'Tržby za dopravu a poplatky', 'acc_goods_buy' => 'Obstaranie tovaru', 'acc_goods' => 'Tovar na sklade', 'acc_cogs' => 'Predaný tovar',
 				'acc_inv_minus' => 'Manko / škoda', 'acc_inv_plus' => 'Inventúrny prebytok', 'acc_bank_fees' => 'Bankové poplatky', 'acc_tx_tax' => 'Transakčná daň', 'acc_interest' => 'Úroky (výnos)', 'cat_default' => 'Prijaté faktúry bez kategórie',
 			);
 			foreach ( $labels as $k => $l ) :

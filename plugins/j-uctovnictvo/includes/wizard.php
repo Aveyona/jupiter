@@ -181,6 +181,12 @@ function juc_wiz_step_5( $w, $s ) {
 		juc_accounts_datalist();
 		return;
 	}
+	if ( get_option( 'juc_setup_done' ) ) {
+		$cur = juc_entry_by_source( 'wizard', 'ps', (int) substr( (string) $s['start_date'], 0, 4 ) );
+		echo '<p class="' . ( $cur ? 'juc-ok' : 'juc-warn' ) . '">' . ( $cur ? '✓ Počiatočné stavy sú zaúčtované (doklad ' . esc_html( $cur['number'] ) . '). Po zmene a uložení sa pôvodný doklad stornuje a zaúčtuje znova.' : '! Počiatočné stavy ešte nie sú zaúčtované – vyplňte ich a kliknite Uložiť a zaúčtovať počiatočné stavy.' ) . '</p>';
+		echo '<input type="hidden" name="post_ps" value="1">';
+	}
+	echo '<p class="description">Pokračujúca firma: konečné zostatky súvahových účtov k ' . esc_html( juc_date( gmdate( 'Y-m-d', strtotime( (string) $s['start_date'] . ' -1 day' ) ) ) ) . ' (súvaha a obratová predvaha od účtovníka, ktorý viedol účtovníctvo za minulé obdobie). Ak ich ešte nemáte (uzávierka minulého roka), krok preskočte – zadáte ich neskôr, aj po spustení účtovania.</p>';
 	$ps   = (array) $w['ps'];
 	$rows = $ps ? $ps : array_fill_keys( array( '221001', '211001', '311', '321', '132', '365001', '411', '428', '429' ), array( 'md' => '', 'd' => '' ) );
 	?>
@@ -240,7 +246,8 @@ function juc_wiz_step_7( $w, $s ) {
 	};
 	echo '<p>Na ktoré účty sa účtujú doklady. Predvolené hodnoty zodpovedajú bežnej praxi e-shopu; zmeniť ich môžete aj neskôr v Nastaveniach. Analytický účet (napr. 604001) má prednosť – ak ste ho vytvorili v kroku 4, zadajte ho sem.</p><h3>Tržby a pohľadávky</h3><table class="form-table" role="presentation">';
 	$acc( 'acc_sales_goods', 'Tržby za tovar' );
-	$acc( 'acc_sales_serv', 'Tržby za služby, dopravu a poplatky' );
+	$acc( 'acc_sales_virtual', 'Tržby za služby (virtuálne produkty e-shopu)' );
+	$acc( 'acc_sales_serv', 'Tržby za dopravu, dobierku a poplatky' );
 	$acc( 'acc_customers', 'Odberatelia' );
 	$acc( 'acc_adv_recv', 'Prijaté preddavky (zálohové faktúry)' );
 	echo '</table><h3>Náklady a záväzky</h3><table class="form-table" role="presentation">';
@@ -274,7 +281,7 @@ function juc_wizard_checks() {
 			$md += (float) str_replace( ',', '.', (string) $v['md'] );
 			$d  += (float) str_replace( ',', '.', (string) $v['d'] );
 		}
-		$out[] = ! $w['ps'] ? array( 'warn', 'Počiatočné stavy nie sú zadané (krok 5).' ) : ( abs( $md - $d ) < 0.005 ? array( 'ok', 'Počiatočné stavy: aktíva = pasíva = ' . juc_money( $md ) . ' €' ) : array( 'err', 'Počiatočné stavy sa nerovnajú: MD ' . juc_money( $md ) . ' €, Dal ' . juc_money( $d ) . ' € (krok 5).' ) );
+		$out[] = ! $w['ps'] || ( $md < 0.005 && $d < 0.005 ) ? array( 'warn', 'Počiatočné stavy nie sú zadané – zadáte ich po uzávierke minulého obdobia (krok 5, aj po spustení).' ) : ( abs( $md - $d ) < 0.005 ? array( 'ok', 'Počiatočné stavy: aktíva = pasíva = ' . juc_money( $md ) . ' €' ) : array( 'err', 'Počiatočné stavy sa nerovnajú: MD ' . juc_money( $md ) . ' €, Dal ' . juc_money( $d ) . ' € (krok 5).' ) );
 	}
 	if ( function_exists( 'jinv_table' ) && $s['start_date'] ) {
 		$st   = $s['start_date'];
@@ -384,6 +391,15 @@ add_action( 'admin_post_juc_wizard', function () {
 					}
 				}
 				$w['ps'] = $ps;
+				if ( ! empty( $in['post_ps'] ) ) {
+					update_option( 'juc_wizard', $w, false );
+					$r = juc_wizard_post_ps();
+					if ( is_wp_error( $r ) ) {
+						juc_back_err( juc_wiz_url( 5 ), $r->get_error_message() );
+					}
+					wp_safe_redirect( add_query_arg( 'juc_msg', 'posted', juc_wiz_url( 5 ) ) );
+					exit;
+				}
 			}
 			break;
 		case 6:
@@ -401,7 +417,7 @@ add_action( 'admin_post_juc_wizard', function () {
 			}
 			break;
 		case 7:
-			foreach ( array( 'acc_sales_goods', 'acc_sales_serv', 'acc_customers', 'acc_adv_recv', 'acc_suppliers', 'acc_bank_fees', 'acc_tx_tax', 'acc_card', 'cat_default' ) as $k ) {
+			foreach ( array( 'acc_sales_goods', 'acc_sales_virtual', 'acc_sales_serv', 'acc_customers', 'acc_adv_recv', 'acc_suppliers', 'acc_bank_fees', 'acc_tx_tax', 'acc_card', 'cat_default' ) as $k ) {
 				if ( $acc( $in[ $k ] ?? '' ) ) {
 					$set[ $k ] = $acc( $in[ $k ] );
 				}
@@ -457,19 +473,8 @@ function juc_wizard_launch() {
 				return $r;
 			}
 		}
-	} elseif ( $w['ps'] && ! juc_entry_by_source( 'wizard', 'ps', (int) substr( $start, 0, 4 ) ) ) {
-		$lines = array();
-		foreach ( $w['ps'] as $a => $v ) {
-			$md = (float) $v['md'];
-			$d  = (float) $v['d'];
-			if ( $md ) {
-				$lines[] = array( 'md' => $a, 'd' => '701', 'amount' => $md, 'text' => 'Počiatočný stav ' . $a );
-			}
-			if ( $d ) {
-				$lines[] = array( 'md' => '701', 'd' => $a, 'amount' => $d, 'text' => 'Počiatočný stav ' . $a );
-			}
-		}
-		$r = juc_post( array( 'series' => 'PS', 'number' => 'PS' . substr( $start, 0, 4 ), 'entry_date' => $start, 'descr' => 'Otvorenie účtovných kníh – počiatočné stavy', 'source' => 'wizard', 'source_type' => 'ps', 'source_id' => (int) substr( $start, 0, 4 ), 'opening' => 1 ), $lines );
+	} else {
+		$r = juc_wizard_post_ps();
 		if ( is_wp_error( $r ) ) {
 			return $r;
 		}
@@ -482,4 +487,48 @@ function juc_wizard_launch() {
 	$res = juc_autopost_run( 5000 );
 	update_option( 'juc_autopost_errors', $res['errors'], false );
 	return true;
+}
+
+/**
+ * Počiatočné stavy pokračujúcej firmy (otvorenie kníh proti 701). Dá sa zaúčtovať aj po založení – keď sú známe
+ * konečné zostatky minulého obdobia. Ak už boli zaúčtované, starý doklad PS sa stornuje a zaúčtuje znova.
+ * Vráti ID dokladu, 0 (nič na zaúčtovanie) alebo WP_Error.
+ */
+function juc_wizard_post_ps() {
+	$s     = juc_settings();
+	$w     = juc_wiz();
+	$start = $s['start_date'];
+	if ( ! $start || 'continue' !== $w['mode'] || ! $w['ps'] ) {
+		return 0;
+	}
+	$lines = array();
+	$md    = 0.0;
+	$d     = 0.0;
+	foreach ( $w['ps'] as $a => $v ) {
+		$vm = round( (float) $v['md'], 2 );
+		$vd = round( (float) $v['d'], 2 );
+		if ( $vm ) {
+			$lines[] = array( 'md' => (string) $a, 'd' => '701', 'amount' => $vm, 'text' => 'Počiatočný stav ' . $a );
+			$md     += $vm;
+		}
+		if ( $vd ) {
+			$lines[] = array( 'md' => '701', 'd' => (string) $a, 'amount' => $vd, 'text' => 'Počiatočný stav ' . $a );
+			$d      += $vd;
+		}
+	}
+	if ( ! $lines ) {
+		return 0;
+	}
+	if ( abs( $md - $d ) >= 0.005 ) {
+		return new WP_Error( 'juc_ps', sprintf( 'Počiatočné stavy sa nerovnajú: MD %s €, Dal %s € – aktíva sa musia rovnať pasívam.', juc_money( $md ), juc_money( $d ) ) );
+	}
+	$yr  = (int) substr( $start, 0, 4 );
+	$old = juc_entry_by_source( 'wizard', 'ps', $yr );
+	if ( $old ) {
+		$r = juc_storno( (int) $old['id'], 'oprava počiatočných stavov' );
+		if ( is_wp_error( $r ) ) {
+			return $r;
+		}
+	}
+	return juc_post( array( 'series' => 'PS', 'number' => 'PS' . $yr . ( $old ? '-' . substr( md5( microtime() ), 0, 4 ) : '' ), 'entry_date' => $start, 'descr' => 'Otvorenie účtovných kníh – počiatočné stavy', 'source' => 'wizard', 'source_type' => 'ps', 'source_id' => $yr, 'opening' => 1 ), $lines );
 }

@@ -57,3 +57,12 @@
 .juc-checks .juc-c-err { background: #FCF0F1; color: #A3121B; font-weight: 600; }
 .juc-print-h { font-size: 12px; }
 @media print { .juc-panel { border: 0; padding: 0; } .juc-table { font-size: 10px; } }
+/* Účtovná závierka */
+.juc-muj-head { background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; padding: 10px 16px; margin: 10px 0; line-height: 1.6; }
+.juc-muj td:first-child { white-space: nowrap; color: #50575E; width: 70px; }
+.juc-muj .juc-l0 td { font-weight: 700; background: #F0F6FC; }
+.juc-muj .juc-l1 td:nth-child(2) { font-weight: 600; }
+.juc-muj .juc-l3 td:nth-child(2) { padding-left: 24px; }
+.juc-muj-det { display: inline-block; margin-left: 8px; font-size: 12px; color: #646970; }
+.juc-muj-det summary { cursor: pointer; }
+.juc-muj-det ul { margin: 4px 0 0 12px; }

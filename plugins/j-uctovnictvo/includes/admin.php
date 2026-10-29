@@ -97,9 +97,9 @@ function juc_page_overview() {
 	$ns = 0.0;
 	$vs = 0.0;
 	foreach ( $t as $acc => $r ) {
-		if ( '5' === $acc[0] ) {
+		if ( '5' === ( (string) $acc )[0] ) {
 			$ns += juc_balance( $r );
-		} elseif ( '6' === $acc[0] ) {
+		} elseif ( '6' === ( (string) $acc )[0] ) {
 			$vs -= juc_balance( $r );
 		}
 	}
