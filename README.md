@@ -6,9 +6,9 @@
 
 | Doplnok | Verzia | Na čo slúži |
 |---|---|---|
-| **J-Pomocník** | 1.1.2 | Dokumentácia doplnkov Jupiter priamo v administrácii – prehľad, návody, plán vývoja – a aktualizácie doplnkov z GitHubu. |
+| **J-Pomocník** | 1.1.3 | Dokumentácia doplnkov Jupiter priamo v administrácii – prehľad, návody, plán vývoja – a aktualizácie doplnkov z GitHubu. |
 | **J-Fakturácia** | 0.9.5 | Faktúry, zálohové faktúry a dobropisy z objednávok (číselný rad, PDF s QR PAY by square, e-mail zákazníkovi), ručné faktúry, prijaté faktúry s prílohami a splatnosťou, pole „Nakupujem ako firma“, export pre účtovníka a do Pohody, prechod z Woo Faktura. Zatiaľ pre neplatiteľov DPH. |
-| **J-Emails** | 0.2.1 | E-mailová schránka obchodu v administrácii (IMAP): doručená pošta, odoslané, kôš, odpovede, prílohy; e-maily webu a e-shopu cez SMTP. Pripravuje sa Mailchimp pre zákazníkov. |
+| **J-Emails** | 0.3.0 | **Jupiter Email** – pošta obchodu v administrácii v štýle Gmailu: konverzácie, hviezdičky, Dôležité, Archív, Odložené, rýchle a hromadné akcie, okno Napísať, aliasy odosielateľa; e-maily webu a e-shopu cez SMTP. Pripravuje sa Mailchimp pre zákazníkov. |
 | **J-Objednávky** | 0.2.0 | Prehľadný zoznam objednávok nad WooCommerce (stavy s počtami, vyhľadávanie aj podľa čísla, filtre, hromadná zmena stavu) a vlastné čísla objednávok s prefixom – náhrada doplnku My Order Numbers. |
 | **J-Sklad** | 0.2.3 | Sklad nad produktmi WooCommerce: príjemky a výdajky, kniha pohybov zásob, vážená priemerná nákupná cena a hodnota skladu, evidencia obrázkov produktov. Pripravuje sa inventúra, PDF, dodávatelia. |
 

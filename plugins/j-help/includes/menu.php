@@ -1,7 +1,8 @@
 <?php
 /**
  * Menu administrácie: všetky doplnky Jupiter (slug začína „j-“) sú spolu hneď pod položkou
- * WooCommerce „Marketing“ – podľa abecedy, J-Pomocník vždy posledný.
+ * WooCommerce „Marketing“ – v pevnom poradí (sklad → objednávky → faktúry → e-maily), ďalšie doplnky podľa abecedy,
+ * J-Pomocník vždy posledný.
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -17,6 +18,17 @@ add_action( 'admin_menu', function () {
 		jhelp_render_admin( 'roadmap' );
 	} );
 } );
+
+/** Poradie doplnkov Jupiter v menu (slug → poradie). Neuvedené doplnky idú za nimi podľa abecedy, J-Pomocník na koniec. */
+function jhelp_menu_order() {
+	return apply_filters( 'jupiter_menu_order', array(
+		'j-sklad'    => 10,
+		'j-orders'   => 20,
+		'j-invoices' => 30,
+		'j-emails'   => 40,
+		'j-help'     => 1000,
+	) );
+}
 
 /** Je položka menu doplnkom Jupiter? */
 function jhelp_is_j_item( $item ) {
@@ -42,12 +54,12 @@ add_action( 'admin_menu', function () {
 	if ( null === $anchor || ! $items ) {
 		return;
 	}
-	uasort( $items, function ( $a, $b ) {
-		if ( 'j-help' === $a[2] ) {
-			return 1; // J-Pomocník vždy na konci skupiny
-		}
-		if ( 'j-help' === $b[2] ) {
-			return -1;
+	$order = jhelp_menu_order();
+	uasort( $items, function ( $a, $b ) use ( $order ) {
+		$oa = $order[ $a[2] ] ?? 500; // neznámy doplnok: za známymi, pred J-Pomocníkom
+		$ob = $order[ $b[2] ] ?? 500;
+		if ( $oa !== $ob ) {
+			return $oa <=> $ob;
 		}
 		return strcasecmp( wp_strip_all_tags( $a[0] ), wp_strip_all_tags( $b[0] ) );
 	} );

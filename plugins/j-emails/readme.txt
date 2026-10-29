@@ -4,18 +4,31 @@ Tags: email, imap, smtp, woocommerce, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.2.1
+Stable tag: 0.3.0
 License: GPLv2 or later
 
 E-mailová schránka obchodu priamo v administrácii WordPressu. Súčasť rodiny Jupiter.
 
 == Description ==
 
-Doručená pošta, Odoslané a Kôš ako samostatné stránky, čítanie správ (text aj HTML v izolovanom rámci, obrázky z internetu na požiadanie), prílohy, nová správa, odpoveď, odpoveď všetkým a preposlanie s prílohami. Pripája sa k schránke cez IMAP a SMTP; nepotrebuje rozšírenie php-imap. Heslo je uložené zašifrované. Poštu vidí len administrátor.
+Jupiter Email – pošta obchodu v administrácii WordPressu v štýle Gmailu:
 
-Pripravuje sa: HTML odpovede, šablóny odpovedí, prepojenie s Mailchimpom pre zákazníkov e-shopu.
+* Konverzácie – odpovede (aj vaše odoslané) sú zoskupené do jedného vlákna, staršie správy zbalené.
+* Ľavé menu: Doručené, S hviezdičkou, Odložené, Dôležité, Odoslané, Koncepty, Archív, Spam, Kôš a vlastné priečinky schránky.
+* Rýchle akcie pri prejdení myšou (archivovať, odstrániť, prečítané, odložiť), hromadné akcie pre vybrané konverzácie, presun ťahaním do priečinka.
+* Hviezdičky a Dôležité, odloženie konverzácie (vráti sa do Doručených ako neprečítaná), hľadanie v celej pošte.
+* Okno Napísať vpravo dole (minimalizovať, celá obrazovka, viac okien), formátovanie textu, prílohy (aj presunutím súboru), našepkávanie adries, koncepty.
+* Odpoveď priamo v konverzácii, odpovedať všetkým, preposlať s prílohami.
+* Odosielanie zo schránky aj z aliasov (napr. eshop@, redakcia@) – odpoveď ide z adresy, na ktorú správa prišla.
+* HTML správy v izolovanom rámci, obrázky z internetu skryté, kým ich nezobrazíte (alebo odosielateľovi nedôverujete natrvalo).
+* Klávesové skratky ako v Gmaile (c, /, j, k, e, #, s, r, a, f…).
+
+Pripája sa k schránke cez IMAP a SMTP, nepotrebuje rozšírenie php-imap. Heslo je uložené zašifrované. Poštu vidí len administrátor.
 
 == Changelog ==
+
+= 0.3.0 =
+* Jupiter Email: nové rozhranie v štýle Gmailu – konverzácie, hviezdičky, Dôležité, Archív, Odložené, Spam, rýchle a hromadné akcie, presun ťahaním, okno Napísať s formátovaním a prílohami, koncepty, aliasy odosielateľa, našepkávanie adries, klávesové skratky.
 
 = 0.2.1 =
 * Bezpečnejšie zobrazenie HTML e-mailov, náhradné odoslanie pri zlyhaní SMTP s upozornením, šetrný presun do koša, diakritika v hľadaní.

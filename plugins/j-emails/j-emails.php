@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       J-Emails
  * Plugin URI:        https://github.com/Aveyona/jupiter
- * Description:       E-mailová schránka obchodu priamo v administrácii WordPressu: doručená pošta, odoslané, kôš, čítanie správ s prílohami, nová správa, odpoveď a preposlanie. Pripája sa k schránke cez IMAP a SMTP (napr. WebSupport). Súčasť rodiny Jupiter.
- * Version:           0.2.1
+ * Description:       Jupiter Email – e-mailová schránka obchodu v administrácii WordPressu v štýle Gmailu: konverzácie, hviezdičky a Dôležité, archív, odloženie, rýchle a hromadné akcie, okno Napísať, aliasy odosielateľa, prílohy. Pripája sa cez IMAP a SMTP (napr. WebSupport). Súčasť rodiny Jupiter.
+ * Version:           0.3.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Aveyona, s. r. o.
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JEM_VERSION', '0.2.1' );
+define( 'JEM_VERSION', '0.3.0' );
 define( 'JEM_FILE', __FILE__ );
 define( 'JEM_DIR', plugin_dir_path( __FILE__ ) );
 define( 'JEM_URL', plugin_dir_url( __FILE__ ) );
@@ -24,8 +24,10 @@ define( 'JEM_URL', plugin_dir_url( __FILE__ ) );
 require_once JEM_DIR . 'includes/imap.php';
 require_once JEM_DIR . 'includes/mime.php';
 require_once JEM_DIR . 'includes/settings.php';
+require_once JEM_DIR . 'includes/mailbox.php';
 require_once JEM_DIR . 'includes/send.php';
 require_once JEM_DIR . 'includes/admin.php';
+require_once JEM_DIR . 'includes/api.php';
 require_once JEM_DIR . 'includes/help.php';
 
 register_deactivation_hook( __FILE__, function () {
