@@ -106,7 +106,7 @@ function jem_custom_folders( JEM_Imap $imap ) {
 /* ---------- Vyrovnávacia pamäť hlavičiek (hlavičky správy sa nemenia, príznaky sa čítajú vždy nanovo) ---------- */
 
 function jem_cache_key( $folder, $validity ) {
-	return 'jem_hc2_' . md5( $folder . '|' . (int) $validity );
+	return 'jem_hc3_' . md5( $folder . '|' . (int) $validity );
 }
 
 /** Kompaktné údaje správy pre zoznam. */

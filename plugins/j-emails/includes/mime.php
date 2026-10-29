@@ -253,7 +253,7 @@ function jem_snippet( $headers, $chunk, $len = 160 ) {
 	$t = jem_snippet_part( $h, (string) $chunk, 0 );
 	$t = trim( preg_replace( '/\s+/u', ' ', $t ) );
 	// Bez citácie predošlej správy („> …“, „Dňa … napísal:“).
-	$t = preg_replace( '/\s*(On |Dňa |Dna |Am |Le |\d{1,2}\. ?\d{1,2}\. ?\d{4})[^>]{1,160}?(wrote|napísal|napisal|schrieb|a écrit)\(?a?\)?:.*$/iu', '', $t );
+	$t = preg_replace( '/\s*(On |Dňa |Dna |Am |Le |\d{1,2}\. ?\d{1,2}\. ?\d{4}).{1,200}?(wrote|napísal|napisal|schrieb|a écrit)\(?a?\)?:.*$/iu', '', $t );
 	$t = preg_replace( '/\s*>.*$/u', '', $t );
 	return mb_strlen( $t ) > $len ? rtrim( mb_substr( $t, 0, $len ) ) . '…' : $t;
 }
