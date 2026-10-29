@@ -51,3 +51,12 @@
 
 .jinv a.button[hidden], .jinv button[hidden] { display: none; }
 .jinv-pdf { display: block; width: 100%; max-width: 1000px; height: 80vh; min-height: 600px; border: 1px solid #DCDCDE; border-radius: 10px; background: #FFFFFF; }
+.jinv-presets { max-width: 1100px; margin: 0 0 18px; padding: 12px 20px 16px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; }
+.jinv-presets h2 { margin: 6px 0 4px; font-size: 15px; }
+.jinv-presets > .description { margin: 0 0 12px; }
+.jinv-preset { display: inline-block; vertical-align: top; width: 320px; max-width: 100%; margin: 0 12px 12px 0; padding: 12px 14px; border: 1px solid #DCDCDE; border-radius: 8px; background: #F6F7F7; }
+.jinv-preset.is-active { border-color: #2271B1; background: #F0F6FC; }
+.jinv-preset p { margin: 6px 0; color: #50575E; }
+.jinv-preset ul { margin: 6px 0 10px 18px; list-style: disc; color: #50575E; font-size: 12px; }
+.jinv-preset li { margin: 0; }
+.jinv-preset-on { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 10px; background: #2271B1; color: #FFFFFF; font-size: 11px; line-height: 18px; }

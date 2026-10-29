@@ -9,11 +9,11 @@
       "notes": "Poradie v menu: J-Sklad, J-Objednávky, J-Fakturácia, J-Emails, J-Pomocník vždy posledný."
     },
     "j-invoices": {
-      "version": "0.9.4",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.9.4/j-invoices-v0.9.4.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.9.4",
+      "version": "0.9.5",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.9.5/j-invoices-v0.9.5.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.9.5",
       "published": "2026-10-29",
-      "notes": "Dobropisy najviac do výšky faktúry, doklad sa bez zámku nevystaví, kompatibilita s HPOS, sumy v CSV ako čísla, ochrana vydaných dokladov."
+      "notes": "Postup fakturácie v Nastaveniach: manuálny/automatický režim, stav „vybavená“ (napr. Vybavené a odoslané), ostrá faktúra pri prevode po zaplatení alebo pri vybavení, Pregenerovať faktúru (nové alebo pôvodné číslo, dnešný alebo pôvodný dátum), pokračovanie číselného radu od zadaného čísla; návod v J-Pomocníkovi."
     },
     "j-emails": {
       "version": "0.2.1",

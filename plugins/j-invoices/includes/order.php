@@ -24,8 +24,10 @@ function jinv_order_box( $post_or_order ) {
 	if ( $docs ) {
 		echo '<ul class="jinv-box-docs">';
 		foreach ( $docs as $d ) {
+			$regen = 'cancelled' !== $d['status'] && in_array( $d['kind'], array( 'issued', 'proforma' ), true )
+				? ' · <a href="' . esc_url( jinv_action_url( 'regen', (int) $d['id'], $back ) ) . '" onclick="return confirm(\'' . esc_js( jinv_regen_confirm( $d ) ) . '\');">Pregenerovať</a>' : '';
 			echo '<li><a href="' . esc_url( jinv_admin_url( array( 'view' => $d['id'] ) ) ) . '"><strong>' . esc_html( jinv_kind_label( $d['kind'] ) ) . ' ' . esc_html( $d['number'] ) . '</strong></a> ' . jinv_status_badge( $d ) // phpcs:ignore
-				. '<br><small>' . esc_html( jinv_date( $d['issue_date'] ) ) . ' · ' . esc_html( jinv_money( $d['total'], $d['currency'] ) ) . ( 'woo-faktura' === $d['source'] ? ' · Woo Faktura' : '' ) . '</small></li>';
+				. '<br><small>' . esc_html( jinv_date( $d['issue_date'] ) ) . ' · ' . esc_html( jinv_money( $d['total'], $d['currency'] ) ) . ( 'woo-faktura' === $d['source'] ? ' · Woo Faktura' : '' ) . $regen . '</small></li>'; // phpcs:ignore
 		}
 		echo '</ul>';
 	} else {
@@ -48,7 +50,7 @@ function jinv_order_box( $post_or_order ) {
 	if ( jinv_woo_faktura_active() ) {
 		echo '<p class="description">Režim prechodu: kým beží Woo Faktura, J-Fakturácia nevystavuje doklady automaticky.</p>';
 	} else {
-		echo '<p class="description">Automaticky: prevod na účet – zálohová faktúra pri objednávke, faktúra po zaplatení; ostatné platby – faktúra po vybavení.</p>';
+		echo '<p class="description">' . esc_html( jinv_flow_summary() ) . '</p>';
 	}
 }
 
@@ -75,3 +77,15 @@ $jinv_cell = function ( $col, $order ) {
 };
 add_action( 'manage_shop_order_posts_custom_column', $jinv_cell, 20, 2 );
 add_action( 'manage_woocommerce_page_wc-orders_custom_column', $jinv_cell, 20, 2 );
+
+/** Krátky popis nastaveného postupu fakturácie (box v objednávke, nastavenia). */
+function jinv_flow_summary() {
+	$st   = jinv_order_status_options();
+	$done = $st[ jinv_fulfil_status() ] ?? jinv_fulfil_status();
+	$pf   = jinv_opt( 'auto_proforma' ) ? 'zálohová faktúra pri objednávke automaticky' : 'zálohová faktúra ručne';
+	if ( ! jinv_opt( 'auto' ) ) {
+		return 'Manuálny režim: ' . $pf . ' (prevod); ostrú faktúru vystavte tlačidlom pri vybavení (stav „' . $done . '“).';
+	}
+	$tr = 'paid' === jinv_opt( 'transfer_when' ) ? 'po zaplatení' : 'pri vybavení';
+	return 'Automatický režim: prevod na účet – ' . $pf . ', ostrá faktúra ' . $tr . '; ostatné platby – faktúra pri vybavení (stav „' . $done . '“).';
+}
