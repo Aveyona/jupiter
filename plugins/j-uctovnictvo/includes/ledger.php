@@ -71,7 +71,7 @@ function juc_can_post( $date ) {
 		return new WP_Error( 'juc_closed', 'Účtové obdobie ' . substr( $y['start_date'], 0, 4 ) . ' je uzavreté.' );
 	}
 	$lock = (string) juc_opt( 'lock_date' );
-	if ( $lock && $date <= $lock ) {
+	if ( $lock && $date <= $lock && empty( $GLOBALS['juc_importing'] ) ) {
 		return new WP_Error( 'juc_locked', 'Účtovníctvo je uzavreté do ' . juc_date( $lock ) . ' – zápis s dátumom ' . juc_date( $date ) . ' nie je možný.' );
 	}
 	return true;
@@ -215,6 +215,7 @@ function juc_storno( $id, $reason = '', $date = '' ) {
 		'source_id'    => $e['source_id'],
 		'status'       => 'storno',
 		'storno_of'    => $e['id'],
+		'opening'      => ! empty( $e['lines'][0]['opening'] ),
 	), $lines );
 	if ( ! is_wp_error( $r ) ) {
 		$wpdb->update( juc_t( 'entries' ), array( 'status' => 'cancelled' ), array( 'id' => $e['id'] ) );

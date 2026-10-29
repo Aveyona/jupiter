@@ -17,6 +17,7 @@ Podvojné účtovníctvo pre slovenské s. r. o. Súčasť rodiny Jupiter.
 * Účtovné knihy: denník, hlavná kniha, karta účtu, obratová predvaha, saldokonto (311, 321, 324, 365…) – tlač a CSV.
 * Automatické účtovanie: vydané faktúry a dobropisy, prijaté faktúry podľa kategórie, úhrady, pohyby v banke (J-Fakturácia → Banka), preddavky, doklady J-Skladu a predaný tovar. Zmena zdrojového dokladu = storno a nový zápis; nič sa nezdvojí.
 * Na zaúčtovanie: pohyby v banke bez faktúry s výberom účtu.
+* Import histórie z OBERON-u (Exalogic) po rokoch.
 
 * Účtovná závierka mikro účtovnej jednotky: Súvaha Úč MÚJ 1-01 a Výkaz ziskov a strát Úč MÚJ 2-01 (MF/15464/2013-74), priebežne aj k 31. 12., kontroly a rozpis účtov.
 
@@ -25,6 +26,9 @@ Pripravuje sa: dlhodobý majetok a odpisy, pokladňa, ročná uzávierka a arch�
 Program nenahrádza odborné posúdenie – pred podaním účtovnej závierky a daňového priznania odporúčame kontrolu účtovníkom.
 
 == Changelog ==
+
+= 0.3.0 =
+* Import účtovníctva z OBERON-u (Exalogic): nástroj tools/oberon2juc.py prevedie databázu .mdb (účtovný denník, adresár, názvy účtov), import s náhľadom po rokoch, bez duplicít, s uzavretím importovaných rokov; import otvoreného roka sa dá zmazať a zopakovať.
 
 = 0.2.0 =
 * Účtovná závierka mikro účtovnej jednotky (súvaha a výkaz ziskov a strát Úč MÚJ) s kontrolami a rozpisom účtov.
