@@ -278,6 +278,77 @@ function jem_g_invoice_fields( array $p ) {
 	return $out;
 }
 
+/** Obsah prílohy (binárne) alebo WP_Error. */
+function jem_g_attachment( $email, $msg_id, $att_id ) {
+	$j = jem_g_api( $email, 'messages/' . rawurlencode( $msg_id ) . '/attachments/' . rawurlencode( $att_id ) );
+	return is_wp_error( $j ) ? $j : jem_g_b64( $j['data'] ?? '' );
+}
+
+/**
+ * Text z PDF (bez externých knižníc): pdftotext, ak je na serveri, inak jednoduché čítanie textových operátorov
+ * (Tj, TJ) z komprimovaných aj nekomprimovaných streamov. Na vyčítanie sumy a VS z faktúry to zvyčajne stačí.
+ */
+function jem_g_pdf_text( $bin ) {
+	$bin = (string) $bin;
+	if ( '' === $bin ) {
+		return '';
+	}
+	if ( function_exists( 'shell_exec' ) && ! in_array( 'shell_exec', array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) ), true ) ) {
+		$bin_path = trim( (string) @shell_exec( 'command -v pdftotext 2>/dev/null' ) ); // phpcs:ignore
+		if ( $bin_path ) {
+			$tmp = wp_tempnam( 'jem-pdf' );
+			file_put_contents( $tmp, $bin ); // phpcs:ignore
+			$out = (string) @shell_exec( escapeshellarg( $bin_path ) . ' -layout ' . escapeshellarg( $tmp ) . ' - 2>/dev/null' ); // phpcs:ignore
+			@unlink( $tmp ); // phpcs:ignore
+			if ( '' !== trim( $out ) ) {
+				return $out;
+			}
+		}
+	}
+	$text = '';
+	if ( preg_match_all( '/stream\r?\n(.*?)\r?\nendstream/s', $bin, $m ) ) {
+		foreach ( $m[1] as $raw ) {
+			$data = @gzuncompress( $raw ); // phpcs:ignore
+			if ( false === $data ) {
+				$data = @gzinflate( substr( $raw, 2 ) ); // phpcs:ignore
+			}
+			if ( false === $data ) {
+				$data = $raw;
+			}
+			if ( false === strpos( $data, 'Tj' ) && false === strpos( $data, 'TJ' ) ) {
+				continue;
+			}
+			// Riadky textu: BT … ET; reťazce (…) v Tj a [ … ] TJ.
+			if ( preg_match_all( '/\[(.*?)\]\s*TJ|\((.*?)(?<!\\\\)\)\s*Tj|(T\*|Td|TD|ET)/s', $data, $ops, PREG_SET_ORDER ) ) {
+				foreach ( $ops as $op ) {
+					if ( ! empty( $op[3] ) ) {
+						$text .= "\n";
+						continue;
+					}
+					$chunk = '' !== ( $op[1] ?? '' ) ? $op[1] : ( $op[2] ?? '' );
+					if ( '' !== ( $op[1] ?? '' ) ) {
+						preg_match_all( '/\((.*?)(?<!\\\\)\)|(-?\d+(?:\.\d+)?)/s', $op[1], $parts, PREG_SET_ORDER );
+						$chunk = '';
+						foreach ( $parts as $pt ) {
+							if ( isset( $pt[2] ) && '' !== $pt[2] && (float) $pt[2] < -200 ) {
+								$chunk .= ' ';
+							} elseif ( '' !== ( $pt[1] ?? '' ) ) {
+								$chunk .= $pt[1];
+							}
+						}
+					}
+					$text .= stripcslashes( $chunk );
+				}
+			}
+		}
+	}
+	if ( ! mb_check_encoding( $text, 'UTF-8' ) ) {
+		$text = mb_convert_encoding( $text, 'UTF-8', 'ISO-8859-2' );
+	}
+	$text = (string) preg_replace( '/[^\P{C}\n\t]/u', '', $text );
+	return (string) $text;
+}
+
 /** Faktúry zo štítku (s PDF prílohou) od dátumu. Rozobraté správy sa pamätajú. */
 function jem_g_fetch( $email, $label_id, $since, $max = 150 ) {
 	$q     = 'has:attachment filename:pdf' . ( $since ? ' after:' . str_replace( '-', '/', $since ) : '' );
@@ -311,6 +382,23 @@ function jem_g_fetch( $email, $label_id, $since, $max = 150 ) {
 			unset( $p['text'] );
 			$cache[ $id ] = $p + array( 'fields' => $f, 'label' => $label_id, 'account' => $email );
 		}
+		// Suma nie je v texte správy → skúsi sa vyčítať z PDF faktúry (raz).
+		$c = $cache[ $id ];
+		if ( (float) $c['fields']['total'] <= 0 && $c['fields']['pdf'] >= 0 && empty( $c['pdf_read'] ) ) {
+			$bin = jem_g_attachment( $email, $id, $c['atts'][ $c['fields']['pdf'] ]['id'] );
+			if ( ! is_wp_error( $bin ) ) {
+				$pdf_text = jem_g_pdf_text( $bin );
+				$f2       = jem_g_invoice_fields( array( 'subject' => $c['subject'], 'snippet' => $c['snippet'], 'text' => $pdf_text, 'atts' => $c['atts'] ) );
+				foreach ( $f2 as $k => $v ) {
+					if ( ( 'total' === $k && (float) $c['fields'][ $k ] <= 0 ) || ( 'total' !== $k && 'pdf' !== $k && '' === (string) $c['fields'][ $k ] ) ) {
+						$c['fields'][ $k ] = $v;
+					}
+				}
+				$c['pdf_read']    = 1;
+				$c['pdf_snippet'] = mb_substr( trim( preg_replace( '/\s+/u', ' ', $pdf_text ) ), 0, 400 );
+				$cache[ $id ]     = $c;
+			}
+		}
 		$out[ $id ] = $cache[ $id ];
 	}
 	if ( count( $cache ) > 3000 ) {
@@ -330,7 +418,7 @@ function jem_g_imported( $msg_id ) {
 }
 
 /** Prevzatie jednej faktúry do J-Fakturácie. Vráti ID dokladu alebo WP_Error. */
-function jem_g_import( $msg_id ) {
+function jem_g_import( $msg_id, array $override = array() ) {
 	if ( ! function_exists( 'jinv_received_create' ) ) {
 		return new WP_Error( 'jem_g', 'Na prevzatie faktúr treba J-Fakturáciu 0.10.1 alebo novšiu.' );
 	}
@@ -342,6 +430,13 @@ function jem_g_import( $msg_id ) {
 	$s   = jem_g_settings();
 	$cfg = $s['accounts'][ $p['account'] ]['labels'][ $p['label'] ] ?? array();
 	$f   = $p['fields'];
+	if ( isset( $override['total'] ) && (float) $override['total'] > 0 ) {
+		$f['total'] = round( (float) $override['total'], 2 );
+	}
+	if ( ! empty( $override['vs'] ) ) {
+		$f['vs'] = preg_replace( '/\D/', '', (string) $override['vs'] );
+		$f['number'] = $f['number'] ? $f['number'] : $f['vs'];
+	}
 	if ( (float) $f['total'] <= 0 ) {
 		return new WP_Error( 'jem_g', 'V správe „' . $p['subject'] . '“ sa nenašla suma faktúry.' );
 	}
@@ -380,6 +475,29 @@ function jem_g_import( $msg_id ) {
 }
 
 /* ---------------------------------------------------------------- Akcie */
+
+add_action( 'admin_post_jem_g_pdf', function () {
+	if ( ! current_user_can( JEM_CAP ) ) {
+		wp_die( 'Nemáte oprávnenie.' );
+	}
+	check_admin_referer( 'jem_g_pdf' );
+	$id = sanitize_text_field( wp_unslash( $_GET['msg'] ?? '' ) ); // phpcs:ignore
+	$c  = ( (array) get_option( 'jem_g_cache', array() ) )[ $id ] ?? null;
+	if ( ! $c || $c['fields']['pdf'] < 0 ) {
+		wp_die( 'PDF sa nenašlo.' );
+	}
+	$a   = $c['atts'][ $c['fields']['pdf'] ];
+	$bin = jem_g_attachment( $c['account'], $id, $a['id'] );
+	if ( is_wp_error( $bin ) ) {
+		wp_die( esc_html( $bin->get_error_message() ) );
+	}
+	nocache_headers();
+	header( 'Content-Type: application/pdf' );
+	header( "Content-Disposition: inline; filename*=UTF-8''" . rawurlencode( $a['name'] ) );
+	header( 'X-Content-Type-Options: nosniff' );
+	echo $bin; // phpcs:ignore
+	exit;
+} );
 
 add_action( 'admin_post_jem_g_save_client', function () {
 	if ( ! current_user_can( JEM_CAP ) ) {
@@ -465,8 +583,13 @@ add_action( 'admin_post_jem_g_import', function () {
 	@set_time_limit( 300 ); // phpcs:ignore
 	$ok   = 0;
 	$errs = array();
+	$amounts = (array) wp_unslash( $_POST['amount'] ?? array() ); // phpcs:ignore
+	$vss     = (array) wp_unslash( $_POST['vs'] ?? array() ); // phpcs:ignore
 	foreach ( $ids as $id ) {
-		$r = jem_g_import( $id );
+		$r = jem_g_import( $id, array(
+			'total' => isset( $amounts[ $id ] ) && '' !== trim( (string) $amounts[ $id ] ) ? jem_g_num( $amounts[ $id ] ) : null,
+			'vs'    => isset( $vss[ $id ] ) ? sanitize_text_field( $vss[ $id ] ) : '',
+		) );
 		if ( is_wp_error( $r ) ) {
 			$errs[] = $r->get_error_message();
 		} else {
@@ -611,13 +734,20 @@ function jem_g_page() {
 			foreach ( $rows as $id => $r ) {
 				$f   = $r['fields'];
 				$doc = jem_g_imported( $id );
-				$st  = $doc ? '<a href="' . esc_url( admin_url( 'admin.php?page=j-invoices-received&edit=' . $doc ) ) . '">✓ prevzatá</a>' : ( $f['total'] > 0 ? 'nová' : '<span class="jem-warn">suma nenájdená</span>' );
-				echo '<tr><td><input type="checkbox" name="msg[]" value="' . esc_attr( $id ) . '" ' . disabled( (bool) $doc || $f['total'] <= 0, true, false ) . ' ' . checked( ! $doc && $f['total'] > 0, true, false ) . '></td>';
+				$st  = $doc ? '<a href="' . esc_url( admin_url( 'admin.php?page=j-invoices-received&edit=' . $doc ) ) . '">✓ prevzatá</a>' : ( $f['total'] > 0 ? 'nová' : '<span class="jem-warn">suma nenájdená – doplňte ju (otvorte PDF)</span>' );
+				echo '<tr><td><input type="checkbox" name="msg[]" value="' . esc_attr( $id ) . '" ' . disabled( (bool) $doc, true, false ) . ' ' . checked( ! $doc && $f['total'] > 0, true, false ) . '></td>';
 				echo '<td>' . esc_html( wp_date( 'j. n. Y', strtotime( $r['date'] ) ) ) . '</td><td>' . esc_html( $r['subject'] ) . '</td>';
 				echo '<td>' . esc_html( $f['period_from'] ? wp_date( 'j. n.', strtotime( $f['period_from'] ) ) . ' – ' . wp_date( 'j. n. Y', strtotime( $f['period_to'] ) ) : '' ) . '</td>';
-				echo '<td>' . esc_html( $f['vs'] . ( $f['number'] && $f['number'] !== $f['vs'] ? ' / ' . $f['number'] : '' ) ) . '</td>';
-				echo '<td class="num"><strong>' . esc_html( $f['total'] > 0 ? number_format_i18n( $f['total'], 2 ) . ' €' : '—' ) . '</strong></td>';
-				echo '<td>' . esc_html( $f['pdf'] >= 0 ? $r['atts'][ $f['pdf'] ]['name'] : '—' ) . '</td><td>' . $st . '</td></tr>'; // phpcs:ignore
+				if ( ! $doc && $f['total'] <= 0 ) {
+					// Suma sa nenašla ani v správe, ani v PDF – zadá sa ručne (otvorte PDF).
+					echo '<td><input name="vs[' . esc_attr( $id ) . ']" value="' . esc_attr( $f['vs'] ) . '" placeholder="VS" style="width:110px"></td>';
+					echo '<td class="num"><input name="amount[' . esc_attr( $id ) . ']" placeholder="suma €" inputmode="decimal" style="width:90px;text-align:right" oninput="var c=this.closest(\'tr\').querySelector(\'input[type=checkbox]\');c.checked=this.value!==\'\';"></td>';
+				} else {
+					echo '<td>' . esc_html( $f['vs'] . ( $f['number'] && $f['number'] !== $f['vs'] ? ' / ' . $f['number'] : '' ) ) . '</td>';
+					echo '<td class="num"><strong>' . esc_html( $f['total'] > 0 ? number_format_i18n( $f['total'], 2 ) . ' €' : '—' ) . '</strong></td>';
+				}
+				$pdf_url = $f['pdf'] >= 0 ? wp_nonce_url( admin_url( 'admin-post.php?action=jem_g_pdf&msg=' . rawurlencode( $id ) ), 'jem_g_pdf' ) : '';
+				echo '<td>' . ( $pdf_url ? '<a href="' . esc_url( $pdf_url ) . '" target="_blank">' . esc_html( $r['atts'][ $f['pdf'] ]['name'] ) . '</a>' : '—' ) . '</td><td>' . $st . '</td></tr>'; // phpcs:ignore
 			}
 			echo '</tbody></table>';
 		}
