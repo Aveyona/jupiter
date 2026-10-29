@@ -573,7 +573,9 @@ function juc_page_queue() {
 				<tr>
 					<td><?php echo esc_html( juc_date( $t['tx_date'] ) ); ?></td>
 					<td class="n <?php echo $in ? 'juc-plus' : 'juc-minus'; ?>"><?php echo esc_html( ( $in ? '+' : '' ) . juc_money( $t['amount'] ) ); ?></td>
-					<td><?php echo esc_html( $t['counter_name'] ); ?><?php echo $t['vs'] ? ' · VS ' . esc_html( $t['vs'] ) : ''; ?><br><small><?php echo esc_html( trim( $t['message'] . ' · ' . $t['tx_type'], ' ·' ) ); ?></small></td>
+					<td><?php echo esc_html( $t['counter_name'] ); ?><?php echo $t['vs'] ? ' · VS ' . esc_html( $t['vs'] ) : ''; ?><br><small><?php echo esc_html( trim( $t['message'] . ' · ' . $t['tx_type'], ' ·' ) ); ?></small>
+						<?php if ( function_exists( 'juc_issues_for' ) ) : foreach ( juc_issues_for( 'banktx', $t['id'] ) as $iss ) : if ( 'missing' === $iss['kind'] ) { continue; } ?><br><a class="juc-chip juc-k-<?php echo esc_attr( $iss['kind'] ); ?>" href="<?php echo esc_url( juc_url( 'j-uctovnictvo-issues', array( 'issue' => $iss['id'] ) ) ); ?>"><?php echo esc_html( $iss['title'] ); ?></a><?php endforeach; ?>
+						<br><a class="juc-muted" href="<?php echo esc_url( juc_url( 'j-uctovnictvo-issues', array( 'new' => 1, 'link_type' => 'banktx', 'link_id' => $t['id'], 'back' => juc_url( 'j-uctovnictvo-queue' ) ) ) ); ?>">+ poznámka / úloha</a><?php endif; ?></td>
 					<td>
 						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="juc-qform">
 							<?php wp_nonce_field( 'juc_queue_tx_' . $t['id'] ); ?><input type="hidden" name="action" value="juc_queue_tx"><input type="hidden" name="tx" value="<?php echo (int) $t['id']; ?>">

@@ -66,3 +66,20 @@
 .juc-muj-det { display: inline-block; margin-left: 8px; font-size: 12px; color: #646970; }
 .juc-muj-det summary { cursor: pointer; }
 .juc-muj-det ul { margin: 4px 0 0 12px; }
+
+/* Na riešenie */
+.juc-chip { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; line-height: 18px; background: #F0F0F1; color: #1D2327; text-decoration: none; white-space: nowrap; }
+a.juc-chip { max-width: 520px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.juc-k-deadline { background: #FCE7E7; color: #8A1F11; }
+.juc-k-check { background: #FFF2CC; color: #6B4E00; }
+.juc-k-decision { background: #E5EEFF; color: #133D8A; }
+.juc-k-question { background: #EFE5FF; color: #4A1F8A; }
+.juc-k-task { background: #E3F4EA; color: #0F5B32; }
+.juc-k-missing { background: #F0F0F1; color: #50575E; }
+.juc-late { background: #A3121B; color: #FFFFFF; }
+.juc-issues tr.juc-st-done td, .juc-issues tr.juc-st-dismissed td { opacity: .55; }
+.juc-issues .juc-actions { white-space: nowrap; }
+.juc-issues-box { margin: 8px 0 12px; padding: 8px 12px; background: #F6F7F7; border-radius: 8px; }
+.juc-log { list-style: none; margin: 0; padding: 0; max-width: 820px; }
+.juc-log li { padding: 8px 12px; border-left: 3px solid #DCDCDE; margin-bottom: 8px; background: #FFFFFF; }
+.juc-cards > div > a { display: block; font-size: 12px; margin-top: 4px; }

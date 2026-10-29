@@ -38,6 +38,16 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		'J-Účtovníctvo',
 	);
 	$guides[] = array(
+		'Na riešenie',
+		array(
+			'J-Účtovníctvo → Na riešenie: všetko, čo treba v účtovníctve urobiť alebo rozhodnúť, na jednom mieste – úlohy, rozhodnutia, otázky pre účtovníka a poznámky.',
+			'Automatické položky vytvára kontrola: pohyb v banke bez dokladu, prijatá faktúra bez PDF, faktúra po splatnosti, banka nesedí s výpisom, záporná pokladňa, termín závierky a daňového priznania. Keď sa problém vyrieši, položka sa zavrie sama.',
+			'Vlastnú položku pridáte tlačidlom Pridať úlohu / poznámku alebo priamo pri doklade či pohybe v banke (+ Pridať poznámku / úlohu). Každá má stav, termín, prioritu, kto ju rieši (ja / účtovník) a históriu záznamov.',
+			'Tlačiť pre účtovníka: zoznam otvorených otázok a úloh pre účtovníka s miestom na odpovede. Súhrn otvorených položiek sa každé ráno zapíše do poznámky „Na riešenie – účtovníctvo“ v J-Notes.',
+		),
+		'J-Účtovníctvo',
+	);
+	$guides[] = array(
 		'Pokladňa',
 		array(
 			'J-Účtovníctvo → Pokladňa: Príjem (PD) alebo Výdaj (VD) – vyberiete účel (napr. výber z banky, nákup materiálu, vrátenie peňazí od konateľa), protiúčet sa doplní sám, zadáte sumu a text.',

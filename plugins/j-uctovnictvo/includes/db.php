@@ -88,5 +88,36 @@ function juc_install() {
   KEY year_date (year_id,entry_date),
   KEY pair (partner_id,vs)
 ) $c;" );
+	// Na riešenie: úlohy, rozhodnutia, otázky, poznámky a automatické kontroly + história.
+	dbDelta( 'CREATE TABLE ' . juc_t( 'issues' ) . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  kind varchar(20) NOT NULL DEFAULT 'task',
+  title varchar(255) NOT NULL DEFAULT '',
+  body text NULL,
+  owner varchar(20) NOT NULL DEFAULT 'me',
+  status varchar(20) NOT NULL DEFAULT 'open',
+  priority tinyint(1) NOT NULL DEFAULT 2,
+  due date NULL DEFAULT NULL,
+  link_type varchar(20) NOT NULL DEFAULT '',
+  link_id varchar(40) NOT NULL DEFAULT '',
+  auto_key varchar(60) NOT NULL DEFAULT '',
+  user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  created_at datetime NOT NULL,
+  updated_at datetime NULL DEFAULT NULL,
+  closed_at datetime NULL DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY status (status),
+  KEY auto_key (auto_key),
+  KEY link (link_type,link_id)
+) $c;" );
+	dbDelta( 'CREATE TABLE ' . juc_t( 'issue_log' ) . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  issue_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  text text NULL,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY issue_id (issue_id)
+) $c;" );
 	update_option( 'juc_db_version', JUC_DB_VERSION, false );
 }

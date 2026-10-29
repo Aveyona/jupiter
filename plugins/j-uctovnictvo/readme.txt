@@ -22,12 +22,18 @@ Podvojné účtovníctvo pre slovenské s. r. o. Súčasť rodiny Jupiter.
 * Účtovná závierka mikro účtovnej jednotky: Súvaha Úč MÚJ 1-01 a Výkaz ziskov a strát Úč MÚJ 2-01 (MF/15464/2013-74), priebežne aj k 31. 12., kontroly a rozpis účtov.
 
 * Pokladňa: pokladničné doklady, pokladničná kniha, tlač.
+* Na riešenie: úlohy, rozhodnutia, otázky pre účtovníka, poznámky a automatické kontroly.
 
 Pripravuje sa: dlhodobý majetok a odpisy, ročná uzávierka a archív, DPH.
 
 Program nenahrádza odborné posúdenie – pred podaním účtovnej závierky a daňového priznania odporúčame kontrolu účtovníkom.
 
 == Changelog ==
+
+= 0.5.0 =
+* Na riešenie: prehľad úloh, rozhodnutí, otázok pre účtovníka a poznámok so stavom, termínom, prioritou, väzbou na doklad / pohyb v banke / účet / partnera / rok a históriou riešenia.
+* Automatické kontroly: pohyb v banke bez dokladu, prijatá faktúra bez PDF, faktúra po splatnosti, nesúlad banky s výpisom, záporná pokladňa, termín závierky a DPPO; po vyriešení sa zatvoria samy.
+* Karta na prehľade, poznámky pri doklade a v „Na zaúčtovanie“, tlač zoznamu pre účtovníka, denný súhrn do J-Notes.
 
 = 0.4.0 =
 * Pokladňa: príjmové a výdavkové pokladničné doklady (PD/VD) s výberom účelu, kontrola záporného zostatku, pokladničná kniha so zostatkom po každom doklade, tlač dokladu aj knihy.

@@ -59,6 +59,7 @@ function juc_notice() {
 		'accadded' => array( 'success', 'Účet je pridaný.' ),
 		'accsaved' => array( 'success', 'Účet je uložený.' ),
 		'auto'     => array( 'info', '' ),
+		'issue'    => array( 'success', 'Uložené.' ),
 		'err'      => array( 'error', 'Akcia sa nepodarila.' ),
 	);
 	if ( ! isset( $t[ $m ] ) ) {
@@ -121,6 +122,9 @@ function juc_page_overview() {
 		<div><span>Pokladňa (211)</span><strong><?php echo esc_html( juc_money( $bal( '211' ) ) ); ?> €</strong></div>
 		<div><span>Pohľadávky – odberatelia (311)</span><strong><?php echo esc_html( juc_money( $bal( '311' ) ) ); ?> €</strong></div>
 		<div><span>Záväzky – dodávatelia (321)</span><strong><?php echo esc_html( juc_money( -1 * $bal( '321' ) ) ); ?> €</strong></div>
+		<?php if ( function_exists( 'juc_issues_count' ) ) : list( $io, $il ) = juc_issues_count(); ?>
+		<div class="<?php echo $il ? 'is-neg' : ( $io ? 'is-warn' : '' ); ?>"><span>Na riešenie</span><strong><?php echo (int) $io; ?></strong><?php echo $il ? '<span class="juc-warn">' . (int) $il . ' po termíne</span>' : ''; ?><a href="<?php echo esc_url( juc_url( 'j-uctovnictvo-issues' ) ); ?>">Otvoriť →</a></div>
+		<?php endif; ?>
 		<div class="<?php echo $q ? 'is-warn' : ''; ?>"><span>Na zaúčtovanie</span><strong><?php echo (int) $q; ?></strong><?php if ( $q ) : ?><a href="<?php echo esc_url( juc_url( 'j-uctovnictvo-queue' ) ); ?>">Otvoriť →</a><?php endif; ?></div>
 	</div>
 	<?php if ( function_exists( 'juc_render_autopost_box' ) ) { juc_render_autopost_box(); } ?>
@@ -248,6 +252,7 @@ function juc_render_entry( $id ) {
 			<?php if ( $src ) : ?><span>Zdrojový doklad: <?php echo $src; // phpcs:ignore ?></span><?php endif; ?>
 		</p>
 		<p><strong><?php echo esc_html( $e['descr'] ); ?></strong></p>
+		<?php if ( function_exists( 'juc_render_issues_box' ) ) { juc_render_issues_box( 'entry', (int) $e['id'], juc_url( 'j-uctovnictvo-entries', array( 'entry' => $e['id'] ) ) ); } ?>
 		<table class="widefat striped juc-table">
 			<thead><tr><th>MD</th><th>Dal</th><th class="n">Suma €</th><th>Text</th><th>Partner / VS</th></tr></thead>
 			<tbody>
