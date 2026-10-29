@@ -38,6 +38,16 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		'J-Účtovníctvo',
 	);
 	$guides[] = array(
+		'Pokladňa',
+		array(
+			'J-Účtovníctvo → Pokladňa: Príjem (PD) alebo Výdaj (VD) – vyberiete účel (napr. výber z banky, nákup materiálu, vrátenie peňazí od konateľa), protiúčet sa doplní sám, zadáte sumu a text.',
+			'Výdaj nad zostatok pokladne sa nezaúčtuje – pokladňa nesmie mať záporný zostatok.',
+			'Pokladničná kniha: príjmy, výdaje a zostatok po každom doklade, za rok alebo zvolené obdobie; tlač knihy aj jednotlivého dokladu s podpismi.',
+			'Import z OBERON-u: J-Účtovníctvo → Import (OBERON) – zálohu databázy (.mdb) prevedie nástroj tools/oberon2juc.py, import po rokoch s náhľadom a kontrolou zostatkov.',
+		),
+		'J-Účtovníctvo',
+	);
+	$guides[] = array(
 		'Účtovná závierka mikro účtovnej jednotky',
 		array(
 			'J-Účtovníctvo → Účtovná závierka: Súvaha (Úč MÚJ 1-01) a Výkaz ziskov a strát (Úč MÚJ 2-01) podľa opatrenia MF SR č. MF/15464/2013-74 – riadky a väzby na účty podľa vzoru tlačiva, sumy v celých eurách.',

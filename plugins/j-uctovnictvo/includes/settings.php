@@ -26,6 +26,7 @@ function juc_defaults() {
 		'stock_method'   => 'A',          // A = zásoby cez 131/132 (s J-Skladom), B = tovar priamo do 504
 		'format_ID'      => 'ID{RRRR}{nnnn}',
 		'format_PD'      => 'PD{RRRR}{nnnn}',
+		'format_VD'      => 'VD{RRRR}{nnnn}',
 		// Účty pre automatické účtovanie.
 		'acc_customers'  => '311',
 		'acc_suppliers'  => '321',
@@ -137,7 +138,9 @@ function juc_series() {
 		'OD' => 'Dobropisy vydané',
 		'DF' => 'Prijaté faktúry',
 		'BV' => 'Banka',
-		'PD' => 'Pokladňa',
+		'PD' => 'Pokladňa – príjmy',
+		'VD' => 'Pokladňa – výdavky',
+		'MZ' => 'Mzdy',
 		'SK' => 'Sklad',
 		'ID' => 'Interné doklady',
 		'PS' => 'Počiatočné stavy',

@@ -21,11 +21,16 @@ Podvojné účtovníctvo pre slovenské s. r. o. Súčasť rodiny Jupiter.
 
 * Účtovná závierka mikro účtovnej jednotky: Súvaha Úč MÚJ 1-01 a Výkaz ziskov a strát Úč MÚJ 2-01 (MF/15464/2013-74), priebežne aj k 31. 12., kontroly a rozpis účtov.
 
-Pripravuje sa: dlhodobý majetok a odpisy, pokladňa, ročná uzávierka a archív, DPH.
+* Pokladňa: pokladničné doklady, pokladničná kniha, tlač.
+
+Pripravuje sa: dlhodobý majetok a odpisy, ročná uzávierka a archív, DPH.
 
 Program nenahrádza odborné posúdenie – pred podaním účtovnej závierky a daňového priznania odporúčame kontrolu účtovníkom.
 
 == Changelog ==
+
+= 0.4.0 =
+* Pokladňa: príjmové a výdavkové pokladničné doklady (PD/VD) s výberom účelu, kontrola záporného zostatku, pokladničná kniha so zostatkom po každom doklade, tlač dokladu aj knihy.
 
 = 0.3.0 =
 * Import účtovníctva z OBERON-u (Exalogic): nástroj tools/oberon2juc.py prevedie databázu .mdb (účtovný denník, adresár, názvy účtov), import s náhľadom po rokoch, bez duplicít, s uzavretím importovaných rokov; import otvoreného roka sa dá zmazať a zopakovať.

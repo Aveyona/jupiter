@@ -37,11 +37,11 @@
       "notes": "Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
     },
     "j-uctovnictvo": {
-      "version": "0.3.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-uctovnictvo-v0.3.0/j-uctovnictvo-v0.3.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-uctovnictvo-v0.3.0",
+      "version": "0.4.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-uctovnictvo-v0.4.0/j-uctovnictvo-v0.4.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-uctovnictvo-v0.4.0",
       "published": "2026-10-29",
-      "notes": "Import účtovníctva z OBERON-u (Exalogic) po rokoch. Podvojné účtovníctvo pre s. r. o.: sprievodca založením, overený účtový rozvrh, účtovné doklady so stornom, denník, hlavná kniha, obratová predvaha, saldokonto, automatické účtovanie a účtovná závierka mikro účtovnej jednotky (Úč MÚJ)."
+      "notes": "Pokladňa: pokladničné doklady a kniha. Import účtovníctva z OBERON-u (Exalogic) po rokoch. Podvojné účtovníctvo pre s. r. o.: sprievodca založením, overený účtový rozvrh, účtovné doklady so stornom, denník, hlavná kniha, obratová predvaha, saldokonto, automatické účtovanie a účtovná závierka mikro účtovnej jednotky (Úč MÚJ)."
     },
     "j-notes": {
       "version": "0.1.0",

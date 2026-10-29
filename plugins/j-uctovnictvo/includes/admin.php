@@ -265,6 +265,7 @@ function juc_render_entry( $id ) {
 		</table>
 		<p>
 			<a class="button" href="<?php echo esc_url( juc_url( 'j-uctovnictvo-entries' ) ); ?>">← Doklady</a>
+			<?php if ( in_array( $e['series'], array( 'PD', 'VD' ), true ) ) : ?><a class="button" target="_blank" href="<?php echo esc_url( admin_url( 'admin-post.php?action=juc_cash_print&doc=' . (int) $e['id'] ) ); ?>">Tlačiť pokladničný doklad</a><?php endif; ?>
 			<?php if ( 'posted' === $e['status'] ) : ?>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="juc-inline" onsubmit="return confirm('Stornovať doklad <?php echo esc_js( $e['number'] ); ?>? Vznikne stornovací doklad so zápornými sumami.');">
 					<?php wp_nonce_field( 'juc_storno_' . $e['id'] ); ?><input type="hidden" name="action" value="juc_storno"><input type="hidden" name="id" value="<?php echo (int) $e['id']; ?>">
