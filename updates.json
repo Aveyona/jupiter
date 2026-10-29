@@ -30,11 +30,11 @@
       "notes": "Prepojenie s J-Fakturáciou: stĺpec Doklady (zálohová faktúra aj faktúra so stavom a PDF), Vystaviť faktúru a Pregenerovať pri riadku, filter Na fakturáciu (vybavené bez faktúry), hromadne Vybaviť a vystaviť faktúry."
     },
     "j-sklad": {
-      "version": "0.2.3",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.2.3/j-sklad-v0.2.3.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.2.3",
+      "version": "0.2.4",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.2.4/j-sklad-v0.2.4.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.2.4",
       "published": "2026-10-29",
-      "notes": "Knižnica médií skrýva len používané obrázky produktov, ochrana dokladov pred dvojitým zaúčtovaním, výdajka nepôjde do mínusu, varianty so zásobou hlavného produktu."
+      "notes": "Namiesto „SKU“ sa všade píše „Číslo produktu“ (prehľad, doklady, obrázky, vyhľadávanie)."
     }
   }
 }
