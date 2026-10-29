@@ -249,9 +249,15 @@ function jinv_received_create( array $a ) {
 	// Úhrada: nespárované výdaje v banke s rovnakým VS (alebo číslom faktúry).
 	if ( function_exists( 'jinv_bank_auto_match' ) ) {
 		$vs  = preg_replace( '/\D/', '', (string) ( $a['vs'] ?? '' ) );
-		$txs = $vs ? $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM ' . jinv_table( 'banktx' ) . " WHERE status = 'new' AND amount < 0 AND vs = %s ORDER BY tx_date", $vs ) ) : array(); // phpcs:ignore
-		foreach ( $txs as $tx ) {
-			jinv_bank_auto_match( (int) $tx );
+		// Najprv presná suma (pri dodávateľovi s rovnakým VS na všetkých faktúrach rozhodne suma a najbližší dátum).
+		$exact = $vs ? (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . jinv_table( 'banktx' ) . " WHERE status = 'new' AND vs = %s AND amount = %f ORDER BY ABS(DATEDIFF(tx_date, %s)) LIMIT 1", $vs, -1 * round( (float) ( $a['total'] ?? 0 ), 2 ), $issue ) ) : 0; // phpcs:ignore
+		if ( $exact ) {
+			jinv_bank_pair( $exact, $id, 'auto' );
+		} else {
+			$txs = $vs ? $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM ' . jinv_table( 'banktx' ) . " WHERE status = 'new' AND amount < 0 AND vs = %s ORDER BY tx_date", $vs ) ) : array(); // phpcs:ignore
+			foreach ( $txs as $tx ) {
+				jinv_bank_auto_match( (int) $tx );
+			}
 		}
 	}
 	do_action( 'jinv_received_created', $id, $a );
