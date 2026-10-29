@@ -9,6 +9,7 @@ function jsk_defaults() {
 		'format_receipt' => 'PR{RRRR}{nnn}',   // príjemka
 		'format_issue'   => 'VY{RRRR}{nnn}',   // výdajka
 		'format_opening' => 'OP{RRRR}{nnn}',   // otváracia príjemka (počiatočný stav)
+		'format_inventory' => 'IN{RRRR}{nnn}', // inventúra
 		'low_stock'      => (int) get_option( 'woocommerce_notify_low_stock_amount', 2 ),
 		'reasons'        => 'Poškodenie, Vlastná spotreba, Darček / reklama, Strata, Iné',
 		'media'          => 0,                 // obrázky produktov spravuje J-Sklad (Knižnica multimédií ich nezobrazuje)
@@ -31,6 +32,7 @@ function jsk_doc_types() {
 		'receipt' => array( 'Príjemka', 1, 'format_receipt' ),
 		'issue'   => array( 'Výdajka', -1, 'format_issue' ),
 		'opening' => array( 'Otváracia príjemka', 1, 'format_opening' ),
+		'inventory' => array( 'Inventúra', 1, 'format_inventory' ), // položka: qty = zaúčtovaný rozdiel (+ prebytok, − manko)
 	);
 }
 
@@ -40,6 +42,7 @@ function jsk_move_sources() {
 		'receipt' => 'Príjemka',
 		'issue'   => 'Výdajka',
 		'opening' => 'Počiatočný stav',
+		'inventory' => 'Inventúra – rozdiel',
 		'order'   => 'Objednávka – predaj',
 		'restore' => 'Objednávka – vrátenie na sklad',
 		'storno'  => 'Storno dokladu',

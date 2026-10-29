@@ -70,3 +70,31 @@
 .jsk-sell.jsk-ok { border-color: #00A32A; background: #F0FAF3; }
 .jsk-sell.jsk-bad { border-color: #A3121B; background: #FCF0F1; }
 .jsk-sale { color: #A3121B; }
+/* Inventúra */
+.jsk-inv-new form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; margin: 10px 0 6px; }
+.jsk-inv-new label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
+.jsk-inv-bar { position: sticky; top: 32px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 0; background: #FFFFFF; border-bottom: 1px solid #F0F0F1; }
+.jsk-inv-bar #jsk-inv-scan { font-size: 15px; padding: 6px 10px; min-width: 320px; }
+.jsk-inv-filter .button.is-on { background: #2271B1; border-color: #2271B1; color: #FFFFFF; }
+.jsk-inv-table td { vertical-align: middle; }
+.jsk-inv-table .jsk-thumb { width: 40px; height: 40px; }
+.jsk-inv-in { width: 90px; text-align: right; font-size: 15px; font-weight: 600; }
+.jsk-inv-table tr.is-ok .jsk-inv-in { border-color: #00A32A; background: #F0FAF3; }
+.jsk-inv-table tr.is-minus .jsk-inv-in, tr.is-minus .jsk-inv-d, tr.is-minus .jsk-inv-v { color: #A3121B; border-color: #A3121B; }
+.jsk-inv-table tr.is-plus .jsk-inv-in, tr.is-plus .jsk-inv-d, tr.is-plus .jsk-inv-v { color: #00733A; border-color: #00733A; }
+.jsk-table tr.is-minus td:nth-last-child(-n+3) { color: #A3121B; }
+.jsk-table tr.is-plus td:nth-last-child(-n+3) { color: #00733A; }
+.jsk-inv-table tr.is-hit td { background: #FFF4D6 !important; }
+.jsk-inv-moved { color: #996800; cursor: help; }
+.jsk-inv-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 16px; }
+.jsk-inline { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+.jsk-minus { color: #A3121B; }
+.jsk-plus { color: #00733A; }
+.jsk-sign { margin-top: 40px; }
+@media print {
+	.jsk-noprint, .jsk-inv-bar, .jsk-inv-foot { display: none !important; }
+	.jsk-panel { border: 0; padding: 0; }
+	.jsk-cards > div { min-width: 0; padding: 6px 10px; }
+	.jsk-cards strong { font-size: 15px; }
+	.jsk-table { font-size: 11px; }
+}

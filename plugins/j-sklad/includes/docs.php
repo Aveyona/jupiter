@@ -202,6 +202,9 @@ function jsk_cancel_doc( $id ) {
 		if ( 'opening' === $d['type'] ) {
 			return new WP_Error( 'jsk_state', 'Otváracia príjemka len zaznamenáva počiatočný stav – nestornuje sa.' );
 		}
+		if ( 'inventory' === $d['type'] ) {
+			$d['items'] = array_values( array_filter( $d['items'], fn( $it ) => abs( (float) $it['qty'] ) > JSK_EPS ) ); // len položky s rozdielom
+		}
 		$sign = jsk_doc_types()[ $d['type'] ][1];
 		$done = 'cancelling' === $d['status'] ? jsk_done_items( $id, 'storno' ) : array();
 		$todo = array_filter( $d['items'], fn( $it ) => ! in_array( (int) $it['id'], $done, true ) );
@@ -220,7 +223,7 @@ function jsk_cancel_doc( $id ) {
 			$r = jsk_apply_move( (int) $it['product_id'], -1 * $sign * (float) $it['qty'], 'storno', array(
 				'doc_id'       => $id,
 				'item_id'      => (int) $it['id'],
-				'cost_reverse' => $sign > 0 ? $it['price'] : null,
+				'cost_reverse' => $sign > 0 && 'inventory' !== $d['type'] ? $it['price'] : null,
 				'note'         => 'Storno ' . $d['number'],
 			) );
 			if ( is_wp_error( $r ) ) {
