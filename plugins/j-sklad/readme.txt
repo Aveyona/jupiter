@@ -4,7 +4,7 @@ Tags: woocommerce, stock, inventory, warehouse, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.3.1
+Stable tag: 0.4.0
 License: GPLv2 or later
 
 Sklad pre WooCommerce: príjemky, výdajky, kniha pohybov zásob a hodnota skladu. Súčasť rodiny Jupiter.
@@ -20,9 +20,17 @@ Zásoba ostáva v produktoch WooCommerce (Spravovať zásoby, Množstvo na sklad
 * Vyhľadanie produktov podľa názvu a čísla produktu, aj čítačkou čiarových kódov.
 * Inventúra: súpis na tlač, zadávanie spočítaných množstiev (aj čítačkou), priebežné ukladanie, manko a prebytok v nákupných cenách, zaúčtovanie a protokol (IN2026001), storno.
 
+* Akcie a novinky: hromadné zľavy (%, € z ceny, nová cena) s dátumom od – do a názvom akcie, označenie novinky ručne alebo automaticky podľa dátumu pridania, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky], filter obchodu ?jsk=akcie / ?jsk=novinky.
+
 Pripravuje sa: PDF dokladov, import príjemky z CSV, návrh objednávky tovaru, viac skladov.
 
 == Changelog ==
+
+= 0.4.0 =
+* Akcie a novinky (J-Sklad → Akcie a novinky): zoznam produktov s filtrom (v akcii, novinky, bez akcie), hromadne nastaviť alebo zrušiť zľavu – percentom, sumou alebo novou cenou, s dátumom začiatku a konca akcie, názvom akcie a zaokrúhlením (centy, 10 centov, celé €, ,90, ,99). Zľava je akciová cena WooCommerce, pri variabilnom produkte pre všetky varianty.
+* Novinka: ručne (s dátumom konca) alebo automaticky N dní od pridania produktu; dá sa aj vypnúť pri konkrétnom produkte.
+* Polia Názov akcie, Novinka a Novinka do v úprave produktu, stĺpec Akcia / novinka v zozname produktov.
+* Obchod: štítky „Akcia −20 %“ (alebo názov akcie) a „Novinka“ namiesto „Výpredaj!“ – text a farba v nastaveniach; krátke kódy [jsk_akcie], [jsk_novinky] a filter obchodu ?jsk=akcie / ?jsk=novinky.
 
 = 0.3.1 =
 * Príjemka: dodávateľ z adresára J-Fakturácie (našepkávač), prepojenie s prijatou faktúrou (odkaz na faktúru, alebo + Prijatá faktúra k príjemke).

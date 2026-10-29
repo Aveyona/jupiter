@@ -30,11 +30,11 @@
       "notes": "Prepojenie s J-Fakturáciou: stĺpec Doklady (zálohová faktúra aj faktúra so stavom a PDF), Vystaviť faktúru a Pregenerovať pri riadku, filter Na fakturáciu (vybavené bez faktúry), hromadne Vybaviť a vystaviť faktúry."
     },
     "j-sklad": {
-      "version": "0.3.1",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.3.1/j-sklad-v0.3.1.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.3.1",
+      "version": "0.4.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.4.0/j-sklad-v0.4.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.4.0",
       "published": "2026-10-29",
-      "notes": "Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
+      "notes": "Akcie a novinky: hromadné zľavy s dátumom od – do a názvom akcie, novinky ručne alebo automaticky, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky]. Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
     },
     "j-uctovnictvo": {
       "version": "0.6.0",

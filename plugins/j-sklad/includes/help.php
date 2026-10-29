@@ -60,5 +60,15 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		),
 		'J-Sklad',
 	);
+	$guides[] = array(
+		'Akcie a novinky',
+		array(
+			'J-Sklad → Akcie a novinky: označ produkty (filter podľa názvu, kategórie, v akcii, novinky), vyber Nastaviť zľavu a zadaj percento, sumu alebo novú cenu. Voliteľne dátum od – do (cena sa zmení a vráti sama), názov akcie (napr. Black Friday) a zaokrúhlenie na ,90 alebo ,99.',
+			'Zrušiť zľavu vráti bežnú cenu. Zľava je akciová cena WooCommerce – platí v košíku, v objednávkach aj na faktúre.',
+			'Novinka: produkt je novinkou automaticky N dní od pridania (nastavenie v záložke Štítky a zobrazenie), alebo ho označíš ručne s dátumom „do“; Zrušiť novinku ho vyradí aj z automatických noviniek. To isté nastavíš aj v úprave produktu (Všeobecné → Novinka).',
+			'V obchode sa pri produkte zobrazí štítok Akcia −20 % (alebo názov akcie) a Novinka. Stránky s akciami a novinkami: krátke kódy [jsk_akcie] a [jsk_novinky], alebo odkaz do menu na obchod s ?jsk=akcie a ?jsk=novinky.',
+		),
+		'J-Sklad',
+	);
 	return $guides;
 } );

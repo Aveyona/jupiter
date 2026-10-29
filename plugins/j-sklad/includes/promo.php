@@ -488,14 +488,20 @@ add_filter( 'woocommerce_sale_flash', function ( $html, $post, $product ) {
 	return (int) jsk_promo_opt( 'promo_badges' ) ? '' : $html;
 }, 20, 3 );
 
-foreach ( array( 'woocommerce_before_shop_loop_item_title' => 9, 'woocommerce_before_single_product_summary' => 9 ) as $jsk_hook => $jsk_prio ) {
-	add_action( $jsk_hook, function () {
-		global $product;
-		if ( (int) jsk_promo_opt( 'promo_badges' ) ) {
-			echo jsk_badges_html( $product ); // phpcs:ignore
-		}
-	}, $jsk_prio );
-}
+add_action( 'woocommerce_before_shop_loop_item_title', function () {
+	global $product;
+	if ( (int) jsk_promo_opt( 'promo_badges' ) ) {
+		echo jsk_badges_html( $product ); // phpcs:ignore
+	}
+}, 9 );
+
+// Detail produktu: štítky nad názvom (nezávisle od rozloženia galérie v téme).
+add_action( 'woocommerce_single_product_summary', function () {
+	global $product;
+	if ( (int) jsk_promo_opt( 'promo_badges' ) ) {
+		echo str_replace( 'class="jsk-badges"', 'class="jsk-badges jsk-badges-inline"', jsk_badges_html( $product ) ); // phpcs:ignore
+	}
+}, 4 );
 
 // Blokové šablóny obchodu (Product Collection / Product Image): štítky do obrázka produktu.
 add_filter( 'render_block_woocommerce/product-image', function ( $html, $block, $instance ) {
@@ -515,7 +521,7 @@ add_action( 'wp_head', function () {
 		return;
 	}
 	printf(
-		'<style id="jsk-badges">.jsk-badges{position:absolute;top:8px;left:8px;z-index:5;display:flex;flex-direction:column;gap:4px;align-items:flex-start;pointer-events:none}.jsk-b{display:inline-block;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;line-height:1.3;color:#fff;text-transform:uppercase;letter-spacing:.02em}.jsk-b-sale{background:%1$s}.jsk-b-new{background:%2$s}li.product,.wc-block-grid__product,.wc-block-product,.woocommerce div.product{position:relative}.woocommerce div.product>.jsk-badges{top:12px;left:12px}</style>' . "\n",
+		'<style id="jsk-badges">.jsk-badges{position:absolute;top:8px;left:8px;z-index:5;display:flex;flex-direction:column;gap:4px;align-items:flex-start;pointer-events:none}.jsk-b{display:inline-block;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:700;line-height:1.3;color:#fff;text-transform:uppercase;letter-spacing:.02em}.jsk-b-sale{background:%1$s}.jsk-b-new{background:%2$s}li.product,.wc-block-grid__product,.wc-block-product,.woocommerce div.product{position:relative}.jsk-badges-inline{position:static;flex-direction:row;margin:0 0 8px}</style>' . "\n",
 		esc_attr( jsk_promo_opt( 'promo_color' ) ),
 		esc_attr( jsk_promo_opt( 'new_color' ) )
 	);
@@ -533,18 +539,21 @@ function jsk_promo_shortcode( $what, $atts ) {
 add_shortcode( 'jsk_akcie', fn( $atts ) => jsk_promo_shortcode( 'akcie', (array) $atts ) );
 add_shortcode( 'jsk_novinky', fn( $atts ) => jsk_promo_shortcode( 'novinky', (array) $atts ) );
 
-// Filter obchodu: ?jsk=akcie alebo ?jsk=novinky.
-add_action( 'pre_get_posts', function ( $q ) {
-	if ( is_admin() || ! $q->is_main_query() || empty( $_GET['jsk'] ) || ! function_exists( 'is_shop' ) ) { // phpcs:ignore
-		return;
-	}
-	$what = sanitize_key( $_GET['jsk'] ); // phpcs:ignore
-	if ( ! in_array( $what, array( 'akcie', 'novinky' ), true ) || ! ( $q->is_post_type_archive( 'product' ) || $q->is_tax( get_object_taxonomies( 'product' ) ) ) ) {
+// Filter obchodu: ?jsk=akcie alebo ?jsk=novinky (hlavný dotaz obchodu WooCommerce aj kategórií).
+function jsk_promo_filter_query( $q ) {
+	$what = isset( $_GET['jsk'] ) && is_string( $_GET['jsk'] ) ? sanitize_key( $_GET['jsk'] ) : ''; // phpcs:ignore
+	if ( ! in_array( $what, array( 'akcie', 'novinky' ), true ) ) {
 		return;
 	}
 	$ids = jsk_promo_ids( $what );
 	$q->set( 'post__in', $ids ? $ids : array( 0 ) );
-} );
+}
+add_action( 'woocommerce_product_query', 'jsk_promo_filter_query' );
+add_action( 'pre_get_posts', function ( $q ) {
+	if ( ! is_admin() && $q->is_main_query() && ( $q->is_post_type_archive( 'product' ) || $q->is_tax( get_object_taxonomies( 'product' ) ) || 'product' === $q->get( 'post_type' ) ) ) {
+		jsk_promo_filter_query( $q );
+	}
+}, 999 );
 
 add_filter( 'woocommerce_page_title', function ( $title ) {
 	$what = isset( $_GET['jsk'] ) ? sanitize_key( $_GET['jsk'] ) : ''; // phpcs:ignore
