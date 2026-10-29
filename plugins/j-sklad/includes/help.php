@@ -18,7 +18,7 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 	$guides[] = array(
 		'Príjemka a výdajka',
 		array(
-			'J-Sklad → Doklady → Nová príjemka: dátum, dodávateľ, číslo jeho dokladu; produkty pridáš vyhľadaním podľa názvu alebo SKU (čítačka čiarových kódov: naskenuj a Enter).',
+			'J-Sklad → Doklady → Nová príjemka: dátum, dodávateľ, číslo jeho dokladu; produkty pridáš vyhľadaním podľa názvu alebo čísla produktu (čítačka čiarových kódov: naskenuj a Enter).',
 			'Nákupná cena je nepovinná; ak ju zadáš, prepočíta sa priemerná nákupná cena produktu (vážený priemer) a hodnota skladu.',
 			'Uložiť koncept – zásoby sa nemenia, doklad môžeš doplniť. Uložiť a zaúčtovať – doklad dostane číslo (PR2026001) a zásoby sa zmenia.',
 			'Výdajka (VY2026001) – poškodenie, vlastná spotreba, darček…; nedovolí ísť pod nulu (okrem produktov s predajom do mínusu).',
@@ -52,7 +52,7 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'J-Sklad → Inventúra → Nová inventúra: všetky produkty so sledovaním zásob alebo jedna kategória. Zapamätá sa stav v evidencii, zásoby sa zatiaľ nemenia.',
 			'Tlačiť súpis – papierový zoznam na počítanie (stĺpec Spočítané na zapísanie).',
 			'Spočítané množstvá zadávaš do stĺpca Spočítané; ukladajú sa priebežne, inventúru môžeš zavrieť a dokončiť neskôr. Rozdiel a jeho hodnota v nákupných cenách sa ukazujú hneď (červená manko, zelená prebytok).',
-			'Čítačka čiarových kódov: naskenuj kód do poľa hore – pri zapnutej voľbe „sken pripočíta 1 ks“ sa produkt pripočíta, inak sa nastaví kurzor do jeho riadku. Napísaním časti názvu alebo SKU a Enter produkt nájdeš.',
+			'Čítačka čiarových kódov: naskenuj kód do poľa hore – pri zapnutej voľbe „sken pripočíta 1 ks“ sa produkt pripočíta, inak sa nastaví kurzor do jeho riadku. Napísaním časti názvu alebo čísla produktu a Enter produkt nájdeš.',
 			'Filtre Nespočítané a Rozdiely ukážu, čo ešte chýba a čo nesedí. Nespočítané potvrdiť podľa evidencie – zvyšok dostane spočítané = stav v evidencii.',
 			'Zaúčtovať inventúru – doklad dostane číslo (IN2026001) a zásoba každej spočítanej položky sa nastaví na spočítané množstvo; rozdiel sa zapíše do Pohybov. Predaje počas inventúry sa nezapočítajú dvakrát – rozdiel sa počíta voči zásobe v okamihu zaúčtovania („teraz X“ pri riadku upozorní na zmenu).',
 			'Nespočítané položky ostanú bez zmeny; voľba „nespočítané nastaviť na 0 ks“ ich vynuluje.',

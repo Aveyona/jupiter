@@ -261,7 +261,7 @@ function jsk_render_inventory_edit( array $d ) {
 			<span id="jsk-inv-save" class="jsk-muted"></span>
 		</p>
 		<div class="jsk-inv-bar">
-			<input type="search" id="jsk-inv-scan" class="regular-text" placeholder="Naskenuj kód / napíš SKU alebo názov a Enter" autofocus>
+			<input type="search" id="jsk-inv-scan" class="regular-text" placeholder="Naskenuj kód / napíš číslo produktu alebo názov a Enter" autofocus>
 			<label><input type="checkbox" id="jsk-inv-plus" checked> sken pripočíta 1 ks</label>
 			<span class="jsk-inv-filter">
 				<button type="button" class="button is-on" data-f="all">Všetko</button>
@@ -271,7 +271,7 @@ function jsk_render_inventory_edit( array $d ) {
 			<a class="button" target="_blank" href="<?php echo esc_url( jsk_url( 'j-sklad-inventory', array( 'id' => $d['id'], 'print' => 1 ) ) ); ?>">Tlačiť súpis</a>
 		</div>
 		<table class="widefat striped jsk-table jsk-inv-table">
-			<thead><tr><th class="jsk-img-col"></th><th>Produkt</th><th>SKU</th><th class="n">V evidencii</th><th class="n">Spočítané</th><th class="n">Rozdiel</th><th class="n">Hodnota rozdielu</th></tr></thead>
+			<thead><tr><th class="jsk-img-col"></th><th>Produkt</th><th>Číslo produktu</th><th class="n">V evidencii</th><th class="n">Spočítané</th><th class="n">Rozdiel</th><th class="n">Hodnota rozdielu</th></tr></thead>
 			<tbody>
 			<?php foreach ( $d['items'] as $it ) : ?>
 				<?php
@@ -402,7 +402,7 @@ function jsk_render_inventory_sheet( array $d ) {
 		<span>Položiek: <strong><?php echo count( $d['items'] ); ?></strong></span>
 	</p>
 	<table class="widefat striped jsk-table jsk-sheet">
-		<thead><tr><th>#</th><th>Produkt</th><th>SKU</th><th class="n">V evidencii</th><th>Spočítané</th></tr></thead>
+		<thead><tr><th>#</th><th>Produkt</th><th>Číslo produktu</th><th class="n">V evidencii</th><th>Spočítané</th></tr></thead>
 		<tbody>
 		<?php foreach ( $d['items'] as $i => $it ) : ?>
 			<tr><td><?php echo (int) $i + 1; ?></td><td><?php echo esc_html( $it['name'] ); ?></td><td><?php echo esc_html( $it['sku'] ); ?></td><td class="n"><?php echo esc_html( jsk_qty( $it['expected'] ) ); ?></td><td class="jsk-blank"><?php echo null === $it['counted'] ? '' : esc_html( jsk_qty( $it['counted'] ) ); ?></td></tr>
@@ -458,7 +458,7 @@ function jsk_render_inventory_view( array $d, $print = false ) {
 			<?php endif; ?>
 		</p>
 		<table class="widefat striped jsk-table">
-			<thead><tr><th>Produkt</th><th>SKU</th><th class="n">V evidencii</th><th class="n">Spočítané</th><th class="n">Rozdiel</th><th class="n">Nákupná cena</th><th class="n">Hodnota rozdielu</th></tr></thead>
+			<thead><tr><th>Produkt</th><th>Číslo produktu</th><th class="n">V evidencii</th><th class="n">Spočítané</th><th class="n">Rozdiel</th><th class="n">Nákupná cena</th><th class="n">Hodnota rozdielu</th></tr></thead>
 			<tbody>
 			<?php foreach ( $d['items'] as $it ) : ?>
 				<?php

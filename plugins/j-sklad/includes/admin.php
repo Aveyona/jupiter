@@ -157,13 +157,13 @@ function jsk_render_overview() {
 	<form method="get" class="jsk-filter">
 		<input type="hidden" name="page" value="j-sklad">
 		<?php if ( $f ) : ?><input type="hidden" name="f" value="<?php echo esc_attr( $f ); ?>"><?php endif; ?>
-		<input type="search" name="s" value="<?php echo esc_attr( $q ); ?>" placeholder="Názov alebo SKU">
+		<input type="search" name="s" value="<?php echo esc_attr( $q ); ?>" placeholder="Názov alebo číslo produktu">
 		<?php wp_dropdown_categories( array( 'taxonomy' => 'product_cat', 'name' => 'cat', 'selected' => $cat, 'show_option_all' => 'Všetky kategórie', 'hierarchical' => true, 'hide_empty' => false ) ); ?>
 		<button class="button">Filtrovať</button>
 		<span class="jsk-total"><?php echo esc_html( number_format_i18n( (int) $wq->found_posts ) ); ?> produktov</span>
 	</form>
 	<table class="widefat striped jsk-table">
-		<thead><tr><th class="jsk-img-col"></th><th>Produkt</th><th>SKU</th><th class="n">Na sklade</th><th class="n">Predajná cena</th><th class="n">Nákupná cena (priemer)</th><th class="n">Hodnota (nákup)</th><th>Posledný pohyb</th><th></th></tr></thead>
+		<thead><tr><th class="jsk-img-col"></th><th>Produkt</th><th>Číslo produktu</th><th class="n">Na sklade</th><th class="n">Predajná cena</th><th class="n">Nákupná cena (priemer)</th><th class="n">Hodnota (nákup)</th><th>Posledný pohyb</th><th></th></tr></thead>
 		<tbody>
 		<?php if ( ! $wq->posts ) : ?><tr><td colspan="9">Žiadne produkty. Filtre okrem Všetky ukazujú len produkty so zapnutým „Spravovať zásoby“.</td></tr><?php endif; ?>
 		<?php foreach ( $wq->posts as $pid ) : ?>
@@ -312,11 +312,11 @@ function jsk_render_doc_form() {
 			<label class="jsk-wide">Poznámka<br><input type="text" name="note" value="<?php echo esc_attr( $d['note'] ?? '' ); ?>" class="large-text"></label>
 		</div>
 		<div class="jsk-search">
-			<input type="search" id="jsk-find" placeholder="Pridať produkt: názov alebo SKU (funguje aj čítačka čiarových kódov – Enter)" autocomplete="off">
+			<input type="search" id="jsk-find" placeholder="Pridať produkt: názov alebo číslo produktu (funguje aj čítačka čiarových kódov – Enter)" autocomplete="off">
 			<ul id="jsk-results" hidden></ul>
 		</div>
 		<table class="widefat jsk-table jsk-items">
-			<thead><tr><th>Produkt</th><th>SKU</th><th class="n">Na sklade</th><th class="n">Množstvo</th><?php if ( $rec ) : ?><th class="n">Nákupná cena / ks</th><?php endif; ?><th></th></tr></thead>
+			<thead><tr><th>Produkt</th><th>Číslo produktu</th><th class="n">Na sklade</th><th class="n">Množstvo</th><?php if ( $rec ) : ?><th class="n">Nákupná cena / ks</th><?php endif; ?><th></th></tr></thead>
 			<tbody id="jsk-rows">
 				<?php foreach ( $items as $it ) : ?>
 					<?php $p = wc_get_product( $it['product_id'] ); ?>
@@ -390,7 +390,7 @@ function jsk_render_doc_view( $id ) {
 		</p>
 		<?php if ( $d['note'] ) : ?><p><?php echo esc_html( $d['note'] ); ?></p><?php endif; ?>
 		<table class="widefat striped jsk-table">
-			<thead><tr><th>Produkt</th><th>SKU</th><th class="n">Množstvo</th><th class="n">Nákupná cena / ks</th><th class="n">Spolu</th></tr></thead>
+			<thead><tr><th>Produkt</th><th>Číslo produktu</th><th class="n">Množstvo</th><th class="n">Nákupná cena / ks</th><th class="n">Spolu</th></tr></thead>
 			<tbody>
 			<?php foreach ( $d['items'] as $it ) : ?>
 				<?php $line = null === $it['price'] ? null : (float) $it['qty'] * (float) $it['price']; $sum += (float) $line; ?>

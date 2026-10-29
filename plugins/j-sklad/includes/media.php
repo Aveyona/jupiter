@@ -112,7 +112,7 @@ function jsk_media_row( $p, $is_var = false ) {
 	$sku  = $p->get_sku();
 	$h    = '<tr class="' . ( $is_var ? 'jsk-mrow-var' : 'jsk-mrow' ) . '" data-pid="' . (int) $pid . '" data-gal="' . esc_attr( implode( ',', $gal ) ) . '">';
 	$h   .= '<td class="jsk-mname">' . ( $is_var ? '<span class="jsk-muted">↳</span> ' : '' ) . '<a href="' . esc_url( (string) get_edit_post_link( $is_var ? $p->get_parent_id() : $pid ) ) . '">' . esc_html( $name ) . '</a>'
-		. ( $sku ? '<br><small class="jsk-muted">SKU ' . esc_html( $sku ) . '</small>' : '' ) . ( 'publish' !== get_post_status( $is_var ? $p->get_parent_id() : $pid ) ? '<br><small class="jsk-muted">' . esc_html( get_post_status_object( get_post_status( $is_var ? $p->get_parent_id() : $pid ) )->label ?? '' ) . '</small>' : '' ) . '</td>';
+		. ( $sku ? '<br><small class="jsk-muted">Č. ' . esc_html( $sku ) . '</small>' : '' ) . ( 'publish' !== get_post_status( $is_var ? $p->get_parent_id() : $pid ) ? '<br><small class="jsk-muted">' . esc_html( get_post_status_object( get_post_status( $is_var ? $p->get_parent_id() : $pid ) )->label ?? '' ) . '</small>' : '' ) . '</td>';
 	$h   .= '<td class="jsk-mmain">' . ( $main ? jsk_media_tile( $main, 'main', $pid ) : '' ) . '<button type="button" class="button jsk-mbtn" data-act="main" data-pid="' . (int) $pid . '">' . ( $main ? 'Zmeniť' : 'Pridať' ) . '</button></td>';
 	$h   .= '<td class="jsk-mgal">';
 	if ( ! $is_var ) {
@@ -155,7 +155,7 @@ function jsk_render_media() {
 	echo '<hr class="wp-header-end">';
 	echo '<p class="description" style="max-width:820px">Hlavný obrázok a galéria každého produktu a variantu na jednom mieste. Knižnica multimédií obrázky používané produktmi nezobrazuje (' . (int) $total . ' obrázkov), aby v nej ostali obrázky webu; obrázok odobratý z produktu sa do Knižnice vráti. Kliknutím na obrázok ho otvoríš v plnej veľkosti, × ho odoberie z produktu (súbor ostane).</p>';
 	echo '<form method="get" class="jsk-filter"><input type="hidden" name="page" value="j-sklad-media">'
-		. '<input type="search" name="s" value="' . esc_attr( $q ) . '" placeholder="Názov alebo SKU">'
+		. '<input type="search" name="s" value="' . esc_attr( $q ) . '" placeholder="Názov alebo číslo produktu">'
 		. '<select name="f"><option value="">Všetky produkty</option><option value="noimg"' . selected( $f, 'noimg', false ) . '>Bez hlavného obrázka</option></select>'
 		. '<button class="button">Filtrovať</button><span class="jsk-total">' . (int) $wq->found_posts . ' produktov</span></form>';
 	echo '<table class="widefat striped jsk-table jsk-media"><thead><tr><th>Produkt</th><th style="width:170px">Hlavný obrázok</th><th>Galéria</th></tr></thead><tbody>';
