@@ -15,6 +15,9 @@ class JEM_Imap {
 	private $caps = array();
 	private $selected = null;
 	public $error = '';
+	/** UIDVALIDITY a trvalé príznaky vybraného priečinka. */
+	public $uidvalidity = 0;
+	public $permflags = array();
 
 	public function __destruct() {
 		$this->close();
@@ -225,13 +228,20 @@ class JEM_Imap {
 			$this->error = 'Priečinok „' . $folder . '“ sa nedá otvoriť: ' . $r['text'];
 			return false;
 		}
-		$this->selected = $folder;
+		$this->selected    = $folder;
+		$this->uidvalidity = 0;
+		$this->permflags   = array();
+		$exists            = 0;
 		foreach ( $r['untagged'] as $u ) {
 			if ( preg_match( '/^\* (\d+) EXISTS/i', $u['line'], $m ) ) {
-				return (int) $m[1];
+				$exists = (int) $m[1];
+			} elseif ( preg_match( '/\[UIDVALIDITY (\d+)\]/i', $u['line'], $m ) ) {
+				$this->uidvalidity = (int) $m[1];
+			} elseif ( preg_match( '/\[PERMANENTFLAGS \(([^)]*)\)\]/i', $u['line'], $m ) ) {
+				$this->permflags = preg_split( '/\s+/', trim( $m[1] ) );
 			}
 		}
-		return 0;
+		return $exists;
 	}
 
 	/** Počet neprečítaných správ v priečinku. */
@@ -363,5 +373,151 @@ class JEM_Imap {
 				return 0 === stripos( substr( $resp['line'], strlen( $tag ) + 1 ), 'OK' );
 			}
 		}
+	}
+
+	/** Je možné ukladať vlastné kľúčové slová (napr. $Important)? */
+	public function allows_keywords() {
+		return in_array( '\\*', $this->permflags, true );
+	}
+
+	/** Zoznam UID ako množina pre IMAP: [1,2,3,7] → „1:3,7“. */
+	public static function uid_set( array $uids ) {
+		$uids = array_values( array_unique( array_filter( array_map( 'intval', $uids ) ) ) );
+		sort( $uids );
+		$out   = array();
+		$count = count( $uids );
+		for ( $i = 0; $i < $count; $i++ ) {
+			$start = $uids[ $i ];
+			while ( $i + 1 < $count && $uids[ $i + 1 ] === $uids[ $i ] + 1 ) {
+				$i++;
+			}
+			$out[] = $start === $uids[ $i ] ? (string) $start : $start . ':' . $uids[ $i ];
+		}
+		return implode( ',', $out );
+	}
+
+	/** Hodnota z FETCH riadka, ktorá je literálom (\x00n\x00) alebo reťazcom v úvodzovkách. */
+	private static function fetch_value( array $u, $label_re ) {
+		if ( preg_match( '/' . $label_re . ' \x00(\d+)\x00/i', $u['line'], $m ) ) {
+			return (string) $u['lits'][ (int) $m[1] ];
+		}
+		if ( preg_match( '/' . $label_re . ' "((?:[^"\\\\]|\\\\.)*)"/i', $u['line'], $m ) ) {
+			return stripcslashes( $m[1] );
+		}
+		return '';
+	}
+
+	/**
+	 * Údaje pre zoznam konverzácií: príznaky, veľkosť, hlavičky, štruktúra (názvy príloh) a začiatok tela (náhľad).
+	 *
+	 * @param int[] $uids
+	 * @return array<int,array{flags:array,date:int,size:int,headers:string,text:string,files:array}>
+	 */
+	public function list_data( array $uids ) {
+		$out = array();
+		foreach ( array_chunk( $uids, 150 ) as $chunk ) {
+			$r = $this->cmd( 'UID FETCH ' . self::uid_set( $chunk ) . ' (UID FLAGS INTERNALDATE RFC822.SIZE BODYSTRUCTURE BODY.PEEK[HEADER.FIELDS (FROM TO CC SUBJECT DATE CONTENT-TYPE CONTENT-TRANSFER-ENCODING MESSAGE-ID IN-REPLY-TO REFERENCES REPLY-TO)] BODY.PEEK[TEXT]<0.4000>)' );
+			foreach ( $r['untagged'] as $u ) {
+				$l = $u['line'];
+				if ( ! preg_match( '/^\* \d+ FETCH /i', $l ) || ! preg_match( '/UID (\d+)/i', $l, $m ) ) {
+					continue;
+				}
+				preg_match( '/FLAGS \(([^)]*)\)/i', $l, $f );
+				preg_match( '/INTERNALDATE "([^"]+)"/i', $l, $d );
+				preg_match( '/RFC822\.SIZE (\d+)/i', $l, $s );
+				$files = array();
+				if ( preg_match( '/BODYSTRUCTURE (\(.*)$/is', $l, $bs ) ) {
+					// Názvy príloh: ("filename" "x.pdf") alebo ("name" "x.pdf"), aj ako literál.
+					if ( preg_match_all( '/"(?:file)?name(\*)?" (?:"((?:[^"\\\\]|\\\\.)*)"|\x00(\d+)\x00)/i', $bs[1], $nm, PREG_SET_ORDER ) ) {
+						foreach ( $nm as $x ) {
+							$name = isset( $x[3] ) && '' !== $x[3] ? (string) $u['lits'][ (int) $x[3] ] : stripcslashes( $x[2] );
+							if ( '*' === $x[1] && preg_match( "/^([^']*)'[^']*'(.*)$/", $name, $rc ) ) {
+								$name = jem_to_utf8( rawurldecode( $rc[2] ), '' !== $rc[1] ? $rc[1] : 'utf-8' ); // RFC 2231: filename*=UTF-8''Fakt%C3%BAra.pdf
+							}
+							$name = jem_decode_header( $name );
+							if ( '' !== $name && ! in_array( $name, $files, true ) ) {
+								$files[] = $name;
+							}
+						}
+					}
+				}
+				$out[ (int) $m[1] ] = array(
+					'flags'   => isset( $f[1] ) && '' !== trim( $f[1] ) ? preg_split( '/\s+/', trim( $f[1] ) ) : array(),
+					'date'    => isset( $d[1] ) ? (int) strtotime( $d[1] ) : 0,
+					'size'    => isset( $s[1] ) ? (int) $s[1] : 0,
+					'headers' => self::fetch_value( $u, 'BODY\[HEADER\.FIELDS[^\]]*\]' ),
+					'text'    => self::fetch_value( $u, 'BODY\[TEXT\](?:<\d+>)?' ),
+					'files'   => $files,
+				);
+			}
+		}
+		return $out;
+	}
+
+	/** Príznaky správ: uid → [príznaky]. */
+	public function flags_of( array $uids ) {
+		$out = array();
+		if ( ! $uids ) {
+			return $out;
+		}
+		foreach ( array_chunk( $uids, 500 ) as $chunk ) {
+			$r = $this->cmd( 'UID FETCH ' . self::uid_set( $chunk ) . ' (UID FLAGS)' );
+			foreach ( $r['untagged'] as $u ) {
+				if ( preg_match( '/UID (\d+)/i', $u['line'], $m ) && preg_match( '/FLAGS \(([^)]*)\)/i', $u['line'], $f ) ) {
+					$out[ (int) $m[1] ] = '' !== trim( $f[1] ) ? preg_split( '/\s+/', trim( $f[1] ) ) : array();
+				}
+			}
+		}
+		return $out;
+	}
+
+	/** Príznak pre viac správ naraz (\Seen, \Flagged, $Important…). */
+	public function store( array $uids, $flag, $on = true ) {
+		if ( ! $uids ) {
+			return true;
+		}
+		$r = $this->cmd( 'UID STORE ' . self::uid_set( $uids ) . ' ' . ( $on ? '+' : '-' ) . 'FLAGS.SILENT (' . $flag . ')' );
+		if ( ! $r['ok'] ) {
+			$this->error = $r['text'];
+		}
+		return $r['ok'];
+	}
+
+	/** Presun viacerých správ do priečinka. */
+	public function move_many( array $uids, $to ) {
+		$uids = array_values( array_filter( array_map( 'intval', $uids ) ) );
+		if ( ! $uids ) {
+			return true;
+		}
+		$set = self::uid_set( $uids );
+		if ( $this->has( 'MOVE' ) ) {
+			$r = $this->cmd( 'UID MOVE ' . $set . ' ' . self::q( $to ) );
+			if ( $r['ok'] ) {
+				return true;
+			}
+		}
+		$r = $this->cmd( 'UID COPY ' . $set . ' ' . self::q( $to ) );
+		if ( ! $r['ok'] ) {
+			$this->error = $r['text'];
+			return false;
+		}
+		$this->expunge_uids( $uids );
+		return true;
+	}
+
+	/** Natrvalo zmazať správy (len vybrané – bez UIDPLUS iba ak iné nie sú označené na zmazanie). */
+	public function expunge_uids( array $uids ) {
+		$this->store( $uids, '\\Deleted', true );
+		if ( $this->has( 'UIDPLUS' ) ) {
+			return $this->cmd( 'UID EXPUNGE ' . self::uid_set( $uids ) )['ok'];
+		}
+		$marked = $this->uids( 'DELETED' );
+		sort( $marked );
+		$mine = array_map( 'intval', $uids );
+		sort( $mine );
+		if ( $marked === $mine ) {
+			return $this->cmd( 'EXPUNGE' )['ok'];
+		}
+		return false;
 	}
 }

@@ -16,11 +16,11 @@
       "notes": "Postup fakturácie v Nastaveniach: manuálny/automatický režim, stav „vybavená“ (napr. Vybavené a odoslané), ostrá faktúra pri prevode po zaplatení alebo pri vybavení, Pregenerovať faktúru (nové alebo pôvodné číslo, dnešný alebo pôvodný dátum), pokračovanie číselného radu od zadaného čísla; návod v J-Pomocníkovi."
     },
     "j-emails": {
-      "version": "0.2.1",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-emails-v0.2.1/j-emails-v0.2.1.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-emails-v0.2.1",
+      "version": "0.3.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-emails-v0.3.0/j-emails-v0.3.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-emails-v0.3.0",
       "published": "2026-10-29",
-      "notes": "Bezpečnejšie zobrazenie HTML e-mailov, náhradné odoslanie pri zlyhaní SMTP s upozornením, šetrný presun do koša, diakritika v hľadaní."
+      "notes": "Jupiter Email: nové rozhranie v štýle Gmailu – konverzácie, hviezdičky, Dôležité, Archív, Odložené, rýchle a hromadné akcie, okno Napísať, koncepty, aliasy odosielateľa."
     },
     "j-orders": {
       "version": "0.1.3",

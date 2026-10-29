@@ -56,27 +56,45 @@ function jem_recipients( $value ) {
 /**
  * Odoslanie správy.
  *
- * @param array $d to, cc, subject, body, in_reply_to, references, files (z $_FILES)
+ * @param array $d to, cc, bcc, subject, body (text) alebo html, from (adresa schránky alebo aliasu),
+ *                 in_reply_to, references, files (z $_FILES), att_data ([[obsah, názov, typ], …] – prílohy pri preposlaní)
  * @return true|string
  */
 function jem_send( array $d ) {
-	$s  = jem_settings();
-	$to = jem_recipients( $d['to'] ?? '' );
+	$s    = jem_settings();
+	$to   = jem_recipients( $d['to'] ?? '' );
+	$mine = jem_my_addresses();
 	if ( ! $to ) {
 		return 'Zadajte aspoň jedného platného príjemcu.';
 	}
+	$from = strtolower( trim( (string) ( $d['from'] ?? '' ) ) );
+	if ( '' === $from || ! isset( $mine[ $from ] ) ) {
+		$from = strtolower( $s['email'] );
+	}
 	try {
 		$m = jem_mailer();
-		$m->setFrom( $s['email'], $s['name'] );
+		$m->setFrom( $from, '' !== (string) ( $mine[ $from ] ?? '' ) ? $mine[ $from ] : $s['name'] );
 		foreach ( $to as $a ) {
 			$m->addAddress( $a[1], $a[0] );
 		}
 		foreach ( jem_recipients( $d['cc'] ?? '' ) as $a ) {
 			$m->addCC( $a[1], $a[0] );
 		}
+		foreach ( jem_recipients( $d['bcc'] ?? '' ) as $a ) {
+			$m->addBCC( $a[1], $a[0] );
+		}
 		$m->Subject = (string) ( $d['subject'] ?? '' );
-		$m->isHTML( false );
-		$m->Body = preg_replace( "/\r?\n/", "\r\n", (string) ( $d['body'] ?? '' ) );
+		if ( '' !== trim( (string) ( $d['html'] ?? '' ) ) ) {
+			$m->isHTML( true );
+			$m->Body    = '<!doctype html><html><head><meta charset="utf-8"></head><body><div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222">' . $d['html'] . '</div></body></html>';
+			$m->AltBody = preg_replace( "/\r?\n/", "\r\n", jem_html_to_text( $d['html'] ) );
+		} else {
+			$m->isHTML( false );
+			$m->Body = preg_replace( "/\r?\n/", "\r\n", (string) ( $d['body'] ?? '' ) );
+		}
+		foreach ( (array) ( $d['att_data'] ?? array() ) as $a ) {
+			$m->addStringAttachment( (string) $a[0], sanitize_file_name( (string) $a[1] ), 'base64', (string) ( $a[2] ?? 'application/octet-stream' ) );
+		}
 		if ( ! empty( $d['in_reply_to'] ) ) {
 			$m->addCustomHeader( 'In-Reply-To', $d['in_reply_to'] );
 			$m->addCustomHeader( 'References', trim( ( $d['references'] ?? '' ) . ' ' . $d['in_reply_to'] ) );
@@ -98,7 +116,12 @@ function jem_send( array $d ) {
 	if ( ! is_wp_error( $imap ) ) {
 		$f = jem_folder_map( $imap );
 		if ( '' !== $f['sent'] ) {
-			$imap->append( $f['sent'], $m->getSentMIMEMessage() );
+			$mime = $m->getSentMIMEMessage();
+			$bcc  = $m->getBccAddresses();
+			if ( $bcc ) { // kópia v Odoslaných si pamätá aj skrytých príjemcov (ako Gmail)
+				$mime = 'Bcc: ' . implode( ', ', array_map( fn( $a ) => $a[0], $bcc ) ) . "\r\n" . $mime;
+			}
+			$imap->append( $f['sent'], $mime );
 		}
 		if ( ! empty( $d['reply_uid'] ) ) {
 			$imap->select( $d['reply_folder'] ?? 'INBOX' );

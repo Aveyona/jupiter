@@ -18,9 +18,14 @@ function jem_defaults() {
 		'smtp_secure'  => 'ssl',
 		'sent_folder'  => '',
 		'trash_folder' => '',
-		'per_page'     => 30,
+		'archive_folder' => '',
+		'spam_folder'  => '',
+		'per_page'     => 50,
 		'signature'    => '',
 		'site_mail'    => 1,
+		'aliases'      => '',
+		'threads'      => 1,
+		'trusted'      => '',
 	);
 }
 
@@ -68,6 +73,20 @@ function jem_configured() {
 	return '' !== $s['email'] && '' !== $s['imap_host'] && '' !== $s['pass'] && '' !== jem_decrypt( $s['pass'] );
 }
 
+/** Názov priečinka na zobrazenie (IMAP ukladá diakritiku v kódovaní „modified UTF-7“, napr. Odoslan&AOk-). */
+function jem_folder_label( $name ) {
+	$name = (string) $name;
+	if ( false === strpos( $name, '&' ) ) {
+		return $name;
+	}
+	try {
+		$l = mb_convert_encoding( $name, 'UTF-8', 'UTF7-IMAP' );
+		return is_string( $l ) && '' !== $l ? $l : $name;
+	} catch ( \Throwable $e ) {
+		return $name;
+	}
+}
+
 /** Pripojenie k schránke s nastaveniami webu. */
 function jem_connect() {
 	$s    = jem_settings();
@@ -86,28 +105,32 @@ function jem_connect() {
  */
 function jem_folder_map( JEM_Imap $imap ) {
 	$cached = get_transient( 'jem_folders' );
-	if ( ! is_array( $cached ) ) {
-		$cached = array( 'inbox' => 'INBOX', 'sent' => '', 'trash' => '' );
+	if ( ! is_array( $cached ) || ! array_key_exists( 'snoozed', $cached ) ) { // aj pamäť zo starej verzie (bez Archívu, Spamu…)
+		$cached = array( 'inbox' => 'INBOX', 'sent' => '', 'trash' => '', 'archive' => '', 'spam' => '', 'snoozed' => '', 'drafts' => '' );
 		$list   = $imap->folders();
 		$names  = array(
-			'sent'  => array( 'sent', 'inbox.sent', 'sent items', 'sent messages', 'odoslané', 'odoslane', 'inbox.odoslane' ),
-			'trash' => array( 'trash', 'inbox.trash', 'deleted items', 'deleted messages', 'kôš', 'kos', 'inbox.kos' ),
+			'sent'    => array( 'sent', 'inbox.sent', 'inbox/sent', 'sent items', 'sent messages', 'odoslané', 'odoslane', 'inbox.odoslane' ),
+			'trash'   => array( 'trash', 'inbox.trash', 'inbox/trash', 'deleted items', 'deleted messages', 'kôš', 'kos', 'inbox.kos' ),
+			'archive' => array( 'archive', 'archives', 'inbox.archive', 'inbox/archive', 'archív', 'archiv', 'inbox.archiv' ),
+			'spam'    => array( 'spam', 'junk', 'inbox.spam', 'inbox/spam', 'inbox.junk', 'inbox/junk', 'junk e-mail', 'nevyžiadaná pošta' ),
+			'snoozed' => array( 'snoozed', 'inbox.snoozed', 'inbox/snoozed', 'odložené', 'odlozene' ),
+			'drafts'  => array( 'drafts', 'inbox.drafts', 'inbox/drafts', 'koncepty', 'draft' ),
 		);
+		$special = array( 'sent' => '\\sent', 'trash' => '\\trash', 'archive' => '\\archive', 'spam' => '\\junk', 'drafts' => '\\drafts' );
 		foreach ( $list as $name => $flags ) {
 			$fl = array_map( 'strtolower', $flags );
-			if ( '' === $cached['sent'] && in_array( '\\sent', $fl, true ) ) {
-				$cached['sent'] = $name;
-			}
-			if ( '' === $cached['trash'] && in_array( '\\trash', $fl, true ) ) {
-				$cached['trash'] = $name;
+			foreach ( $special as $k => $flag ) {
+				if ( '' === $cached[ $k ] && in_array( $flag, $fl, true ) ) {
+					$cached[ $k ] = $name;
+				}
 			}
 		}
-		foreach ( array( 'sent', 'trash' ) as $k ) {
+		foreach ( array_keys( $names ) as $k ) {
 			if ( '' !== $cached[ $k ] ) {
 				continue;
 			}
 			foreach ( $list as $name => $flags ) {
-				if ( in_array( strtolower( $name ), $names[ $k ], true ) ) {
+				if ( in_array( mb_strtolower( jem_folder_label( $name ) ), $names[ $k ], true ) ) {
 					$cached[ $k ] = $name;
 					break;
 				}
@@ -135,6 +158,11 @@ function jem_folder_map( JEM_Imap $imap ) {
 	if ( '' !== $s['trash_folder'] ) {
 		$cached['trash'] = $s['trash_folder'];
 	}
+	foreach ( array( 'archive', 'spam' ) as $k ) {
+		if ( '' !== (string) ( $s[ $k . '_folder' ] ?? '' ) ) {
+			$cached[ $k ] = $s[ $k . '_folder' ];
+		}
+	}
 	return $cached;
 }
 
@@ -146,19 +174,35 @@ add_action( 'admin_post_jem_save_settings', function () {
 	$old = jem_settings();
 	$in  = wp_unslash( $_POST['jem'] ?? array() );
 	$new = $old;
-	foreach ( array( 'email', 'name', 'user', 'imap_host', 'smtp_host', 'sent_folder', 'trash_folder' ) as $k ) {
+	foreach ( array( 'email', 'name', 'user', 'imap_host', 'smtp_host', 'sent_folder', 'trash_folder', 'archive_folder', 'spam_folder' ) as $k ) {
 		$new[ $k ] = sanitize_text_field( $in[ $k ] ?? '' );
 	}
 	$new['email'] = sanitize_email( $new['email'] );
 	foreach ( array( 'imap_port', 'smtp_port', 'per_page' ) as $k ) {
 		$new[ $k ] = max( 1, (int) ( $in[ $k ] ?? 0 ) );
 	}
-	$new['per_page'] = min( 100, $new['per_page'] );
+	$new['per_page'] = min( 100, max( 10, $new['per_page'] ) );
 	foreach ( array( 'imap_secure', 'smtp_secure' ) as $k ) {
 		$new[ $k ] = in_array( $in[ $k ] ?? '', array( 'ssl', 'tls', 'none' ), true ) ? $in[ $k ] : 'ssl';
 	}
 	$new['signature'] = sanitize_textarea_field( $in['signature'] ?? '' );
 	$new['site_mail'] = empty( $in['site_mail'] ) ? 0 : 1;
+	$new['threads']   = empty( $in['threads'] ) ? 0 : 1;
+	// Aliasy: „eshop@hedlajner.sk“ alebo „E-shop Hedlajner <eshop@hedlajner.sk>“, jeden na riadok.
+	$aliases = array();
+	foreach ( jem_addresses( str_replace( array( "\r", "\n", ';' ), ',', (string) ( $in['aliases'] ?? '' ) ) ) as $a ) {
+		if ( is_email( $a[1] ) && strtolower( $a[1] ) !== strtolower( $new['email'] ) ) {
+			$aliases[] = '' !== $a[0] ? sanitize_text_field( $a[0] ) . ' <' . sanitize_email( $a[1] ) . '>' : sanitize_email( $a[1] );
+		}
+	}
+	$new['aliases'] = implode( "\n", array_unique( $aliases ) );
+	$trusted        = array();
+	foreach ( preg_split( '/[\s,;]+/', strtolower( (string) ( $in['trusted'] ?? '' ) ) ) as $t ) {
+		if ( is_email( $t ) || preg_match( '/^@[a-z0-9.-]+\.[a-z]{2,}$/', $t ) ) {
+			$trusted[] = $t;
+		}
+	}
+	$new['trusted'] = implode( "\n", array_unique( $trusted ) );
 	if ( isset( $in['pass'] ) && '' !== $in['pass'] ) {
 		$new['pass'] = jem_encrypt( $in['pass'] );
 	}
@@ -169,6 +213,7 @@ add_action( 'admin_post_jem_save_settings', function () {
 	delete_option( 'jem_smtp_failed' );
 	delete_transient( 'jem_folders' );
 	delete_transient( 'jem_unseen' );
+	delete_transient( 'jem_contacts' );
 	wp_safe_redirect( admin_url( 'admin.php?page=j-emails-settings&saved=1' ) );
 	exit;
 } );
@@ -260,6 +305,7 @@ function jem_render_settings() {
 			$field( 'name', 'Meno odosielateľa', 'text', 'Zobrazí sa príjemcovi pri adrese.' );
 			$field( 'user', 'Prihlasovacie meno', 'text', 'Ak je prázdne, použije sa e-mailová adresa.' );
 			?>
+			<tr><th><label for="jem-aliases">Aliasy (odosielať aj z)</label></th><td><textarea id="jem-aliases" name="jem[aliases]" rows="3" class="large-text" placeholder="E-shop Hedlajner <eshop@hedlajner.sk>&#10;redakcia@hedlajner.sk"><?php echo esc_textarea( (string) $s['aliases'] ); ?></textarea><p class="description">Adresy, ktoré prichádzajú do tejto schránky (napr. eshop@, redakcia@). Pri písaní si vyberiete, z ktorej adresy správa odíde; odpoveď sa pošle z adresy, na ktorú správa prišla. Jedna adresa na riadok, voliteľne s menom.</p></td></tr>
 			<tr><th><label for="jem-pass">Heslo schránky</label></th><td>
 				<input type="password" id="jem-pass" name="jem[pass]" value="" class="regular-text" autocomplete="new-password" placeholder="<?php echo '' !== $s['pass'] ? esc_attr( '•••••••• (uložené)' ) : ''; ?>">
 				<p class="description">Heslo je uložené zašifrované. Ak pole necháte prázdne, ostane pôvodné.</p>
@@ -273,6 +319,8 @@ function jem_render_settings() {
 			<?php
 			$field( 'sent_folder', 'Priečinok Odoslané', 'text', 'Nechajte prázdne – nájde sa automaticky.' );
 			$field( 'trash_folder', 'Priečinok Kôš', 'text', 'Nechajte prázdne – nájde sa automaticky.' );
+			$field( 'archive_folder', 'Priečinok Archív', 'text', 'Nechajte prázdne – nájde sa, prípadne vytvorí pri prvej archivácii.' );
+			$field( 'spam_folder', 'Priečinok Spam', 'text', 'Nechajte prázdne – nájde sa automaticky (Spam, Junk).' );
 			?>
 		</table>
 		<h2>Odosielanie (SMTP)</h2>
@@ -286,7 +334,9 @@ function jem_render_settings() {
 		</table>
 		<h2>Zobrazenie a podpis</h2>
 		<table class="form-table" role="presentation">
-			<tr><th>Správ na stránku</th><td><input type="number" name="jem[per_page]" min="5" max="100" value="<?php echo esc_attr( (string) $s['per_page'] ); ?>" class="small-text"></td></tr>
+			<tr><th>Konverzácií na stránku</th><td><input type="number" name="jem[per_page]" min="10" max="100" value="<?php echo esc_attr( (string) $s['per_page'] ); ?>" class="small-text"></td></tr>
+			<tr><th>Zobrazenie konverzácií</th><td><label><input type="checkbox" name="jem[threads]" value="1" <?php checked( ! empty( $s['threads'] ) ); ?>> Zoskupovať odpovede do konverzácií (ako Gmail)</label></td></tr>
+			<tr><th><label for="jem-trusted">Obrázky vždy zobraziť od</label></th><td><textarea id="jem-trusted" name="jem[trusted]" rows="3" class="large-text" placeholder="newsletter@firma.sk&#10;@dodavatel.sk"><?php echo esc_textarea( (string) $s['trusted'] ); ?></textarea><p class="description">Pri ostatných odosielateľoch sú obrázky z internetu skryté (ochrana súkromia), kým ich nezobrazíte. Celá doména s @ na začiatku.</p></td></tr>
 			<tr><th><label for="jem-signature">Podpis</label></th><td><textarea id="jem-signature" name="jem[signature]" rows="4" class="large-text"><?php echo esc_textarea( $s['signature'] ); ?></textarea><p class="description">Pridá sa na koniec každej novej správy a odpovede.</p></td></tr>
 		</table>
 		<?php submit_button( 'Uložiť nastavenia' ); ?>
