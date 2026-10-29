@@ -141,6 +141,8 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'Párovanie: príjem s variabilným symbolom vydanej alebo zálohovej faktúry sa k nej zapíše ako úhrada; výdaj s VS prijatej faktúry (alebo s IBAN dodávateľa a presnou sumou) uhradí prijatú faktúru. Platba s VS = číslo objednávky bez faktúry sa zapíše do objednávky ako poznámka.',
 			'Voľba Objednávky: keď príde platba za objednávku presnou sumou, objednávka sa označí ako zaplatená (Spracováva sa) – v automatickom režime sa potom vystaví faktúra.',
 			'Na spárovanie: pohyby, ktoré sa nepodarilo priradiť. Klikni na navrhnutý doklad, alebo zadaj číslo faktúry / objednávky a Spárovať. Poplatky a prevody medzi účtami označ Ignorovať. Spárovanie sa dá zrušiť (úhrada z dokladu zmizne).',
+			'Fio vydá cez API pohyby za posledných 90 dní; staršie len keď v internetbankingu (Nastavenia → API) odblokuješ históriu – platí 10 minút. Nový token začne fungovať asi 5 minút po autorizácii.',
+			'Bankové poplatky, transakčná daň a úroky sa automaticky označia ako ignorované. Tlačidlo Skúsiť znova spárovať automaticky prejde nespárované pohyby po pridaní faktúr.',
 			'14 dní pred vypršaním tokenu sa pri účte zobrazí upozornenie – vytvor nový token a vlož ho do účtu.',
 		),
 		'J-Fakturácia',

@@ -106,19 +106,29 @@ function jinv_fio_get( $account_id, $path ) {
 		return new WP_Error( 'jinv_fio_wait', 'Fio dovoľuje načítanie raz za 30 sekúnd – skúste to o ' . $wait . ' s.' );
 	}
 	jinv_bank_update_account( $account_id, array( 'last_call' => time() ) );
-	$res = wp_remote_get( JINV_FIO_API . str_replace( '{token}', rawurlencode( $acc['token'] ), $path ), array( 'timeout' => 30 ) );
+	$res = wp_remote_get( JINV_FIO_API . str_replace( '{token}', rawurlencode( $acc['token'] ), $path ), array( 'timeout' => 45 ) );
 	if ( is_wp_error( $res ) ) {
-		return new WP_Error( 'jinv_fio', 'Fio API neodpovedá (' . $res->get_error_code() . ').' );
+		// Fio pri neaktívnom alebo neplatnom tokene neodpovedá ~30 s.
+		$msg = $res->get_error_message();
+		return new WP_Error( 'jinv_fio_token', false !== stripos( $msg, 'timed out' ) || false !== stripos( $msg, 'cURL error 28' )
+			? 'Fio neodpovedá – token ešte nie je aktívny (Fio ho zapne asi 5 minút po autorizácii) alebo je neplatný. Skúste Načítať pohyby teraz o pár minút.'
+			: 'Fio API je nedostupné: ' . str_replace( $acc['token'], '…', $msg ) );
 	}
 	$code = (int) wp_remote_retrieve_response_code( $res );
+	if ( 500 === $code && '' === trim( wp_remote_retrieve_body( $res ) ) ) {
+		return new WP_Error( 'jinv_fio_token', 'Fio token nie je aktívny alebo je neplatný – nový token začne fungovať asi 5 minút po autorizácii. Skúste Načítať pohyby teraz o pár minút.' );
+	}
 	if ( 409 === $code ) {
 		return new WP_Error( 'jinv_fio_wait', 'Fio dovoľuje načítanie raz za 30 sekúnd – skúste to o chvíľu.' );
 	}
 	if ( 401 === $code || 404 === $code || 500 === $code && false !== stripos( wp_remote_retrieve_body( $res ), 'token' ) ) {
 		return new WP_Error( 'jinv_fio_token', 'Fio token je neplatný alebo vypršal – vytvorte nový v internetbankingu (Nastavenia → API).' );
 	}
+	if ( 422 === $code ) {
+		return new WP_Error( 'jinv_fio_old', 'Fio cez API vydá len pohyby za posledných 90 dní. Staršie pohyby: v internetbankingu Fio → Nastavenia → API odblokujte históriu (platí 10 minút) a hneď kliknite Načítať pohyby teraz.' );
+	}
 	if ( 200 !== $code ) {
-		return new WP_Error( 'jinv_fio', 'Fio API vrátilo chybu ' . $code . '.' );
+		return new WP_Error( 'jinv_fio', 'Fio API vrátilo chybu ' . $code . ': ' . sanitize_text_field( mb_substr( wp_strip_all_tags( wp_remote_retrieve_body( $res ) ), 0, 160 ) ) );
 	}
 	$j = json_decode( wp_remote_retrieve_body( $res ), true );
 	if ( ! is_array( $j ) || ! isset( $j['accountStatement'] ) ) {
@@ -158,9 +168,23 @@ function jinv_fio_sync( $account_id ) {
 	if ( ! $acc ) {
 		return new WP_Error( 'jinv_fio', 'Účet neexistuje.' );
 	}
+	if ( function_exists( 'set_time_limit' ) ) {
+		@set_time_limit( 180 ); // phpcs:ignore -- prvé načítanie dlhšieho obdobia
+	}
 	$today = current_time( 'Y-m-d' );
 	$from  = ! empty( $acc['last_sync'] ) ? gmdate( 'Y-m-d', strtotime( substr( $acc['last_sync'], 0, 10 ) . ' -3 days' ) ) : ( ! empty( $acc['since'] ) ? $acc['since'] : gmdate( 'Y-m-d', strtotime( $today . ' -30 days' ) ) );
-	$st    = jinv_fio_get( $account_id, 'periods/{token}/' . $from . '/' . $today . '/transactions.json' );
+	// Bez odblokovania histórie Fio vydá najviac 90 dní dozadu; pri chybe 422 sa skúsi znova len posledných 89 dní.
+	$st = jinv_fio_get( $account_id, 'periods/{token}/' . $from . '/' . $today . '/transactions.json' );
+	$min = gmdate( 'Y-m-d', strtotime( $today . ' -89 days' ) );
+	if ( is_wp_error( $st ) && 'jinv_fio_old' === $st->get_error_code() && $from < $min ) {
+		$old_err = $st;
+		jinv_bank_update_account( $account_id, array( 'last_call' => 0 ) );
+		sleep( 31 ); // Fio: jeden dopyt za 30 s
+		$st = jinv_fio_get( $account_id, 'periods/{token}/' . $min . '/' . $today . '/transactions.json' );
+		if ( ! is_wp_error( $st ) ) {
+			set_transient( 'jinv_bank_note_' . $account_id, 'Načítané pohyby od ' . jinv_date( $min ) . ' (Fio vydá cez API len 90 dní). ' . $old_err->get_error_message(), HOUR_IN_SECONDS );
+		}
+	}
 	if ( is_wp_error( $st ) ) {
 		if ( 'jinv_fio_wait' !== $st->get_error_code() ) {
 			jinv_bank_update_account( $account_id, array( 'last_error' => $st->get_error_message(), 'last_error_at' => current_time( 'mysql' ) ) );
@@ -263,6 +287,12 @@ function jinv_bank_order_by_number( $number ) {
 function jinv_bank_auto_match( $tx_id ) {
 	$tx = jinv_bank_tx( $tx_id );
 	if ( ! $tx || 'new' !== $tx['status'] ) {
+		return false;
+	}
+	// Bankové poplatky, transakčná daň a úroky sa nepárujú – rovno „ignorované“ (dajú sa vrátiť).
+	if ( preg_match( '/poplat|transak\S* da|úrok|urok/iu', $tx['tx_type'] ) ) {
+		global $wpdb;
+		$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'ignored', 'note' => 'banka: ' . $tx['tx_type'], 'matched_by' => 'auto' ), array( 'id' => $tx_id ) );
 		return false;
 	}
 	$amt  = abs( (float) $tx['amount'] );
@@ -417,7 +447,8 @@ add_action( 'admin_post_jinv_bank_account', function () {
 	if ( '' !== $tok || ! empty( $in['sync'] ) ) {
 		$r   = jinv_fio_sync( $id );
 		$msg = is_wp_error( $r ) ? 'berr' : 'bsynced';
-		set_transient( 'jinv_bank_msg_' . get_current_user_id(), is_wp_error( $r ) ? $r->get_error_message() : sprintf( 'Nových pohybov: %d, automaticky spárovaných: %d.', $r[0], $r[1] ), 120 );
+		set_transient( 'jinv_bank_msg_' . get_current_user_id(), ( is_wp_error( $r ) ? $r->get_error_message() : sprintf( 'Nových pohybov: %d, automaticky spárovaných: %d.', $r[0], $r[1] ) ) . ( ( $nt = get_transient( 'jinv_bank_note_' . $id ) ) ? ' ' . $nt : '' ), 120 );
+		delete_transient( 'jinv_bank_note_' . $id );
 	}
 	wp_safe_redirect( jinv_admin_url( array( 'tab' => 'bank', 'view' => 'berr' === $msg ? 'accounts' : 'new', 'jinv_msg' => $msg ) ) );
 	exit;
@@ -434,11 +465,31 @@ add_action( 'admin_post_jinv_bank_sync', function () {
 		if ( 'fio' === ( $a['type'] ?? '' ) && ! empty( $a['token'] ) ) {
 			$r      = jinv_fio_sync( $id );
 			$err    = $err || is_wp_error( $r );
-			$msgs[] = $a['name'] . ': ' . ( is_wp_error( $r ) ? $r->get_error_message() : sprintf( 'nových pohybov %d, spárovaných %d', $r[0], $r[1] ) );
+			$msgs[] = $a['name'] . ': ' . ( is_wp_error( $r ) ? $r->get_error_message() : sprintf( 'nových pohybov %d, spárovaných %d', $r[0], $r[1] ) ) . ( ( $nt = get_transient( 'jinv_bank_note_' . $id ) ) ? ' · ' . $nt : '' );
+			delete_transient( 'jinv_bank_note_' . $id );
 		}
 	}
 	set_transient( 'jinv_bank_msg_' . get_current_user_id(), $msgs ? implode( ' · ', $msgs ) : 'Žiadny účet s tokenom.', 120 );
 	wp_safe_redirect( jinv_admin_url( array( 'tab' => 'bank', 'view' => sanitize_key( $_POST['view'] ?? 'new' ), 'jinv_msg' => $err ? 'berr' : 'bsynced' ) ) ); // phpcs:ignore
+	exit;
+} );
+
+// Znova skúsiť automatické párovanie všetkých nespárovaných (napr. po pridaní faktúr).
+add_action( 'admin_post_jinv_bank_rematch', function () {
+	global $wpdb;
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		wp_die( 'Nemáte oprávnenie.' );
+	}
+	check_admin_referer( 'jinv_bank_rematch' );
+	$ids = $wpdb->get_col( 'SELECT id FROM ' . jinv_table( 'banktx' ) . " WHERE status = 'new' ORDER BY id" ); // phpcs:ignore
+	$n   = 0;
+	foreach ( (array) $ids as $id ) {
+		$n += jinv_bank_auto_match( (int) $id ) ? 1 : 0;
+	}
+	wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
+	$left = jinv_bank_unmatched_count();
+	set_transient( 'jinv_bank_msg_' . get_current_user_id(), sprintf( 'Spárovaných: %d. Na spárovanie ostáva: %d (poplatky a daň sa presunuli medzi ignorované).', $n, $left ), 120 );
+	wp_safe_redirect( jinv_admin_url( array( 'tab' => 'bank', 'view' => 'new', 'jinv_msg' => 'bsynced' ) ) );
 	exit;
 } );
 
@@ -537,6 +588,12 @@ function jinv_render_bank() {
 		<input type="search" name="s" value="<?php echo esc_attr( $q ); ?>" placeholder="VS, protistrana, správa, účet">
 		<button class="button">Hľadať</button>
 	</form>
+	<?php if ( 'new' === $view && $rows ) : ?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="jinv-inline-form">
+			<?php wp_nonce_field( 'jinv_bank_rematch' ); ?><input type="hidden" name="action" value="jinv_bank_rematch">
+			<button class="button">Skúsiť znova spárovať automaticky</button> <span class="description">po pridaní faktúr alebo objednávok</span>
+		</form>
+	<?php endif; ?>
 	<?php if ( 'new' === $view && ! $rows ) : ?>
 		<p class="jinv-done">Všetky pohyby sú spárované. ✓</p>
 		<?php
@@ -632,7 +689,7 @@ function jinv_render_bank_accounts() {
 				<?php if ( ! empty( $a['token'] ) ) : ?>
 					<tr><th><label for="ba-until-<?php echo esc_attr( $id ); ?>">Token platí do</label></th><td><input id="ba-until-<?php echo esc_attr( $id ); ?>" type="date" name="token_until" value="<?php echo esc_attr( $a['token_until'] ?? '' ); ?>"><?php echo jinv_bank_token_warning( $a ); // phpcs:ignore ?> <span class="description">14 dní pred vypršaním upozorní; dátum nájdete v internetbankingu pri tokene.</span></td></tr>
 				<?php endif; ?>
-				<tr><th><label for="ba-since-<?php echo esc_attr( $id ); ?>">Načítať pohyby od</label></th><td><input id="ba-since-<?php echo esc_attr( $id ); ?>" type="date" name="since" value="<?php echo esc_attr( $a['since'] ?? gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' -30 days' ) ) ); ?>"> <span class="description">prvé načítanie; ďalej sa načítavajú len nové pohyby</span></td></tr>
+				<tr><th><label for="ba-since-<?php echo esc_attr( $id ); ?>">Načítať pohyby od</label></th><td><input id="ba-since-<?php echo esc_attr( $id ); ?>" type="date" name="since" value="<?php echo esc_attr( $a['since'] ?? gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' -30 days' ) ) ); ?>"> <span class="description">prvé načítanie; ďalej sa načítavajú len nové pohyby. Fio vydá cez API 90 dní dozadu – staršie len po odblokovaní histórie v internetbankingu (Nastavenia → API).</span></td></tr>
 				<tr><th>Automaticky</th><td><label><input type="checkbox" name="auto" value="1" <?php checked( $id ? ! empty( $a['auto'] ) : true ); ?>> načítať pohyby a párovať úhrady každých 30 minút</label></td></tr>
 				<tr><th>Objednávky</th><td><label><input type="checkbox" name="order_paid" value="1" <?php checked( (bool) jinv_opt( 'bank_order_paid' ) ); ?>> keď príde platba za objednávku (VS = číslo objednávky alebo zálohovej faktúry, presná suma), označiť objednávku ako zaplatenú</label><p class="description">Objednávka „Čaká na platbu“ prejde na „Spracováva sa“ a v automatickom režime sa vystaví faktúra. Bez tejto voľby sa do objednávky len zapíše poznámka o platbe.</p></td></tr>
 			</table>
