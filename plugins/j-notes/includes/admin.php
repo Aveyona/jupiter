@@ -20,6 +20,12 @@ function jno_url( $args = array() ) {
 	return add_query_arg( $args, admin_url( 'admin.php?page=' . JNO_SLUG ) );
 }
 
+/** Text bez značiek Markdownu (karty, náhľady). */
+function jno_plain( $t ) {
+	$t = preg_replace( '/\[([^\]]+)\]\([^)]+\)/', '$1', (string) $t );
+	return trim( str_replace( array( '**', '__', '~~', '`' ), '', wp_strip_all_tags( $t ) ) );
+}
+
 function jno_progress( array $n ) {
 	if ( ! (int) $n['tasks_total'] ) {
 		return '';
@@ -100,9 +106,9 @@ function jno_render_list() {
 					<span class="jno-card-p"><?php echo esc_html( $n['project'] ? $n['project'] : jno_types()[ $n['type'] ] ); ?></span>
 					<strong><?php echo esc_html( $n['title'] ); ?></strong>
 					<?php echo jno_progress( $n ); // phpcs:ignore ?>
-					<?php foreach ( array_slice( $doing, 0, 3 ) as $x ) : ?><span class="jno-card-t">◐ <?php echo esc_html( wp_strip_all_tags( $x[2] ) ); ?></span><?php endforeach; ?>
-					<?php if ( ! $doing && $next ) : $x = reset( $next ); ?><span class="jno-card-t jno-muted">Ďalej: <?php echo esc_html( wp_strip_all_tags( $x[2] ) ); ?></span><?php endif; ?>
-					<?php if ( $log ) : ?><span class="jno-card-l"><?php echo esc_html( mb_strimwidth( $log, 0, 140, '…' ) ); ?></span><?php endif; ?>
+					<?php foreach ( array_slice( $doing, 0, 3 ) as $x ) : ?><span class="jno-card-t">◐ <?php echo esc_html( jno_plain( $x[2] ) ); ?></span><?php endforeach; ?>
+					<?php if ( ! $doing && $next ) : $x = reset( $next ); ?><span class="jno-card-t jno-muted">Ďalej: <?php echo esc_html( jno_plain( $x[2] ) ); ?></span><?php endif; ?>
+					<?php if ( $log ) : ?><span class="jno-card-l"><?php echo esc_html( mb_strimwidth( jno_plain( $log ), 0, 140, '…' ) ); ?></span><?php endif; ?>
 				</a>
 			<?php endforeach; ?>
 		</div>
