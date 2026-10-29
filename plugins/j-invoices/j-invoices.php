@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'JINV_VERSION', '0.10.0' );
-define( 'JINV_DB_VERSION', 3 );
+define( 'JINV_DB_VERSION', 4 );
 define( 'JINV_FILE', __FILE__ );
 define( 'JINV_DIR', plugin_dir_path( __FILE__ ) );
 define( 'JINV_URL', plugin_dir_url( __FILE__ ) );
@@ -50,6 +50,7 @@ require_once JINV_DIR . 'includes/help.php';
 require_once JINV_DIR . 'includes/received.php';
 require_once JINV_DIR . 'includes/payments.php';
 require_once JINV_DIR . 'includes/partners.php';
+require_once JINV_DIR . 'includes/bank.php';
 
 register_activation_hook( __FILE__, 'jinv_install' );
 add_action( 'plugins_loaded', function () {

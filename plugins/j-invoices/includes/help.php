@@ -133,5 +133,17 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		),
 		'J-Fakturácia',
 	);
+	$guides[] = array(
+		'Banka – Fio a párovanie úhrad',
+		array(
+			'J-Fakturácia → Banka → Účty: pripojenie účtu vo Fio banke. V internetbankingu Fio vytvor token (Nastavenia → API → Pridať token, druh Sledovanie účtu – len čítanie, platí 180 dní), vlož ho do poľa Token a klikni Pripojiť a načítať pohyby.',
+			'Pohyby sa načítavajú automaticky každých 30 minút (alebo tlačidlom Načítať pohyby teraz; Fio dovoľuje jedno načítanie za 30 sekúnd). Každý pohyb sa uloží len raz.',
+			'Párovanie: príjem s variabilným symbolom vydanej alebo zálohovej faktúry sa k nej zapíše ako úhrada; výdaj s VS prijatej faktúry (alebo s IBAN dodávateľa a presnou sumou) uhradí prijatú faktúru. Platba s VS = číslo objednávky bez faktúry sa zapíše do objednávky ako poznámka.',
+			'Voľba Objednávky: keď príde platba za objednávku presnou sumou, objednávka sa označí ako zaplatená (Spracováva sa) – v automatickom režime sa potom vystaví faktúra.',
+			'Na spárovanie: pohyby, ktoré sa nepodarilo priradiť. Klikni na navrhnutý doklad, alebo zadaj číslo faktúry / objednávky a Spárovať. Poplatky a prevody medzi účtami označ Ignorovať. Spárovanie sa dá zrušiť (úhrada z dokladu zmizne).',
+			'14 dní pred vypršaním tokenu sa pri účte zobrazí upozornenie – vytvor nový token a vlož ho do účtu.',
+		),
+		'J-Fakturácia',
+	);
 	return $guides;
 } );

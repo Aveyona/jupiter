@@ -24,7 +24,7 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
 
 /** Adresa stránky J-Fakturácie; 'tab' => received|settings vyberie samostatnú stránku. */
 function jinv_admin_url( $args = array() ) {
-	$pages = array( 'received' => 'j-invoices-received', 'settings' => 'j-invoices-settings', 'partners' => 'j-invoices-partners' );
+	$pages = array( 'received' => 'j-invoices-received', 'settings' => 'j-invoices-settings', 'partners' => 'j-invoices-partners', 'bank' => 'j-invoices-bank' );
 	$page  = 'j-invoices';
 	if ( isset( $args['tab'] ) ) {
 		$page = isset( $pages[ $args['tab'] ] ) ? $pages[ $args['tab'] ] : 'j-invoices';
@@ -104,8 +104,8 @@ function jinv_render_admin( $tab = 'issued' ) {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
 		return;
 	}
-	$tab    = in_array( $tab, array( 'issued', 'received', 'settings', 'partners' ), true ) ? $tab : 'issued';
-	$titles = array( 'issued' => 'Vydané faktúry', 'received' => 'Prijaté faktúry', 'settings' => 'Nastavenia', 'partners' => 'Dodávatelia' );
+	$tab    = in_array( $tab, array( 'issued', 'received', 'settings', 'partners', 'bank' ), true ) ? $tab : 'issued';
+	$titles = array( 'issued' => 'Vydané faktúry', 'received' => 'Prijaté faktúry', 'settings' => 'Nastavenia', 'partners' => 'Dodávatelia', 'bank' => 'Banka' );
 	$view = isset( $_GET['view'] ) ? (int) $_GET['view'] : 0; // phpcs:ignore
 	$msgs = array(
 		'created'   => 'Doklad je vystavený.',
@@ -123,6 +123,12 @@ function jinv_render_admin( $tab = 'issued' ) {
 		'psaved'    => 'Dodávateľ je uložený.',
 		'payadded'  => 'Úhrada je zapísaná.',
 		'paydeleted' => 'Úhrada je zmazaná.',
+		'bsaved'    => 'Účet je uložený.',
+		'bremoved'  => 'Účet je odpojený, token je zmazaný.',
+		'bpair'     => 'Pohyb je spárovaný – úhrada je zapísaná.',
+		'bignore'   => 'Pohyb je označený ako ignorovaný.',
+		'bunpair'   => 'Spárovanie je zrušené.',
+		'bunignore' => 'Pohyb je späť na spárovanie.',
 		'payerr'    => 'Úhradu sa nepodarilo zapísať.' . ( ( $e3 = get_transient( 'jinv_err_' . get_current_user_id() ) ) ? ' ' . $e3 : '' ),
 	);
 	$msg  = isset( $_GET['jinv_msg'] ) ? sanitize_key( $_GET['jinv_msg'] ) : ''; // phpcs:ignore
@@ -138,6 +144,8 @@ function jinv_render_admin( $tab = 'issued' ) {
 			jinv_render_received();
 		} elseif ( 'partners' === $tab ) {
 			jinv_render_partners();
+		} elseif ( 'bank' === $tab ) {
+			jinv_render_bank();
 		} elseif ( $view ) {
 			jinv_render_view( $view );
 		} else {

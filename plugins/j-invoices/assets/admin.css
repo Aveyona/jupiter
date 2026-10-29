@@ -71,3 +71,15 @@
 .jinv-pays .jinv-inline-form { flex-wrap: wrap; margin: 12px 0 4px; }
 .jinv-pays .jinv-inline-form label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #50575E; }
 .jinv-subsub { float: none; margin: 0 0 6px; }
+/* Banka */
+.jinv-bank-top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 8px 0 14px; }
+.jinv-bank-acc { padding: 10px 16px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; min-width: 260px; }
+.jinv-bank-acc span, .jinv-bank-acc small { display: block; font-size: 12px; color: #646970; }
+.jinv-bank-acc strong { font-size: 22px; }
+.jinv-warn-t { color: #B32D2E; }
+.jinv-bank tr.is-in .jinv-amt { color: #00733A; font-weight: 600; }
+.jinv-bank tr.is-out .jinv-amt { color: #A3121B; font-weight: 600; }
+.jinv-bank-act { min-width: 300px; }
+.jinv-bank-act .jinv-cand { margin: 0 4px 4px 0; max-width: 100%; white-space: normal; height: auto; line-height: 1.4; padding: 2px 8px; }
+.jinv-bank-form { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 2px; }
+.jinv-bank-form input { width: 150px; }

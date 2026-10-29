@@ -25,6 +25,7 @@ Pripravuje sa: PDF s QR kódom PAY by square, odoslanie zákazníkovi e-mailom p
 = 0.10.0 =
 * Dodávatelia: adresár s IČO, DIČ, IČ DPH, adresou, IBAN, splatnosťou a kategóriou; načítanie firmy z Registra právnických osôb podľa IČO; detail s faktúrami, neuhradenými sumami a príjemkami J-Skladu; dodávatelia z doterajších prijatých faktúr sa preniesli automaticky.
 * Prijaté faktúry: výber dodávateľa našepkávačom (predvyplní údaje a splatnosť), IBAN na úhradu, filtre Neuhradené / Po splatnosti / Uhradené, karta Splatné do 7 dní, prepojenie s príjemkou J-Skladu (vytvorenie príjemky z faktúry aj faktúry z príjemky).
+* Banka: pripojenie účtu vo Fio banke cez API (token Sledovanie účtu), automatické načítanie pohybov každých 30 minút, párovanie úhrad podľa VS na vydané, zálohové aj prijaté faktúry a objednávky, zoznam Na spárovanie s návrhmi, voliteľne objednávka zaplatená po prijatí platby, upozornenie na vypršanie tokenu.
 * Úhrady dokladov: viac úhrad k faktúre (čiastočné platby), dátum a spôsob úhrady; stav Uhradená podľa súčtu úhrad – pre prijaté aj vydané faktúry. Základ pre banku a pokladňu.
 
 = 0.9.5 =

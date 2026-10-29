@@ -70,6 +70,34 @@ function jinv_install() {
   KEY ico (ico),
   KEY name (name(50))
 ) $c;" );
+	// Pohyby na bankových účtoch (Fio API, import výpisu).
+	dbDelta( 'CREATE TABLE ' . jinv_table( 'banktx' ) . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  account_id varchar(20) NOT NULL DEFAULT '',
+  ext_id varchar(64) NOT NULL DEFAULT '',
+  tx_date date NOT NULL,
+  amount decimal(12,2) NOT NULL DEFAULT 0,
+  currency char(3) NOT NULL DEFAULT 'EUR',
+  vs varchar(20) NOT NULL DEFAULT '',
+  ks varchar(10) NOT NULL DEFAULT '',
+  ss varchar(20) NOT NULL DEFAULT '',
+  counter_account varchar(50) NOT NULL DEFAULT '',
+  counter_name varchar(200) NOT NULL DEFAULT '',
+  message varchar(255) NOT NULL DEFAULT '',
+  tx_type varchar(60) NOT NULL DEFAULT '',
+  status varchar(20) NOT NULL DEFAULT 'new',
+  doc_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  order_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  payment_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  matched_by varchar(20) NOT NULL DEFAULT '',
+  note varchar(255) NOT NULL DEFAULT '',
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY account_ext (account_id,ext_id),
+  KEY status (status),
+  KEY vs (vs),
+  KEY tx_date (tx_date)
+) $c;" );
 	// Úhrady dokladov (čiastočné aj celé; zdroj: ručne, banka, pokladňa).
 	dbDelta( 'CREATE TABLE ' . jinv_table( 'payments' ) . " (
   id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
