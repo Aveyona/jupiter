@@ -162,6 +162,102 @@ add_action( 'admin_post_jinv_received_save', function () {
 	exit;
 } );
 
+/**
+ * Prijatá faktúra z iného doplnku (napr. J-Emails – faktúra z e-mailu).
+ * $a: number, issue_date, supply_date, due_date, vs, total, currency, supplier[name, ico, dic], partner_id, category,
+ *     note, iban, file_data (obsah PDF), file_name, ref (jedinečný odkaz na zdroj, napr. gmail:ID – zabráni duplicite).
+ * Po uložení skúsi spárovať nespárované platby v banke (VS a suma). Vráti ID dokladu alebo WP_Error.
+ */
+function jinv_received_create( array $a ) {
+	global $wpdb;
+	$ref = (string) ( $a['ref'] ?? '' );
+	if ( '' !== $ref ) {
+		$ex = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . jinv_table() . " WHERE kind = 'received' AND data LIKE %s", '%' . $wpdb->esc_like( '"ref":' . wp_json_encode( $ref ) ) . '%' ) ); // phpcs:ignore
+		if ( $ex ) {
+			return new WP_Error( 'jinv_dup', 'Faktúra je už prevzatá.', $ex );
+		}
+	}
+	$date  = function ( $v, $def ) {
+		return preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $v ) ? $v : $def;
+	};
+	$issue = $date( $a['issue_date'] ?? '', current_time( 'Y-m-d' ) );
+	$sup   = (array) ( $a['supplier'] ?? array() );
+	$pid   = (int) ( $a['partner_id'] ?? 0 );
+	if ( $pid && ( $p = jinv_partner_get( $pid ) ) ) {
+		$sup = array( 'name' => $p['name'], 'ico' => $p['ico'], 'dic' => $p['dic'] );
+	} elseif ( ! empty( $sup['name'] ) ) {
+		$pid = jinv_partner_match( $sup['name'], $sup['ico'] ?? '' );
+	}
+	if ( empty( $sup['name'] ) ) {
+		return new WP_Error( 'jinv_received', 'Chýba dodávateľ.' );
+	}
+	$num = trim( sanitize_text_field( (string) ( $a['number'] ?? '' ) ) );
+	if ( '' !== $num && $pid ) {
+		$ex = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . jinv_table() . " WHERE kind = 'received' AND partner_id = %d AND number = %s", $pid, $num ) ); // phpcs:ignore
+		if ( $ex ) {
+			return new WP_Error( 'jinv_dup', 'Faktúra ' . $num . ' od tohto dodávateľa už existuje.', $ex );
+		}
+	}
+	$data = array(
+		'supplier' => array( 'name' => sanitize_text_field( $sup['name'] ), 'ico' => preg_replace( '/\s+/', '', (string) ( $sup['ico'] ?? '' ) ), 'dic' => preg_replace( '/\s+/', '', (string) ( $sup['dic'] ?? '' ) ) ),
+		'iban'     => jinv_iban_clean( $a['iban'] ?? '' ),
+		'category' => sanitize_text_field( (string) ( $a['category'] ?? '' ) ),
+		'note'     => sanitize_textarea_field( (string) ( $a['note'] ?? '' ) ),
+	);
+	if ( '' !== $ref ) {
+		$data['ref'] = $ref;
+	}
+	if ( ! empty( $a['file_data'] ) ) {
+		$sub  = substr( $issue, 0, 4 );
+		$dir  = jinv_received_dir() . '/' . $sub;
+		wp_mkdir_p( $dir );
+		$fn   = sanitize_file_name( (string) ( $a['file_name'] ?? 'faktura.pdf' ) );
+		$name = wp_generate_password( 8, false ) . '-' . $fn;
+		if ( false !== file_put_contents( $dir . '/' . $name, $a['file_data'] ) ) { // phpcs:ignore
+			$data['file']      = $sub . '/' . $name;
+			$data['file_name'] = $fn;
+		}
+	}
+	$year = (int) substr( $issue, 0, 4 );
+	$id   = 0;
+	for ( $try = 0; $try < 5 && ! $id; $try++ ) {
+		$seq = 1 + (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(seq) FROM ' . jinv_table() . " WHERE kind = 'received' AND year = %d", $year ) ); // phpcs:ignore
+		if ( $wpdb->insert( jinv_table(), array(
+			'kind'          => 'received',
+			'number'        => '' !== $num ? $num : 'PF' . $year . '-' . $seq,
+			'year'          => $year,
+			'seq'           => $seq,
+			'status'        => 'issued',
+			'issue_date'    => $issue,
+			'supply_date'   => $date( $a['supply_date'] ?? '', $issue ),
+			'due_date'      => $date( $a['due_date'] ?? '', $issue ),
+			'vs'            => preg_replace( '/\D/', '', (string) ( $a['vs'] ?? '' ) ),
+			'currency'      => preg_match( '/^[A-Z]{3}$/', (string) ( $a['currency'] ?? '' ) ) ? $a['currency'] : 'EUR',
+			'total'         => round( (float) ( $a['total'] ?? 0 ), 2 ),
+			'customer_name' => $data['supplier']['name'],
+			'partner_id'    => $pid,
+			'data'          => wp_json_encode( $data, JSON_UNESCAPED_UNICODE ),
+			'source'        => sanitize_key( (string) ( $a['source'] ?? 'import' ) ),
+			'created_at'    => current_time( 'mysql' ),
+		) ) ) {
+			$id = (int) $wpdb->insert_id;
+		}
+	}
+	if ( ! $id ) {
+		return new WP_Error( 'jinv_db', 'Faktúru sa nepodarilo uložiť.' );
+	}
+	// Úhrada: nespárované výdaje v banke s rovnakým VS (alebo číslom faktúry).
+	if ( function_exists( 'jinv_bank_auto_match' ) ) {
+		$vs  = preg_replace( '/\D/', '', (string) ( $a['vs'] ?? '' ) );
+		$txs = $vs ? $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM ' . jinv_table( 'banktx' ) . " WHERE status = 'new' AND amount < 0 AND vs = %s ORDER BY tx_date", $vs ) ) : array(); // phpcs:ignore
+		foreach ( $txs as $tx ) {
+			jinv_bank_auto_match( (int) $tx );
+		}
+	}
+	do_action( 'jinv_received_created', $id, $a );
+	return $id;
+}
+
 /** Koncept príjemky J-Skladu k prijatej faktúre (dodávateľ, číslo faktúry, dátum dodania). Vráti ID dokladu skladu. */
 function jinv_received_make_receipt( $id ) {
 	global $wpdb;
