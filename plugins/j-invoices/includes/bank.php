@@ -86,10 +86,32 @@ function jinv_bank_store( $account_id, array $t ) {
 		'counter_name'    => mb_substr( (string) $t['counter_name'], 0, 200 ),
 		'message'         => mb_substr( (string) $t['message'], 0, 255 ),
 		'tx_type'         => mb_substr( (string) $t['type'], 0, 60 ),
-		'status'          => 'new',
+		'status'          => ( ( $mf = (string) ( jinv_bank_account( $account_id )['match_from'] ?? '' ) ) && $t['date'] < $mf ) ? 'old' : 'new', // pred začiatkom evidencie – len archív
 		'created_at'      => current_time( 'mysql' ),
 	) );
 	return $ok ? (int) $wpdb->insert_id : 0;
+}
+
+/**
+ * Zostatok bankového účtu na začiatku dňa $date (pred pohybmi toho dňa): z najbližšieho známeho počiatočného
+ * zostatku (Fio „openingBalance“) a uložených pohybov. Vráti číslo alebo null, ak sa nedá zistiť.
+ */
+function jinv_bank_balance_at( $account_id, $date ) {
+	global $wpdb;
+	$acc = jinv_bank_account( $account_id );
+	$ops = (array) ( $acc['opening'] ?? array() );
+	ksort( $ops );
+	$base = null;
+	foreach ( $ops as $d => $v ) {
+		if ( $d <= $date ) {
+			$base = array( $d, (float) $v );
+		}
+	}
+	if ( ! $base ) {
+		return null;
+	}
+	$sum = (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(amount),0) FROM ' . jinv_table( 'banktx' ) . ' WHERE account_id = %s AND tx_date >= %s AND tx_date < %s', $account_id, $base[0], $date ) ); // phpcs:ignore
+	return round( $base[1] + $sum, 2 );
 }
 
 /* ---------------------------------------------------------------- Fio API */
@@ -106,7 +128,7 @@ function jinv_fio_get( $account_id, $path ) {
 		return new WP_Error( 'jinv_fio_wait', 'Fio dovoľuje načítanie raz za 30 sekúnd – skúste to o ' . $wait . ' s.' );
 	}
 	jinv_bank_update_account( $account_id, array( 'last_call' => time() ) );
-	$res = wp_remote_get( JINV_FIO_API . str_replace( '{token}', rawurlencode( $acc['token'] ), $path ), array( 'timeout' => 45 ) );
+	$res = wp_remote_get( JINV_FIO_API . str_replace( '{token}', rawurlencode( $acc['token'] ), $path ), array( 'timeout' => 120 ) );
 	if ( is_wp_error( $res ) ) {
 		// Fio pri neaktívnom alebo neplatnom tokene neodpovedá ~30 s.
 		$msg = $res->get_error_message();
@@ -442,6 +464,14 @@ add_action( 'admin_post_jinv_bank_account', function () {
 	}
 	$all[ $id ]['since'] = $since;
 	$all[ $id ]['auto']  = ! empty( $in['auto'] ) ? 1 : 0;
+	$all[ $id ]['match_from'] = preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $in['match_from'] ?? '' ) ) ? $in['match_from'] : '';
+	if ( $all[ $id ]['match_from'] ) {
+		global $wpdb;
+		// Už načítané pohyby pred týmto dátumom (nespárované) idú do archívu, po ňom späť na spárovanie.
+		$wpdb->query( $wpdb->prepare( 'UPDATE ' . jinv_table( 'banktx' ) . " SET status = 'old' WHERE account_id = %s AND status = 'new' AND tx_date < %s", $id, $all[ $id ]['match_from'] ) ); // phpcs:ignore
+		$wpdb->query( $wpdb->prepare( 'UPDATE ' . jinv_table( 'banktx' ) . " SET status = 'new' WHERE account_id = %s AND status = 'old' AND tx_date >= %s", $id, $all[ $id ]['match_from'] ) ); // phpcs:ignore
+		wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
+	}
 	$tok                 = preg_replace( '/\s+/', '', (string) ( $in['token'] ?? '' ) );
 	if ( '' !== $tok ) {
 		$all[ $id ]['token']       = $tok;
@@ -659,7 +689,11 @@ function jinv_bank_row_action( array $t, $back ) {
 		echo ' · <a href="' . esc_url( $url( 'unpair' ) ) . '" onclick="return confirm(\'Zrušiť spárovanie? Úhrada z banky sa z dokladu odstráni.\');">zrušiť</a>';
 		return;
 	}
-	if ( 'ignored' === $t['status'] ) {
+	if ( 'old' === $t['status'] ) {
+		echo '<span class="jinv-st jinv-st-cancelled" style="text-decoration:none">Archív</span>';
+		return;
+	}
+		if ( 'ignored' === $t['status'] ) {
 		echo '<span class="jinv-st jinv-st-cancelled">Ignorované</span>' . ( $t['note'] ? ' <small>' . esc_html( $t['note'] ) . '</small>' : '' ) . ' · <a href="' . esc_url( $url( 'unignore' ) ) . '">vrátiť</a>';
 		return;
 	}
@@ -702,6 +736,7 @@ function jinv_render_bank_accounts() {
 					<tr><th><label for="ba-until-<?php echo esc_attr( $id ); ?>">Token platí do</label></th><td><input id="ba-until-<?php echo esc_attr( $id ); ?>" type="date" name="token_until" value="<?php echo esc_attr( $a['token_until'] ?? '' ); ?>"><?php echo jinv_bank_token_warning( $a ); // phpcs:ignore ?> <span class="description">14 dní pred vypršaním upozorní; dátum nájdete v internetbankingu pri tokene.</span></td></tr>
 				<?php endif; ?>
 				<tr><th><label for="ba-since-<?php echo esc_attr( $id ); ?>">Načítať pohyby od</label></th><td><input id="ba-since-<?php echo esc_attr( $id ); ?>" type="date" name="since" value="<?php echo esc_attr( $a['since'] ?? gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' -30 days' ) ) ); ?>"> <span class="description">prvé načítanie; ďalej sa načítavajú len nové pohyby. Fio vydá cez API 90 dní dozadu – staršie len po odblokovaní histórie v internetbankingu (Nastavenia → API).</span></td></tr>
+				<tr><th><label for="ba-mf-<?php echo esc_attr( $id ); ?>">Párovať úhrady od</label></th><td><input id="ba-mf-<?php echo esc_attr( $id ); ?>" type="date" name="match_from" value="<?php echo esc_attr( $a['match_from'] ?? '' ); ?>"> <span class="description">staršie pohyby sa uložia len ako archív (história účtu) – nepárujú sa a nečakajú na spárovanie</span></td></tr>
 				<tr><th>Automaticky</th><td><label><input type="checkbox" name="auto" value="1" <?php checked( $id ? ! empty( $a['auto'] ) : true ); ?>> načítať pohyby a párovať úhrady každých 30 minút</label></td></tr>
 				<tr><th>Objednávky</th><td><label><input type="checkbox" name="order_paid" value="1" <?php checked( (bool) jinv_opt( 'bank_order_paid' ) ); ?>> keď príde platba za objednávku (VS = číslo objednávky alebo zálohovej faktúry, presná suma), označiť objednávku ako zaplatenú</label><p class="description">Objednávka „Čaká na platbu“ prejde na „Spracováva sa“ a v automatickom režime sa vystaví faktúra. Bez tejto voľby sa do objednávky len zapíše poznámka o platbe.</p></td></tr>
 			</table>

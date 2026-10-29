@@ -226,7 +226,7 @@ function juc_wiz_step_6( $w, $s ) {
 		foreach ( function_exists( 'jinv_bank_accounts' ) ? jinv_bank_accounts() : array() as $id => $a ) {
 			$map = (array) $s['bank_map'];
 			$cur = $map[ $id ] ?? '221' . sprintf( '%03d', $i );
-			echo '<tr><th>Banka – ' . esc_html( $a['name'] ?? '' ) . '</th><td>✓ pohyby sa účtujú na účet <input name="bank_map[' . esc_attr( $id ) . ']" value="' . esc_attr( $cur ) . '" style="width:90px"> ' . esc_html( ! empty( $a['iban'] ) ? jinv_iban_format( $a['iban'] ) : '' ) . ( isset( $a['balance'] ) ? ' · zostatok vo Fio ' . esc_html( juc_money( $a['balance'] ) ) . ' €' : '' ) . ( isset( $a['opening'][ $start ] ) ? ' · <strong>k ' . esc_html( juc_date( $start ) ) . ': ' . esc_html( juc_money( $a['opening'][ $start ] ) ) . ' €</strong> (počiatočný stav)' : '' ) . '<br><small>Fio vydá cez API pohyby za 90 dní – staršie načítate po odblokovaní histórie v internetbankingu.</small></td></tr>';
+			echo '<tr><th>Banka – ' . esc_html( $a['name'] ?? '' ) . '</th><td>✓ pohyby sa účtujú na účet <input name="bank_map[' . esc_attr( $id ) . ']" value="' . esc_attr( $cur ) . '" style="width:90px"> ' . esc_html( ! empty( $a['iban'] ) ? jinv_iban_format( $a['iban'] ) : '' ) . ( isset( $a['balance'] ) ? ' · zostatok vo Fio ' . esc_html( juc_money( $a['balance'] ) ) . ' €' : '' ) . ( null !== ( $bat = jinv_bank_balance_at( $id, $start ) ) ? ' · <strong>zostatok k ' . esc_html( juc_date( $start ) ) . ': ' . esc_html( juc_money( $bat ) ) . ' €</strong> (počiatočný stav účtu ' . esc_html( $cur ) . ')' : '' ) . '<br><small>Fio vydá cez API pohyby za 90 dní – staršie načítate po odblokovaní histórie v internetbankingu.</small></td></tr>';
 			$i++;
 		}
 	} else {
