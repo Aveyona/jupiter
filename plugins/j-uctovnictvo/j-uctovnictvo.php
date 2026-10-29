@@ -30,6 +30,7 @@ require_once JUC_DIR . 'includes/ledger.php';
 require_once JUC_DIR . 'includes/autopost.php';
 require_once JUC_DIR . 'includes/reports.php';
 require_once JUC_DIR . 'includes/admin.php';
+require_once JUC_DIR . 'includes/wizard.php';
 require_once JUC_DIR . 'includes/help.php';
 
 register_activation_hook( __FILE__, 'juc_activate' );

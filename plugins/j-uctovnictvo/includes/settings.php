@@ -9,6 +9,13 @@ function juc_defaults() {
 		'company'        => '',
 		'ico'            => '',
 		'dic'            => '',
+		'icdph'          => '',
+		'street'         => '',
+		'zip'            => '',
+		'city'           => '',
+		'register'       => '',
+		'founded'        => '',
+		'statutory'      => '',
 		'size'           => 'micro',      // micro = mikro účtovná jednotka (Úč MUJ), small = malá (Úč POD)
 		'vat_payer'      => 0,            // platiteľ DPH
 		'vat_period'     => 'quarter',    // month | quarter
@@ -132,3 +139,68 @@ function juc_series() {
 		'UZ' => 'Uzávierka',
 	);
 }
+
+/* ---------------------------------------------------------------- Stránka Nastavenia */
+
+function juc_page_settings() {
+	if ( ! current_user_can( JUC_CAP ) ) {
+		return;
+	}
+	$s = juc_settings();
+	juc_head( 'Nastavenia účtovníctva' );
+	?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="juc-panel">
+		<?php wp_nonce_field( 'juc_settings' ); ?><input type="hidden" name="action" value="juc_settings">
+		<h3>Účtovná jednotka</h3>
+		<p><?php echo esc_html( $s['company'] . ( $s['ico'] ? ', IČO ' . $s['ico'] : '' ) . ( $s['dic'] ? ', DIČ ' . $s['dic'] : '' ) ); ?> · <?php echo 'micro' === $s['size'] ? 'mikro účtovná jednotka' : 'malá účtovná jednotka'; ?> · <?php echo $s['vat_payer'] ? 'platiteľ DPH' : 'neplatiteľ DPH'; ?> – <a href="<?php echo esc_url( juc_url( 'j-uctovnictvo-wizard', array( 'step' => 1 ) ) ); ?>">zmeniť v sprievodcovi</a></p>
+		<h3>Účtovanie</h3>
+		<table class="form-table" role="presentation">
+			<tr><th><label for="js-start">Automaticky účtovať doklady od</label></th><td><input type="date" id="js-start" name="start_date" value="<?php echo esc_attr( $s['start_date'] ); ?>"> <label><input type="checkbox" name="auto" value="1" <?php checked( (int) $s['auto'] ); ?>> automatické účtovanie zapnuté</label><p class="description">Posunutím dátumu dozadu sa doplnia staršie doklady (nič sa nezdvojí).</p></td></tr>
+			<tr><th><label for="js-lock">Účtovníctvo uzavreté do</label></th><td><input type="date" id="js-lock" name="lock_date" value="<?php echo esc_attr( $s['lock_date'] ); ?>"><p class="description">Do tohto dňa (vrátane) sa už nedá účtovať ani stornovať – uzávierka mesiaca po kontrole.</p></td></tr>
+			<tr><th>Zásoby</th><td><select name="stock_method"><option value="A" <?php selected( $s['stock_method'], 'A' ); ?>>Spôsob A – 131/132, predaj 504 podľa J-Skladu</option><option value="B" <?php selected( $s['stock_method'], 'B' ); ?>>Spôsob B – nákup tovaru priamo do 504</option></select></td></tr>
+			<tr><th>Číslovanie</th><td>Interné doklady <input name="format_ID" value="<?php echo esc_attr( $s['format_ID'] ); ?>" style="width:150px"> Pokladňa <input name="format_PD" value="<?php echo esc_attr( $s['format_PD'] ); ?>" style="width:150px"><p class="description">{RRRR} rok, {nnnn} poradové číslo v roku.</p></td></tr>
+		</table>
+		<h3>Účty pre automatické účtovanie</h3>
+		<table class="form-table" role="presentation">
+			<?php
+			$labels = array(
+				'acc_customers' => 'Odberatelia', 'acc_suppliers' => 'Dodávatelia', 'acc_bank' => 'Banka (syntetický)', 'acc_cash' => 'Pokladňa', 'acc_card' => 'Karta / platobná brána', 'acc_adv_recv' => 'Prijaté preddavky',
+				'acc_sales_goods' => 'Tržby za tovar', 'acc_sales_serv' => 'Tržby za služby a dopravu', 'acc_goods_buy' => 'Obstaranie tovaru', 'acc_goods' => 'Tovar na sklade', 'acc_cogs' => 'Predaný tovar',
+				'acc_inv_minus' => 'Manko / škoda', 'acc_inv_plus' => 'Inventúrny prebytok', 'acc_bank_fees' => 'Bankové poplatky', 'acc_tx_tax' => 'Transakčná daň', 'acc_interest' => 'Úroky (výnos)', 'cat_default' => 'Prijaté faktúry bez kategórie',
+			);
+			foreach ( $labels as $k => $l ) :
+				?>
+				<tr><th><?php echo esc_html( $l ); ?></th><td><input name="<?php echo esc_attr( $k ); ?>" value="<?php echo esc_attr( $s[ $k ] ); ?>" list="juc-accs" style="width:100px"> <small class="juc-muted"><?php echo esc_html( juc_account_name( $s[ $k ] ) ); ?></small></td></tr>
+			<?php endforeach; ?>
+		</table>
+		<?php juc_accounts_datalist(); ?>
+		<p class="description">Kategórie prijatých faktúr a bankové účty sa nastavujú v sprievodcovi (kroky 6 a 7).</p>
+		<p><button class="button button-primary">Uložiť</button></p>
+	</form>
+	</div>
+	<?php
+}
+
+add_action( 'admin_post_juc_settings', function () {
+	if ( ! current_user_can( JUC_CAP ) ) {
+		wp_die( 'Nemáte oprávnenie.' );
+	}
+	check_admin_referer( 'juc_settings' );
+	$in  = wp_unslash( $_POST );
+	$set = array(
+		'start_date'   => preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $in['start_date'] ?? '' ) ) ? $in['start_date'] : '',
+		'lock_date'    => preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $in['lock_date'] ?? '' ) ) ? $in['lock_date'] : '',
+		'auto'         => ! empty( $in['auto'] ) ? 1 : 0,
+		'stock_method' => 'B' === ( $in['stock_method'] ?? '' ) ? 'B' : 'A',
+		'format_ID'    => false !== strpos( (string) ( $in['format_ID'] ?? '' ), '{n' ) ? sanitize_text_field( $in['format_ID'] ) : 'ID{RRRR}{nnnn}',
+		'format_PD'    => false !== strpos( (string) ( $in['format_PD'] ?? '' ), '{n' ) ? sanitize_text_field( $in['format_PD'] ) : 'PD{RRRR}{nnnn}',
+	);
+	foreach ( array_keys( juc_defaults() ) as $k ) {
+		if ( ( 0 === strpos( $k, 'acc_' ) || 'cat_default' === $k ) && isset( $in[ $k ] ) && preg_replace( '/\D/', '', $in[ $k ] ) ) {
+			$set[ $k ] = preg_replace( '/\D/', '', $in[ $k ] );
+		}
+	}
+	juc_settings_update( $set );
+	wp_safe_redirect( juc_url( 'j-uctovnictvo-settings', array( 'juc_msg' => 'saved' ) ) );
+	exit;
+} );

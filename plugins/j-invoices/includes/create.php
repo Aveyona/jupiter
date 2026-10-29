@@ -88,11 +88,12 @@ function jinv_items_from_order( WC_Order $o ) {
 			'unit'  => 'ks',
 			'price' => round( $total / $qty, 2 ),
 			'total' => round( $total, 2 ),
+			'type'  => 'product',
 		);
 	}
 	foreach ( $o->get_shipping_methods() as $sh ) {
 		$total   = (float) $sh->get_total() + (float) $sh->get_total_tax();
-		$items[] = array( 'name' => 'Doprava: ' . $sh->get_name(), 'sku' => '', 'qty' => 1, 'unit' => '', 'price' => round( $total, 2 ), 'total' => round( $total, 2 ) );
+		$items[] = array( 'name' => 'Doprava: ' . $sh->get_name(), 'sku' => '', 'qty' => 1, 'unit' => '', 'price' => round( $total, 2 ), 'total' => round( $total, 2 ), 'type' => 'shipping' );
 	}
 	$is_cod  = jinv_is_cod_order( $o );
 	$has_cod = false;
@@ -103,11 +104,11 @@ function jinv_items_from_order( WC_Order $o ) {
 			$has_cod = true;
 			$name    = (string) jinv_opt( 'cod_item_name' );
 		}
-		$items[] = array( 'name' => $name, 'sku' => '', 'qty' => 1, 'unit' => '', 'price' => round( $total, 2 ), 'total' => round( $total, 2 ) );
+		$items[] = array( 'name' => $name, 'sku' => '', 'qty' => 1, 'unit' => '', 'price' => round( $total, 2 ), 'total' => round( $total, 2 ), 'type' => 'fee' );
 	}
 	// Dobierka bez poplatku v objednávke (napr. ručne vytvorená objednávka): položka s nulovou cenou, aby bola na faktúre uvedená.
 	if ( $is_cod && ! $has_cod && jinv_opt( 'cod_item' ) ) {
-		$items[] = array( 'name' => (string) jinv_opt( 'cod_item_name' ), 'sku' => '', 'qty' => 1, 'unit' => '', 'price' => 0, 'total' => 0 );
+		$items[] = array( 'name' => (string) jinv_opt( 'cod_item_name' ), 'sku' => '', 'qty' => 1, 'unit' => '', 'price' => 0, 'total' => 0, 'type' => 'fee' );
 	}
 	if ( (float) $o->get_discount_total() > 0 ) {
 		// Zľava je už započítaná v položkách tovaru (get_total po zľave) – len informačný riadok.

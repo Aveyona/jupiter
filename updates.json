@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.1.3",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.1.3/j-help-v1.1.3.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.1.3",
+      "version": "1.1.4",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.1.4/j-help-v1.1.4.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.1.4",
       "published": "2026-10-29",
-      "notes": "Poradie v menu: J-Sklad, J-Objednávky, J-Fakturácia, J-Emails, J-Pomocník vždy posledný."
+      "notes": "Poradie v menu: J-Účtovníctvo hneď za J-Fakturáciou."
     },
     "j-invoices": {
       "version": "0.10.0",
@@ -35,6 +35,13 @@
       "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.3.1",
       "published": "2026-10-29",
       "notes": "Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
+    },
+    "j-uctovnictvo": {
+      "version": "0.1.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-uctovnictvo-v0.1.0/j-uctovnictvo-v0.1.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-uctovnictvo-v0.1.0",
+      "published": "2026-10-29",
+      "notes": "Prvá verzia: podvojné účtovníctvo pre s. r. o. – sprievodca založením, účtový rozvrh, účtovné doklady so stornom, denník, hlavná kniha, obratová predvaha, saldokonto a automatické účtovanie faktúr, banky a skladu."
     }
   }
 }
