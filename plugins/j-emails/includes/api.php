@@ -369,14 +369,22 @@ add_action( 'wp_ajax_jem_act', function () {
 						$ok = false;
 						break;
 					}
-					$all = jem_snoozed();
-					foreach ( $meta as $m ) {
+					// Odložiť sa dá len správa s Message-ID (podľa neho sa nájde pri návrate).
+					$all  = jem_snoozed();
+					$with = array();
+					foreach ( $meta as $mu => $m ) {
 						if ( '' !== $m['id'] ) {
 							$all[ $m['id'] ] = array( 'until' => $until, 'from' => $k );
+							$with[]          = $mu;
 						}
 					}
+					if ( ! $with ) {
+						$errors[] = 'Túto správu nemožno odložiť (chýba jej identifikátor Message-ID).';
+						$ok       = false;
+						break;
+					}
 					update_option( 'jem_snoozed', $all, false );
-					$ok = $imap->move_many( $uids, $to );
+					$ok = $imap->move_many( $with, $to );
 				}
 				break;
 			case 'unsnooze':

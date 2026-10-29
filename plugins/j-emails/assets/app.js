@@ -208,10 +208,11 @@
 	/* ================= Smerovanie (adresa za #) ================= */
 
 	function parseHash() {
-		var raw = decodeURIComponent((location.hash || '#inbox').slice(1));
+		var raw = (location.hash || '#inbox').slice(1);
 		var r = { view: 'inbox', page: 1, q: '', thread: null, compose: false };
 		if (!raw) { return r; }
-		var parts = raw.split('/');
+		// najprv rozdeliť, potom dekódovať – priečinok či hľadaný text môže obsahovať „/“
+		var parts = raw.split('/').map(function (x) { try { return decodeURIComponent(x); } catch (e) { return x; } });
 		if (parts[0] === 'search') {
 			r.view = 'search'; r.q = parts[1] || '';
 			parts = parts.slice(2);
@@ -417,7 +418,7 @@
 			bar.appendChild(h('span', { class: 'jem-pager-text', text: from + ' – ' + to + ' z ' + (S.more ? 'viac ako ' : '') + S.total }));
 		}
 		bar.appendChild(tb('left', 'Novšie', function () { go(S.view, S.page - 1, S.q); }, S.page <= 1));
-		bar.appendChild(tb('right', 'Staršie', function () { go(S.view, S.page + 1, S.q); }, S.page * S.per >= S.total));
+		bar.appendChild(tb('right', 'Staršie', function () { go(S.view, S.page + 1, S.q); }, S.page * S.per >= S.total && !S.more));
 		return bar;
 	}
 	function tb(ic, title, fn, disabled) {
@@ -1131,15 +1132,18 @@
 	};
 	Compose.prototype.saveDraft = function () {
 		var self = this;
+		// Ukladanie po jednom – súbežné uloženie by vytvorilo dva koncepty.
+		if (this.saving) { return this.saving.then(function () { return self.saveDraft(); }); }
 		if (this.closed || this.sending || !this.dirty || this.isEmpty()) { return Promise.resolve(); }
 		this.dirty = false;
 		this.status.textContent = 'Ukladá sa…';
 		var p = this.payload(); p.id = this.draftId;
-		return api('draft', p).then(function (d) {
+		this.saving = api('draft', p).then(function (d) {
 			self.draftId = d.id; self.status.textContent = 'Koncept uložený';
 			S.counts.drafts = d.drafts; renderNav();
 			if (self.files.length) { self.status.textContent = 'Koncept uložený (bez príloh)'; }
-		}).catch(function () { self.status.textContent = 'Koncept sa neuložil'; });
+		}).catch(function () { self.status.textContent = 'Koncept sa neuložil'; }).then(function () { self.saving = null; });
+		return this.saving;
 	};
 	Compose.prototype.addFile = function (f) {
 		if (f.size > 25 * 1048576) { toast('Súbor ' + f.name + ' je väčší ako 25 MB.', 'err'); return; }
@@ -1199,8 +1203,11 @@
 		this.sending = true;
 		clearTimeout(this.timer);
 		this.sendBtn.disabled = true; this.sendBtn.firstChild.textContent = 'Odosiela sa…';
-		p.draft = this.draftId;
-		api('send', p, this.files).then(function (d) {
+		// Počká na prebiehajúce uloženie konceptu, aby sa koncept po odoslaní zmazal.
+		(this.saving || Promise.resolve()).then(function () {
+			p.draft = self.draftId;
+			return api('send', p, self.files);
+		}).then(function (d) {
 			S.counts.drafts = d.drafts; renderNav();
 			self.closed = true; self.remove();
 			toast('Správa bola odoslaná.');
@@ -1334,7 +1341,7 @@
 			var cur = S.current, msgs = cur.msgs || [], last = msgs[msgs.length - 1], box = el.thread && el.thread.querySelector('.jem-msgs');
 			if (k === 'u') { go(S.view, S.page, S.q); }
 			else if (k === 'e') { act('archive', [cur]); }
-			else if (k === '#') { act('trash', [cur]); }
+			else if (k === '#') { if (S.view !== 'trash' || confirm('Natrvalo zmazať konverzáciu?')) { act('trash', [cur]); } }
 			else if (k === '!') { act('spam', [cur]); }
 			else if (k === 's') { toggleStar(cur); }
 			else if (k === 'U') { act('unread', [cur]); }
@@ -1355,7 +1362,7 @@
 		if ((k === 'o' || k === 'Enter') && ft) { if (ft.draft) { openDraft(ft.draft); } else { go(S.view, S.page, S.q, ft.id); } }
 		else if (k === 'x' && ft) { if (S.sel[ft.id]) { delete S.sel[ft.id]; } else { S.sel[ft.id] = true; } renderMain(); }
 		else if (k === 'e') { act('archive', targets); }
-		else if (k === '#') { act('trash', targets); }
+		else if (k === '#') { if (targets.length && (S.view !== 'trash' || confirm('Natrvalo zmazať vybrané konverzácie? Túto akciu nie je možné vrátiť.'))) { act('trash', targets); } }
 		else if (k === '!') { act('spam', targets); }
 		else if (k === 's' && ft) { toggleStar(ft); }
 		else if (k === 'I') { act('read', targets); }

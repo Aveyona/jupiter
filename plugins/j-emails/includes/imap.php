@@ -416,7 +416,7 @@ class JEM_Imap {
 	public function list_data( array $uids ) {
 		$out = array();
 		foreach ( array_chunk( $uids, 150 ) as $chunk ) {
-			$r = $this->cmd( 'UID FETCH ' . self::uid_set( $chunk ) . ' (UID FLAGS INTERNALDATE RFC822.SIZE BODYSTRUCTURE BODY.PEEK[HEADER.FIELDS (FROM TO CC SUBJECT DATE CONTENT-TYPE MESSAGE-ID IN-REPLY-TO REFERENCES REPLY-TO)] BODY.PEEK[TEXT]<0.4000>)' );
+			$r = $this->cmd( 'UID FETCH ' . self::uid_set( $chunk ) . ' (UID FLAGS INTERNALDATE RFC822.SIZE BODYSTRUCTURE BODY.PEEK[HEADER.FIELDS (FROM TO CC SUBJECT DATE CONTENT-TYPE CONTENT-TRANSFER-ENCODING MESSAGE-ID IN-REPLY-TO REFERENCES REPLY-TO)] BODY.PEEK[TEXT]<0.4000>)' );
 			foreach ( $r['untagged'] as $u ) {
 				$l = $u['line'];
 				if ( ! preg_match( '/^\* \d+ FETCH /i', $l ) || ! preg_match( '/UID (\d+)/i', $l, $m ) ) {
@@ -428,9 +428,12 @@ class JEM_Imap {
 				$files = array();
 				if ( preg_match( '/BODYSTRUCTURE (\(.*)$/is', $l, $bs ) ) {
 					// Názvy príloh: ("filename" "x.pdf") alebo ("name" "x.pdf"), aj ako literál.
-					if ( preg_match_all( '/"(?:file)?name\*?" (?:"((?:[^"\\\\]|\\\\.)*)"|\x00(\d+)\x00)/i', $bs[1], $nm, PREG_SET_ORDER ) ) {
+					if ( preg_match_all( '/"(?:file)?name(\*)?" (?:"((?:[^"\\\\]|\\\\.)*)"|\x00(\d+)\x00)/i', $bs[1], $nm, PREG_SET_ORDER ) ) {
 						foreach ( $nm as $x ) {
-							$name = isset( $x[2] ) && '' !== $x[2] ? (string) $u['lits'][ (int) $x[2] ] : stripcslashes( $x[1] );
+							$name = isset( $x[3] ) && '' !== $x[3] ? (string) $u['lits'][ (int) $x[3] ] : stripcslashes( $x[2] );
+							if ( '*' === $x[1] && preg_match( "/^([^']*)'[^']*'(.*)$/", $name, $rc ) ) {
+								$name = jem_to_utf8( rawurldecode( $rc[2] ), '' !== $rc[1] ? $rc[1] : 'utf-8' ); // RFC 2231: filename*=UTF-8''Fakt%C3%BAra.pdf
+							}
 							$name = jem_decode_header( $name );
 							if ( '' !== $name && ! in_array( $name, $files, true ) ) {
 								$files[] = $name;

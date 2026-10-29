@@ -116,7 +116,12 @@ function jem_send( array $d ) {
 	if ( ! is_wp_error( $imap ) ) {
 		$f = jem_folder_map( $imap );
 		if ( '' !== $f['sent'] ) {
-			$imap->append( $f['sent'], $m->getSentMIMEMessage() );
+			$mime = $m->getSentMIMEMessage();
+			$bcc  = $m->getBccAddresses();
+			if ( $bcc ) { // kópia v Odoslaných si pamätá aj skrytých príjemcov (ako Gmail)
+				$mime = 'Bcc: ' . implode( ', ', array_map( fn( $a ) => $a[0], $bcc ) ) . "\r\n" . $mime;
+			}
+			$imap->append( $f['sent'], $mime );
 		}
 		if ( ! empty( $d['reply_uid'] ) ) {
 			$imap->select( $d['reply_folder'] ?? 'INBOX' );

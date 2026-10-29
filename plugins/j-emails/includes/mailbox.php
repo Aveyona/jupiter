@@ -106,7 +106,7 @@ function jem_custom_folders( JEM_Imap $imap ) {
 /* ---------- Vyrovnávacia pamäť hlavičiek (hlavičky správy sa nemenia, príznaky sa čítajú vždy nanovo) ---------- */
 
 function jem_cache_key( $folder, $validity ) {
-	return 'jem_hc_' . md5( $folder . '|' . (int) $validity );
+	return 'jem_hc2_' . md5( $folder . '|' . (int) $validity );
 }
 
 /** Kompaktné údaje správy pre zoznam. */
@@ -235,7 +235,19 @@ function jem_threads( array $items, array $extra = array(), $threaded = true ) {
 				}
 			}
 		}
-		// Rovnaký predmet s Re:/Fwd: (niektoré programy nepošlú References).
+		// Rovnaký predmet s Re:/Fwd: (niektoré programy nepošlú References) – len medzi tými istými ľuďmi,
+		// aby sa „Faktúra“ od dvoch rôznych zákazníkov nespojila do jednej konverzácie.
+		$mine_all = jem_my_addresses();
+		$people   = function ( $m ) use ( $mine_all ) {
+			$p = array();
+			foreach ( array_merge( array( $m['f'] ), $m['t'], $m['c'] ) as $a ) {
+				$e = strtolower( trim( (string) $a[1] ) );
+				if ( '' !== $e && ! isset( $mine_all[ $e ] ) ) {
+					$p[ $e ] = true;
+				}
+			}
+			return $p;
+		};
 		$by_subj = array();
 		foreach ( $all as $i => $it ) {
 			$ns = jem_norm_subject( $it['m']['s'] );
@@ -243,14 +255,13 @@ function jem_threads( array $items, array $extra = array(), $threaded = true ) {
 				continue;
 			}
 			$is_reply = $ns !== mb_strtolower( trim( $it['m']['s'] ) );
-			if ( isset( $by_subj[ $ns ] ) ) {
-				$j = $by_subj[ $ns ];
-				if ( ( $is_reply || $all[ $j ]['reply'] ) && abs( $it['m']['d'] - $all[ $j ]['m']['d'] ) < 120 * DAY_IN_SECONDS ) {
+			$mine_p   = $people( $it['m'] );
+			foreach ( $by_subj[ $ns ] ?? array() as $j ) {
+				if ( ( $is_reply || $all[ $j ]['reply'] ) && abs( $it['m']['d'] - $all[ $j ]['m']['d'] ) < 120 * DAY_IN_SECONDS && array_intersect_key( $mine_p, $people( $all[ $j ]['m'] ) ) ) {
 					$union( $i, $j );
 				}
-			} else {
-				$by_subj[ $ns ] = $i;
 			}
+			$by_subj[ $ns ][] = $i;
 			$all[ $i ]['reply'] = $is_reply;
 		}
 	}
@@ -442,21 +453,19 @@ function jem_process_snoozed( JEM_Imap $imap, $force_ids = array() ) {
 	}
 	$folder = jem_resolve_folder( $imap, 'snoozed' );
 	$moved  = 0;
-	if ( '' !== $folder && false !== $imap->select( $folder ) ) {
-		$uids = array();
-		foreach ( $due as $id ) {
-			$found = $imap->uids( 'HEADER Message-ID ' . JEM_Imap::q( $id ) );
-			$uids  = array_merge( $uids, $found );
-		}
-		if ( $uids ) {
-			$imap->store( $uids, '\\Seen', false ); // vrátená správa je opäť neprečítaná, ako v Gmaile
-			if ( $imap->move_many( $uids, 'INBOX' ) ) {
-				$moved = count( $uids );
-			}
-		}
+	if ( '' === $folder || false === $imap->select( $folder ) ) {
+		return 0; // záznamy ostávajú – skúsi sa znova pri ďalšej kontrole
 	}
 	foreach ( $due as $id ) {
-		unset( $all[ $id ] );
+		$found = $imap->uids( 'HEADER Message-ID ' . JEM_Imap::q( $id ) );
+		if ( $found ) {
+			$imap->store( $found, '\\Seen', false ); // vrátená správa je opäť neprečítaná, ako v Gmaile
+			if ( ! $imap->move_many( $found, 'INBOX' ) ) {
+				continue; // presun zlyhal – záznam ostáva, skúsi sa znova
+			}
+			$moved += count( $found );
+		}
+		unset( $all[ $id ] ); // vrátená, alebo už v priečinku nie je (presunutá ručne)
 	}
 	update_option( 'jem_snoozed', $all, false );
 	return $moved;
