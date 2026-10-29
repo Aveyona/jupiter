@@ -64,6 +64,9 @@ function juc_item_kind( array $it ) {
 function juc_expense_account( $category ) {
 	$map = (array) juc_opt( 'cat_map' );
 	$acc = isset( $map[ $category ] ) ? preg_replace( '/\D/', '', (string) $map[ $category ] ) : '';
+	if ( ! $acc && 'Majetok' === $category ) {
+		$acc = '042'; // dlhodobý majetok – obstaranie, zaradí sa z karty majetku (MD 022 / Dal 042)
+	}
 	$acc = $acc ? $acc : juc_acc_opt( 'cat_default', '518' );
 	if ( 'B' === juc_opt( 'stock_method' ) && 0 === strpos( $acc, '131' ) ) {
 		$acc = juc_acc_opt( 'acc_cogs', '504' ); // metóda B: tovar priamo do nákladov

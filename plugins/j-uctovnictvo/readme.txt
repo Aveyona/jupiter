@@ -4,7 +4,7 @@ Tags: woocommerce, accounting, double-entry, slovakia, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.5.2
+Stable tag: 0.6.0
 License: GPLv2 or later
 
 Podvojné účtovníctvo pre slovenské s. r. o. Súčasť rodiny Jupiter.
@@ -24,11 +24,22 @@ Podvojné účtovníctvo pre slovenské s. r. o. Súčasť rodiny Jupiter.
 * Pokladňa: pokladničné doklady, pokladničná kniha, tlač.
 * Na riešenie: úlohy, rozhodnutia, otázky pre účtovníka, poznámky a automatické kontroly.
 
-Pripravuje sa: dlhodobý majetok a odpisy, ročná uzávierka a archív, DPH.
+* Majetok: karty majetku, odpisový plán (rovnomerné, zrýchlené, vlastný plán mikrodaňovníka), zaradenie, mesačné odpisy, vyradenie.
+* Uzávierka: uzávierka mesiaca, ročná uzávierka (kontroly, odpisy, zásoby, daň z príjmov a minimálna daň, uzavretie kníh 710/702, otvorenie roka 701) a poznámky Úč MÚJ 3-01.
+
+Pripravuje sa: DPH (pri registrácii).
 
 Program nenahrádza odborné posúdenie – pred podaním účtovnej závierky a daňového priznania odporúčame kontrolu účtovníkom.
 
 == Changelog ==
+
+= 0.6.0 =
+* Majetok: karta dlhodobého hmotného a nehmotného majetku a drobného majetku, odpisové skupiny 0 – 6, rovnomerné (§ 27), zrýchlené (§ 28) a vlastný plán mikrodaňovníka, pomerná časť v roku zaradenia, zaokrúhlenie ročného odpisu nahor.
+* Zaradenie (022/042), mesačné odpisy za ukončené mesiace (551/082, doklad ODP-RRRRMM), vyradenie predajom, likvidáciou, škodou alebo darovaním (oprávky a zostatková cena); zmena karty opraví zaúčtované doklady.
+* Kontrola evidencie majetku s účtami 01x/02x a 07x/08x, tlač karty majetku s odpisovým plánom. Kategória prijatej faktúry „Majetok“ sa účtuje na 042.
+* Uzávierka: uzávierka mesiaca, ročná uzávierka – kontroly (banka, pokladňa, doklady na zaúčtovanie, odpisy, Na riešenie), odpisy do decembra, zásoby spôsobom B, výpočet dane z príjmov (sadzba 10/21/24 %, minimálna daň § 46b, odpočet straty) a zaúčtovanie 591/341.
+* Uzavretie účtovných kníh (710, 702 – séria UZ), uzavretie roka a otvorenie nasledujúceho roka cez 701 vrátane saldokonta po partneroch; zrušenie uzávierky pre opravy.
+* Poznámky k účtovnej závierke mikro účtovnej jednotky (Úč MÚJ 3-01) zostavené z údajov firmy, účtovníctva a majetku, s upraviteľnými textami a tlačou.
 
 = 0.5.2 =
 * Pravidlá pre pohyby v banke: protiúčet (IBAN) → účet, napr. súkromný účet konateľa → 355 pohľadávka; takéto pohyby sa zaúčtujú automaticky.

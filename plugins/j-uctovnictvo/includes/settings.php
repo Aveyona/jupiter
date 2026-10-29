@@ -58,6 +58,7 @@ function juc_defaults() {
 			'Nájom a energie'    => '518',
 			'Telefón a internet' => '518',
 			'Poplatky'           => '568',
+			'Majetok'            => '042',
 		),
 		'cat_default'    => '518',
 		'issue_map'      => array(),      // dôvod výdajky J-Skladu => účet (predvolene 549 / 501)
@@ -143,6 +144,7 @@ function juc_series() {
 		'BV' => 'Banka',
 		'PD' => 'Pokladňa – príjmy',
 		'VD' => 'Pokladňa – výdavky',
+		'MA' => 'Majetok – zaradenie, odpisy, vyradenie',
 		'MZ' => 'Mzdy',
 		'SK' => 'Sklad',
 		'ID' => 'Interné doklady',

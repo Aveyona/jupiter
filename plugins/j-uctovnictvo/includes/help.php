@@ -33,7 +33,7 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'Obratová predvaha: počiatočné stavy, obraty a konečné zostatky po triedach; kontrola rovnosti strán MD a Dal. Voliteľne za časť roka a s analytickými účtami.',
 			'Saldokonto: otvorené položky odberateľov (311), dodávateľov (321), preddavkov a spoločníkov podľa partnera a variabilného symbolu.',
 			'Účtový rozvrh: syntetické účty z rámcovej účtovej osnovy a vlastné analytické účty (napr. 518001 Hosting). Daňový / nedaňový náklad sa nastavuje pri účte.',
-			'Uzávierka mesiaca: Nastavenia → Účtovníctvo uzavreté do – do tohto dňa sa už nedá účtovať ani stornovať.',
+			'Uzávierka mesiaca: Uzávierka → Uzavrieť do konca mesiaca – do tohto dňa sa už nedá účtovať ani stornovať.',
 		),
 		'J-Účtovníctvo',
 	);
@@ -74,6 +74,26 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'Ak firma existovala pred začiatkom účtovania v Jupiteri, počiatočné stavy sú konečné zostatky súvahových účtov z minulého obdobia – zo súvahy a obratovej predvahy od účtovníka.',
 			'Sprievodca → krok 5: zadajte zostatky (aktíva na strane MD, pasíva na strane Dal), súčty sa musia rovnať. Účtuje sa proti účtu 701 – Začiatočný účet súvahový, doklad série PS.',
 			'Zostatky môžete zadať aj po spustení účtovania (keď je minulý rok uzavretý). Oprava: zmeňte hodnoty a uložte – pôvodný doklad PS sa stornuje a zaúčtuje znova.',
+		),
+		'J-Účtovníctvo',
+	);
+	$guides[] = array(
+		'Majetok a odpisy',
+		array(
+			'J-Účtovníctvo → Majetok → Nová karta majetku: názov, druh (hmotný nad 1 700 €, nehmotný nad 2 400 €, drobný majetok len v evidencii), vstupná cena, dátum zaradenia, odpisová skupina a spôsob odpisovania.',
+			'Faktúru za majetok zaúčtujte v J-Fakturácii s kategóriou Majetok (042/321). Karta zaúčtuje zaradenie 022/042 k dátumu zaradenia.',
+			'Odpisy sa účtujú automaticky za každý ukončený mesiac jedným dokladom ODP-RRRRMM (551/082). V roku zaradenia sa odpisuje pomerná časť od mesiaca zaradenia.',
+			'Vyradenie: dátum a spôsob (predaj 541, likvidácia 551, škoda 549, darovanie 543) – zaúčtujú sa oprávky a zostatková cena. Tržbu z predaja vystavte faktúrou (641).',
+		),
+		'J-Účtovníctvo',
+	);
+	$guides[] = array(
+		'Ročná uzávierka',
+		array(
+			'J-Účtovníctvo → Uzávierka: kontroly pred uzávierkou (banka = výpis, pokladňa, doklady na zaúčtovanie, odpisy, Na riešenie) a inventarizácia k 31. 12.',
+			'Postup: odpisy do decembra → zásoby podľa inventúry (spôsob B) → daň z príjmov (výpočet so sadzbou a minimálnou daňou, zaúčtovanie 591/341) → Uzavrieť rok.',
+			'Uzavretie roka zaúčtuje uzávierkové doklady UZ (710, 702), uzavrie obdobie a v novom roku zaúčtuje počiatočné stavy cez 701; výsledok hospodárenia ide na 431. Opravu po uzavretí urobíte tlačidlom Zrušiť uzávierku.',
+			'Poznámky Úč MÚJ 3-01 sa zostavia automaticky (údaje firmy, záväzky, pohľadávka voči konateľovi, majetok); texty sa dajú upraviť a vytlačiť. Súvaha a výkaz ziskov a strát sú v časti Účtovná závierka.',
 		),
 		'J-Účtovníctvo',
 	);

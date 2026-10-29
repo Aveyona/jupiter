@@ -466,7 +466,7 @@ add_action( 'admin_post_jinv_partner_save', function () {
 
 /** Zoznam kategórií nákladov (návrhy v poli Kategória). */
 function jinv_categories_datalist() {
-	$cats = apply_filters( 'jinv_expense_categories', array( 'Tovar', 'Materiál', 'Doprava a poštovné', 'Služby', 'Hosting a softvér', 'Reklama', 'Kancelária', 'Nájom a energie', 'Telefón a internet', 'Poplatky' ) );
+	$cats = apply_filters( 'jinv_expense_categories', array( 'Tovar', 'Materiál', 'Doprava a poštovné', 'Služby', 'Hosting a softvér', 'Reklama', 'Kancelária', 'Nájom a energie', 'Telefón a internet', 'Poplatky', 'Majetok' ) );
 	echo '<datalist id="jinv-cats">';
 	foreach ( $cats as $c ) {
 		echo '<option>' . esc_html( $c ) . '</option>';

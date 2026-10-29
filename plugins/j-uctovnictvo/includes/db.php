@@ -119,5 +119,36 @@ function juc_install() {
   PRIMARY KEY  (id),
   KEY issue_id (issue_id)
 ) $c;" );
+	// Majetok: karta majetku (zaradenie, odpisy podľa plánu, vyradenie). Zápisy sa robia z karty (zdroj asset).
+	dbDelta( 'CREATE TABLE ' . juc_t( 'assets' ) . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  inv_no varchar(30) NOT NULL DEFAULT '',
+  name varchar(200) NOT NULL DEFAULT '',
+  kind varchar(10) NOT NULL DEFAULT 'dhm',
+  dep_group tinyint(1) NOT NULL DEFAULT 1,
+  method varchar(10) NOT NULL DEFAULT 'linear',
+  years smallint(5) unsigned NOT NULL DEFAULT 0,
+  own_plan varchar(255) NOT NULL DEFAULT '',
+  price decimal(14,2) NOT NULL DEFAULT 0,
+  acquired date NULL DEFAULT NULL,
+  in_use date NULL DEFAULT NULL,
+  acc_asset varchar(12) NOT NULL DEFAULT '',
+  acc_dep varchar(12) NOT NULL DEFAULT '',
+  acc_cost varchar(12) NOT NULL DEFAULT '',
+  acc_source varchar(12) NOT NULL DEFAULT '',
+  supplier varchar(200) NOT NULL DEFAULT '',
+  doc_ref varchar(100) NOT NULL DEFAULT '',
+  serial_no varchar(100) NOT NULL DEFAULT '',
+  place varchar(100) NOT NULL DEFAULT '',
+  note text NULL,
+  status varchar(20) NOT NULL DEFAULT 'active',
+  disposed date NULL DEFAULT NULL,
+  disposed_how varchar(20) NOT NULL DEFAULT '',
+  disposed_note varchar(255) NOT NULL DEFAULT '',
+  created_at datetime NOT NULL,
+  updated_at datetime NULL DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY status (status)
+) $c;" );
 	update_option( 'juc_db_version', JUC_DB_VERSION, false );
 }
