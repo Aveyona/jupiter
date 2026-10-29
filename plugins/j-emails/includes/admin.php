@@ -34,8 +34,12 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
 	if ( 'toplevel_page_j-emails' !== $hook ) {
 		return;
 	}
-	wp_enqueue_style( 'j-emails-app', JEM_URL . 'assets/app.css', array(), JEM_VERSION );
-	wp_enqueue_script( 'j-emails-app', JEM_URL . 'assets/app.js', array(), JEM_VERSION, true );
+	// Verzia so dátumom súboru – po aktualizácii prehliadač nepoužije starý skript z vyrovnávacej pamäte.
+	$ver = function ( $f ) {
+		return JEM_VERSION . '.' . (int) @filemtime( JEM_DIR . $f ); // phpcs:ignore
+	};
+	wp_enqueue_style( 'j-emails-app', JEM_URL . 'assets/app.css', array(), $ver( 'assets/app.css' ) );
+	wp_enqueue_script( 'j-emails-app', JEM_URL . 'assets/app.js', array(), $ver( 'assets/app.js' ), true );
 	wp_localize_script(
 		'j-emails-app',
 		'JEM',
