@@ -1,0 +1,89 @@
+/* J-Účtovníctvo – administrácia */
+.juc-ver { font-size: 12px; font-weight: 400; color: #8C8F94; margin-left: 6px; }
+.juc-panel { background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; padding: 12px 20px; margin: 14px 0; }
+.juc-cards { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; }
+.juc-cards > div { min-width: 190px; padding: 12px 16px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; }
+.juc-cards span { display: block; font-size: 12px; color: #646970; }
+.juc-cards strong { font-size: 20px; display: block; }
+.juc-cards .is-neg strong { color: #A3121B; }
+.juc-cards .is-pos strong { color: #00733A; }
+.juc-cards .is-warn { border-color: #DBA617; background: #FFF8E5; }
+.juc-table .n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.juc-filter, .juc-inline, .juc-year { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 12px; }
+.juc-year { float: right; margin-top: -42px; }
+.juc-muted { color: #646970 !important; }
+.juc-ok { color: #00733A; font-weight: 600; }
+.juc-warn { color: #A3121B; font-weight: 600; }
+.juc-plus { color: #00733A; }
+.juc-minus { color: #A3121B; }
+.juc-danger { color: #A3121B !important; }
+.juc-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.juc-journal td { vertical-align: top; }
+.juc-journal tr.juc-first td { border-top: 1px solid #DCDCDE; }
+.juc-journal tr.juc-st-cancelled td { color: #8C8F94; text-decoration: line-through; }
+.juc-journal tr.juc-st-storno td { color: #A3121B; }
+.juc-table tr.juc-class td { background: #F0F6FC; }
+.juc-table tr.juc-sub td { background: #F6F7F7; font-weight: 600; }
+.juc-table tr.juc-ps td { background: #FFF8E5; }
+.juc-table tr.juc-an td:first-child { padding-left: 24px; }
+.juc-table tr.juc-off td { opacity: .5; }
+.juc-acc-form { display: flex; gap: 6px; align-items: center; margin: 0; }
+.juc-acc-name { width: 100%; max-width: 420px; border-color: transparent; background: transparent; }
+.juc-acc-name:focus { border-color: #8C8F94; background: #FFFFFF; }
+.juc-head-fields { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; }
+.juc-head-fields label { font-weight: 600; }
+.juc-head-fields .juc-wide { flex: 1 1 100%; }
+.juc-lines input.juc-acc { width: 90px; }
+.juc-lines input.juc-amt { width: 110px; text-align: right; }
+.juc-lines .juc-accn { display: block; font-size: 11px; color: #646970; max-width: 200px; }
+.juc-setup { background: #F0F6FC; border: 1px solid #72AEE6; border-radius: 10px; padding: 8px 20px 16px; margin: 14px 0; }
+.juc-auto form { margin: 0; }
+.juc-queue .juc-qform { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.juc-queue .juc-qform select { max-width: 260px; }
+.juc-queue .juc-qform input[name=acc] { width: 90px; }
+.juc-errs li { margin: 4px 0; }
+/* Sprievodca */
+.juc-steps { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; padding: 0; list-style: none; counter-reset: none; }
+.juc-steps li a { display: block; padding: 6px 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid #DCDCDE; text-decoration: none; color: #1D2327; }
+.juc-steps li a span { display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; background: #F0F0F1; font-size: 11px; margin-right: 4px; }
+.juc-steps li.is-done a span { background: #00A32A; color: #FFFFFF; }
+.juc-steps li.is-cur a { border-color: #2271B1; background: #F0F6FC; font-weight: 600; }
+.juc-steps li.is-cur a span { background: #2271B1; color: #FFFFFF; }
+.juc-wiz-nav { display: flex; justify-content: space-between; margin-top: 20px; }
+.juc-checks { list-style: none; margin: 10px 0; padding: 0; }
+.juc-checks li { padding: 6px 10px; margin: 4px 0; border-radius: 6px; background: #F6F7F7; }
+.juc-checks .juc-c-ok { background: #EDF7EF; }
+.juc-checks .juc-c-warn { background: #FFF8E5; }
+.juc-checks .juc-c-err { background: #FCF0F1; color: #A3121B; font-weight: 600; }
+.juc-print-h { font-size: 12px; }
+@media print { .juc-panel { border: 0; padding: 0; } .juc-table { font-size: 10px; } }
+/* Účtovná závierka */
+.juc-muj-head { background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; padding: 10px 16px; margin: 10px 0; line-height: 1.6; }
+.juc-muj td:first-child { white-space: nowrap; color: #50575E; width: 70px; }
+.juc-muj .juc-l0 td { font-weight: 700; background: #F0F6FC; }
+.juc-muj .juc-l1 td:nth-child(2) { font-weight: 600; }
+.juc-muj .juc-l3 td:nth-child(2) { padding-left: 24px; }
+.juc-muj-det { display: inline-block; margin-left: 8px; font-size: 12px; color: #646970; }
+.juc-muj-det summary { cursor: pointer; }
+.juc-muj-det ul { margin: 4px 0 0 12px; }
+
+/* Na riešenie */
+.juc-chip { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; line-height: 18px; background: #F0F0F1; color: #1D2327; text-decoration: none; white-space: nowrap; }
+a.juc-chip { max-width: 520px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.juc-k-deadline { background: #FCE7E7; color: #8A1F11; }
+.juc-k-check { background: #FFF2CC; color: #6B4E00; }
+.juc-k-decision { background: #E5EEFF; color: #133D8A; }
+.juc-k-question { background: #EFE5FF; color: #4A1F8A; }
+.juc-k-task { background: #E3F4EA; color: #0F5B32; }
+.juc-k-missing { background: #F0F0F1; color: #50575E; }
+.juc-late { background: #A3121B; color: #FFFFFF; }
+.juc-issues tr.juc-st-done td, .juc-issues tr.juc-st-dismissed td { opacity: .55; }
+.juc-issues .juc-actions { white-space: nowrap; }
+.juc-issues-box { margin: 8px 0 12px; padding: 8px 12px; background: #F6F7F7; border-radius: 8px; }
+.juc-log { list-style: none; margin: 0; padding: 0; max-width: 820px; }
+.juc-log li { padding: 8px 12px; border-left: 3px solid #DCDCDE; margin-bottom: 8px; background: #FFFFFF; }
+.juc-cards > div > a { display: block; font-size: 12px; margin-top: 4px; }
+.juc-prio { font-size: 12px; min-height: 26px; border-radius: 12px; padding: 0 22px 0 8px; font-weight: 600; }
+.juc-prio-1 { background-color: #FCE7E7; color: #8A1F11; border-color: #E6A5A0; }
+.juc-prio-2 { background-color: #FFF2CC; color: #6B4E00; border-color: #E3C766; }
+.juc-prio-3 { background-color: #F0F0F1; color: #50575E; }

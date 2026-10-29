@@ -111,5 +111,41 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		),
 		'J-Fakturácia',
 	);
+	$guides[] = array(
+		'Dodávatelia (adresár)',
+		array(
+			'J-Fakturácia → Dodávatelia: adresár firiem, od ktorých nakupuješ – IČO, DIČ, IČ DPH, adresa, kontakt, IBAN, splatnosť ich faktúr a predvolená kategória.',
+			'Nový dodávateľ: zadaj IČO a klikni Načítať z registra – názov a adresa sa doplnia z Registra právnických osôb. DIČ a IBAN doplň z faktúry.',
+			'Detail dodávateľa: neuhradené a po splatnosti, nákupy za rok, všetky jeho prijaté faktúry a príjemky na sklad. Tlačidlá + Prijatá faktúra a + Príjemka na sklad ho rovno predvyplnia.',
+			'Doterajší dodávatelia z prijatých faktúr sa do adresára preniesli automaticky. Nepoužívaného dodávateľa archivuj (Upraviť → Archivovaný) – doklady ostanú.',
+		),
+		'J-Fakturácia',
+	);
+	$guides[] = array(
+		'Prijaté faktúry a úhrady',
+		array(
+			'Prijaté faktúry → + Pridať: začni písať názov alebo IČO dodávateľa a vyber ho – doplní sa IČO, DIČ, IBAN, kategória a splatnosť. Nového dodávateľa faktúra uloží do adresára.',
+			'Priloženie PDF alebo fotky faktúry, variabilný symbol sa navrhne z čísla faktúry.',
+			'Úhrady: v detaile faktúry Pridať úhradu (dátum, suma, spôsob) – môže ich byť viac (čiastočné platby). Keď súčet dosiahne sumu faktúry, faktúra je Uhradená. Rýchlo: v zozname odkaz Uhradená zapíše úhradu zvyšnej sumy s dnešným dátumom.',
+			'Filtre Neuhradené, Po splatnosti, Uhradené; karta Splatné do 7 dní ukáže, čo treba čoskoro zaplatiť.',
+			'Tovar na sklad: pri novej faktúre zaškrtni Vytvoriť príjemku, alebo v detaile faktúry Vytvoriť príjemku na sklad – v J-Sklade sa otvorí príjemka s dodávateľom a číslom faktúry, doplníš tovar a nákupné ceny. Opačne: v príjemke tlačidlo + Prijatá faktúra k príjemke.',
+			'Úhrady majú aj vydané faktúry (detail faktúry). Pripravuje sa import bankového výpisu s automatickým párovaním podľa variabilného symbolu a pokladňa.',
+		),
+		'J-Fakturácia',
+	);
+	$guides[] = array(
+		'Banka – Fio a párovanie úhrad',
+		array(
+			'J-Fakturácia → Banka → Účty: pripojenie účtu vo Fio banke. V internetbankingu Fio vytvor token (Nastavenia → API → Pridať token, druh Sledovanie účtu – len čítanie, platí 180 dní), vlož ho do poľa Token a klikni Pripojiť a načítať pohyby.',
+			'Pohyby sa načítavajú automaticky každých 30 minút (alebo tlačidlom Načítať pohyby teraz; Fio dovoľuje jedno načítanie za 30 sekúnd). Každý pohyb sa uloží len raz.',
+			'Párovanie: príjem s variabilným symbolom vydanej alebo zálohovej faktúry sa k nej zapíše ako úhrada; výdaj s VS prijatej faktúry (alebo s IBAN dodávateľa a presnou sumou) uhradí prijatú faktúru. Platba s VS = číslo objednávky bez faktúry sa zapíše do objednávky ako poznámka.',
+			'Voľba Objednávky: keď príde platba za objednávku presnou sumou, objednávka sa označí ako zaplatená (Spracováva sa) – v automatickom režime sa potom vystaví faktúra.',
+			'Na spárovanie: pohyby, ktoré sa nepodarilo priradiť. Klikni na navrhnutý doklad, alebo zadaj číslo faktúry / objednávky a Spárovať. Poplatky a prevody medzi účtami označ Ignorovať. Spárovanie sa dá zrušiť (úhrada z dokladu zmizne).',
+			'Fio vydá cez API pohyby za posledných 90 dní; staršie len keď v internetbankingu (Nastavenia → API) odblokuješ históriu – platí 10 minút. Nový token začne fungovať asi 5 minút po autorizácii.',
+			'Bankové poplatky, transakčná daň a úroky sa automaticky označia ako ignorované. Tlačidlo Skúsiť znova spárovať automaticky prejde nespárované pohyby po pridaní faktúr.',
+			'14 dní pred vypršaním tokenu sa pri účte zobrazí upozornenie – vytvor nový token a vlož ho do účtu.',
+		),
+		'J-Fakturácia',
+	);
 	return $guides;
 } );

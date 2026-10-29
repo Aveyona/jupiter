@@ -213,12 +213,12 @@ add_action( 'admin_notices', function () {
 	}
 	$s = jem_settings();
 	if ( '' !== $s['pass'] && '' === jem_decrypt( $s['pass'] ) ) {
-		echo '<div class="notice notice-error"><p><strong>J-Emails:</strong> heslo schránky sa nedá prečítať (zmenili sa bezpečnostné kľúče WordPressu). E-maily webu idú zatiaľ cez server webu a schránka sa nenačíta. <a href="' . esc_url( admin_url( 'admin.php?page=j-emails-settings' ) ) . '">Zadajte heslo znova</a>.</p></div>';
+		echo '<div class="notice notice-error"><p><strong>J-Pošta:</strong> heslo schránky sa nedá prečítať (zmenili sa bezpečnostné kľúče WordPressu). E-maily webu idú zatiaľ cez server webu a schránka sa nenačíta. <a href="' . esc_url( admin_url( 'admin.php?page=j-emails-settings' ) ) . '">Zadajte heslo znova</a>.</p></div>';
 	}
 	$f = get_option( 'jem_smtp_failed' );
 	if ( ! is_array( $f ) || empty( $f['time'] ) || time() - (int) $f['time'] > DAY_IN_SECONDS || ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
 	$fb = 'ok' === ( $f['fallback'] ?? '' ) ? 'E-mail sa poslal náhradne cez server webu.' : 'Nepodarilo sa ho poslať ani náhradne cez server webu.';
-	echo '<div class="notice ' . ( 'ok' === ( $f['fallback'] ?? '' ) ? 'notice-warning' : 'notice-error' ) . '"><p><strong>J-Emails:</strong> odoslanie e-mailu webu cez SMTP schránky zlyhalo (' . esc_html( wp_date( 'j. n. Y H:i', (int) $f['time'] ) ) . ': ' . esc_html( (string) $f['msg'] ) . '). ' . esc_html( $fb ) . ' <a href="' . esc_url( admin_url( 'admin.php?page=j-emails-settings' ) ) . '">Skontrolujte nastavenia</a> – po úspešnom skúšobnom e-maile upozornenie zmizne.</p></div>';
+	echo '<div class="notice ' . ( 'ok' === ( $f['fallback'] ?? '' ) ? 'notice-warning' : 'notice-error' ) . '"><p><strong>J-Pošta:</strong> odoslanie e-mailu webu cez SMTP schránky zlyhalo (' . esc_html( wp_date( 'j. n. Y H:i', (int) $f['time'] ) ) . ': ' . esc_html( (string) $f['msg'] ) . '). ' . esc_html( $fb ) . ' <a href="' . esc_url( admin_url( 'admin.php?page=j-emails-settings' ) ) . '">Skontrolujte nastavenia</a> – po úspešnom skúšobnom e-maile upozornenie zmizne.</p></div>';
 } );

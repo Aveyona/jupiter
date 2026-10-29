@@ -1,5 +1,5 @@
 /**
- * Jupiter Email – pošta v štýle Gmailu v administrácii WordPressu.
+ * Jupiter Pošta – pošta v štýle Gmailu v administrácii WordPressu.
  * Bez knižníc a bez zostavovania; komunikuje s admin-ajax.php (akcie jem_*).
  * Texty zo servera sa vkladajú cez textContent; HTML správ sa zobrazuje v izolovanom rámci (srcdoc + sandbox).
  */
@@ -284,7 +284,7 @@
 		var me = S.me[0] || { email: '', name: '' };
 		el.top = h('header', { class: 'jem-top' },
 			h('button', { class: 'jem-ib jem-burger', title: 'Hlavná ponuka', onclick: function () { root.classList.toggle('jem-nav-collapsed'); } }, icon('menu')),
-			h('a', { class: 'jem-logo', href: '#inbox', title: 'Jupiter Email' }, logo(), h('span', { class: 'jem-logo-text' }, h('b', { text: 'Jupiter' }), ' Email')),
+			h('a', { class: 'jem-logo', href: '#inbox', title: 'Jupiter Pošta' }, logo(), h('span', { class: 'jem-logo-text' }, h('b', { text: 'Jupiter' }), ' Pošta')),
 			searchBox,
 			h('div', { class: 'jem-top-right' },
 				h('a', { class: 'jem-ib', href: C.settings, title: 'Nastavenia' }, icon('gear')),
@@ -317,8 +317,8 @@
 			S.custom.forEach(function (c) { ul2.appendChild(navItem(c.key, c.label, 'folder', c.count, true)); });
 			el.nav.appendChild(ul2);
 		}
-		el.nav.appendChild(h('div', { class: 'jem-nav-foot' }, h('span', { text: 'Jupiter Email v' + (C.version || '') })));
-		var t = S.counts.inbox ? 'Doručené (' + S.counts.inbox + ') – Jupiter Email' : viewLabel(S.view) + ' – Jupiter Email';
+		el.nav.appendChild(h('div', { class: 'jem-nav-foot' }, h('span', { text: 'Jupiter Pošta v' + (C.version || '') })));
+		var t = S.counts.inbox ? 'Doručené (' + S.counts.inbox + ') – Jupiter Pošta' : viewLabel(S.view) + ' – Jupiter Pošta';
 		document.title = t;
 	}
 	function navItem(key, label, ic, count, bold) {
@@ -359,7 +359,7 @@
 		clear(el.main);
 		el.main.appendChild(h('div', { class: 'jem-empty' },
 			h('div', { class: 'jem-empty-icon' }, logo()),
-			h('h2', { text: 'Vitajte v Jupiter Email' }),
+			h('h2', { text: 'Vitajte v Jupiter Pošte' }),
 			h('p', { text: 'Najprv nastavte schránku – adresu, heslo a servery IMAP/SMTP.' }),
 			h('a', { class: 'jem-btn jem-btn-primary', href: C.settings, text: 'Otvoriť nastavenia' })));
 	}

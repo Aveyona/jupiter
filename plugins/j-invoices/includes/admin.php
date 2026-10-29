@@ -24,7 +24,7 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
 
 /** Adresa stránky J-Fakturácie; 'tab' => received|settings vyberie samostatnú stránku. */
 function jinv_admin_url( $args = array() ) {
-	$pages = array( 'received' => 'j-invoices-received', 'settings' => 'j-invoices-settings' );
+	$pages = array( 'received' => 'j-invoices-received', 'settings' => 'j-invoices-settings', 'partners' => 'j-invoices-partners', 'bank' => 'j-invoices-bank' );
 	$page  = 'j-invoices';
 	if ( isset( $args['tab'] ) ) {
 		$page = isset( $pages[ $args['tab'] ] ) ? $pages[ $args['tab'] ] : 'j-invoices';
@@ -65,10 +65,10 @@ add_action( 'admin_post_jinv_action', function () {
 			set_transient( 'jinv_err_' . get_current_user_id(), $r->get_error_message(), 60 );
 		}
 	} elseif ( 'paid' === $do ) {
-		jinv_update( $id, array( 'status' => 'paid', 'paid_at' => current_time( 'mysql' ) ) );
+		jinv_pay_full( $id );
 		$msg = 'paid';
 	} elseif ( 'unpaid' === $do ) {
-		jinv_update( $id, array( 'status' => 'issued', 'paid_at' => null ) );
+		jinv_unpay( $id );
 		$msg = 'unpaid';
 	} elseif ( 'cancel' === $do ) {
 		$inv = jinv_get( $id );
@@ -104,8 +104,8 @@ function jinv_render_admin( $tab = 'issued' ) {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
 		return;
 	}
-	$tab    = in_array( $tab, array( 'issued', 'received', 'settings' ), true ) ? $tab : 'issued';
-	$titles = array( 'issued' => 'Vydané faktúry', 'received' => 'Prijaté faktúry', 'settings' => 'Nastavenia' );
+	$tab    = in_array( $tab, array( 'issued', 'received', 'settings', 'partners', 'bank' ), true ) ? $tab : 'issued';
+	$titles = array( 'issued' => 'Vydané faktúry', 'received' => 'Prijaté faktúry', 'settings' => 'Nastavenia', 'partners' => 'Dodávatelia', 'bank' => 'Banka' );
 	$view = isset( $_GET['view'] ) ? (int) $_GET['view'] : 0; // phpcs:ignore
 	$msgs = array(
 		'created'   => 'Doklad je vystavený.',
@@ -120,18 +120,32 @@ function jinv_render_admin( $tab = 'issued' ) {
 		'rpaid'     => 'Prijatá faktúra je označená ako uhradená.',
 		'runpaid'   => 'Prijatá faktúra je znova neuhradená.',
 		'rdelete'   => 'Prijatá faktúra je zmazaná.',
+		'psaved'    => 'Dodávateľ je uložený.',
+		'payadded'  => 'Úhrada je zapísaná.',
+		'paydeleted' => 'Úhrada je zmazaná.',
+		'bsaved'    => 'Účet je uložený.',
+		'bremoved'  => 'Účet je odpojený, token je zmazaný.',
+		'bpair'     => 'Pohyb je spárovaný – úhrada je zapísaná.',
+		'bignore'   => 'Pohyb je označený ako ignorovaný.',
+		'bunpair'   => 'Spárovanie je zrušené.',
+		'bunignore' => 'Pohyb je späť na spárovanie.',
+		'payerr'    => 'Úhradu sa nepodarilo zapísať.' . ( ( $e3 = get_transient( 'jinv_err_' . get_current_user_id() ) ) ? ' ' . $e3 : '' ),
 	);
 	$msg  = isset( $_GET['jinv_msg'] ) ? sanitize_key( $_GET['jinv_msg'] ) : ''; // phpcs:ignore
 	?>
 	<div class="wrap jinv">
 		<h1><?php echo esc_html( $titles[ $tab ] ); ?> <span class="jinv-ver">J-Fakturácia v<?php echo esc_html( JINV_VERSION ); ?></span></h1>
-		<?php if ( isset( $msgs[ $msg ] ) ) : ?><div class="notice notice-<?php echo in_array( $msg, array( 'err', 'senderr' ), true ) ? 'error' : 'success'; ?> is-dismissible"><p><?php echo esc_html( $msgs[ $msg ] ); ?></p></div><?php endif; ?>
+		<?php if ( isset( $msgs[ $msg ] ) ) : ?><div class="notice notice-<?php echo in_array( $msg, array( 'err', 'senderr', 'payerr' ), true ) ? 'error' : 'success'; ?> is-dismissible"><p><?php echo esc_html( $msgs[ $msg ] ); ?></p></div><?php endif; ?>
 		<?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore ?><div class="notice notice-success is-dismissible"><p>Nastavenia sú uložené.</p></div><?php endif; ?>
 		<?php
 		if ( 'settings' === $tab ) {
 			jinv_render_settings();
 		} elseif ( 'received' === $tab ) {
 			jinv_render_received();
+		} elseif ( 'partners' === $tab ) {
+			jinv_render_partners();
+		} elseif ( 'bank' === $tab ) {
+			jinv_render_bank();
 		} elseif ( $view ) {
 			jinv_render_view( $view );
 		} else {
@@ -235,6 +249,11 @@ function jinv_render_view( $id ) {
 			<?php echo $inv['sent_at'] ? 'Odoslané zákazníkovi ' . esc_html( date_i18n( 'j. n. Y H:i', strtotime( $inv['sent_at'] ) ) ) . '.' : 'Zákazníkovi zatiaľ neodoslané.'; ?>
 		<?php endif; ?>
 	</p>
+	<?php
+	if ( 'creditnote' !== $inv['kind'] ) {
+		jinv_render_payments_box( $inv, $back );
+	}
+	?>
 	<?php
 	// Prevzatý doklad s PDF: zobrazí sa pôvodné PDF (platný doklad), nie náhľad zostavený z dnešných údajov.
 	if ( $wf_f ) {

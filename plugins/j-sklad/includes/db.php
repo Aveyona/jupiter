@@ -1,8 +1,8 @@
 <?php
 /**
  * Tabuľky J-Skladu:
- *  - {prefix}jsk_docs       doklady (príjemka, výdajka, otváracia príjemka)
- *  - {prefix}jsk_doc_items  položky dokladov
+ *  - {prefix}jsk_docs       doklady (príjemka, výdajka, otváracia príjemka, inventúra)
+ *  - {prefix}jsk_doc_items  položky dokladov (pri inventúre aj stav v evidencii a spočítané množstvo)
  *  - {prefix}jsk_moves      kniha pohybov – každá zmena zásoby produktu (aj predaj a ručné zmeny)
  * Zásoba samotná je v produktoch WooCommerce (_stock); J-Sklad ju mení len funkciami WooCommerce.
  */
@@ -28,6 +28,8 @@ function jsk_install() {
   doc_date date NOT NULL,
   partner varchar(200) NOT NULL DEFAULT '',
   partner_doc varchar(100) NOT NULL DEFAULT '',
+  partner_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  invoice_id bigint(20) unsigned NOT NULL DEFAULT 0,
   reason varchar(100) NOT NULL DEFAULT '',
   note text NULL,
   status varchar(20) NOT NULL DEFAULT 'draft',
@@ -38,6 +40,7 @@ function jsk_install() {
   PRIMARY KEY  (id),
   KEY type_year (type,year,seq),
   KEY status (status),
+  KEY partner_id (partner_id),
   KEY doc_date (doc_date)
 ) $c;" );
 	dbDelta( 'CREATE TABLE ' . jsk_t( 'doc_items' ) . " (
@@ -48,6 +51,8 @@ function jsk_install() {
   name varchar(255) NOT NULL DEFAULT '',
   qty decimal(14,4) NOT NULL DEFAULT 0,
   price decimal(14,4) NULL DEFAULT NULL,
+  expected decimal(14,4) NULL DEFAULT NULL,
+  counted decimal(14,4) NULL DEFAULT NULL,
   PRIMARY KEY  (id),
   KEY doc_id (doc_id),
   KEY product_id (product_id)

@@ -1,5 +1,5 @@
 <?php
-/** Administrácia: aplikácia Jupiter Email (pošta v štýle Gmailu) a Nastavenia schránky. */
+/** Administrácia: aplikácia Jupiter Pošta (pošta v štýle Gmailu) a Nastavenia schránky. */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -9,9 +9,9 @@ define( 'JEM_CAP', 'manage_options' );
 add_action( 'admin_menu', function () {
 	$unseen = (int) get_transient( 'jem_unseen' );
 	$bubble = $unseen > 0 ? ' <span class="awaiting-mod count-' . $unseen . '"><span class="pending-count">' . $unseen . '</span></span>' : '';
-	add_menu_page( 'Jupiter Email', 'J-Emails' . $bubble, JEM_CAP, 'j-emails', 'jem_render_app', 'dashicons-email-alt', 58 );
-	add_submenu_page( 'j-emails', 'Jupiter Email', 'Pošta' . $bubble, JEM_CAP, 'j-emails', 'jem_render_app' );
-	add_submenu_page( 'j-emails', 'Nastavenia – Jupiter Email', 'Nastavenia', JEM_CAP, 'j-emails-settings', function () {
+	add_menu_page( 'Jupiter Pošta', 'J-Pošta' . $bubble, JEM_CAP, 'j-emails', 'jem_render_app', 'dashicons-email-alt', 58 );
+	add_submenu_page( 'j-emails', 'Jupiter Pošta', 'Pošta' . $bubble, JEM_CAP, 'j-emails', 'jem_render_app' );
+	add_submenu_page( 'j-emails', 'Nastavenia – Jupiter Pošta', 'Nastavenia', JEM_CAP, 'j-emails-settings', function () {
 		jem_render_admin( 'settings' );
 	} );
 } );
@@ -61,7 +61,7 @@ add_filter( 'admin_body_class', function ( $c ) {
 
 /** Počet neprečítaných správ pre menu a vrátenie odložených správ – každých 5 minút na pozadí. */
 add_filter( 'cron_schedules', function ( $s ) {
-	$s['jem_5min'] = array( 'interval' => 300, 'display' => 'Každých 5 minút (J-Emails)' );
+	$s['jem_5min'] = array( 'interval' => 300, 'display' => 'Každých 5 minút (J-Pošta)' );
 	return $s;
 } );
 add_action( 'init', function () {
@@ -85,13 +85,13 @@ function jem_size( $b ) {
 	return $b >= 1048576 ? number_format_i18n( $b / 1048576, 1 ) . ' MB' : max( 1, (int) round( $b / 1024 ) ) . ' kB';
 }
 
-/** Aplikácia Jupiter Email – obsah vykreslí assets/app.js. */
+/** Aplikácia Jupiter Pošta – obsah vykreslí assets/app.js. */
 function jem_render_app() {
 	if ( ! current_user_can( JEM_CAP ) ) {
 		return;
 	}
-	echo '<div id="jem-app" class="jem-app"><div class="jem-boot"><div class="jem-boot-logo"></div><p>Načítavam Jupiter Email…</p></div></div>';
-	echo '<noscript><p>Jupiter Email potrebuje zapnutý JavaScript.</p></noscript>';
+	echo '<div id="jem-app" class="jem-app"><div class="jem-boot"><div class="jem-boot-logo"></div><p>Načítavam Jupiter Pošta…</p></div></div>';
+	echo '<noscript><p>Jupiter Pošta potrebuje zapnutý JavaScript.</p></noscript>';
 }
 
 /** Stránka Nastavenia. */
@@ -100,7 +100,7 @@ function jem_render_admin( $box ) {
 		return;
 	}
 	echo '<div class="wrap jem">';
-	echo '<h1>Nastavenia <span class="jem-ver">Jupiter Email v' . esc_html( JEM_VERSION ) . '</span> <a href="' . esc_url( admin_url( 'admin.php?page=j-emails' ) ) . '" class="page-title-action">← Pošta</a></h1>';
+	echo '<h1>Nastavenia <span class="jem-ver">Jupiter Pošta v' . esc_html( JEM_VERSION ) . '</span> <a href="' . esc_url( admin_url( 'admin.php?page=j-emails' ) ) . '" class="page-title-action">← Pošta</a></h1>';
 	if ( isset( $_GET['saved'] ) ) { // phpcs:ignore
 		echo '<div class="notice notice-success is-dismissible"><p>Nastavenia sú uložené.</p></div>';
 	}

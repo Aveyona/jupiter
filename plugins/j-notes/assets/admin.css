@@ -1,0 +1,46 @@
+/* Poznámky (J-Notes / My Notes) */
+.jno-ver { font-size: 12px; font-weight: 400; color: #8C8F94; }
+.jno-muted { color: #646970; }
+.jno-h { margin: 18px 0 8px; }
+.jno-now { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.jno-card { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; background: #FFFFFF; border: 1px solid #DCDCDE; border-left: 4px solid #2271B1; border-radius: 10px; text-decoration: none; color: #1D2327; }
+.jno-card:hover { border-color: #2271B1; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.jno-card strong { font-size: 15px; }
+.jno-card-p { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #2271B1; }
+.jno-card-t { font-size: 13px; color: #8A4B00; }
+.jno-card-l { font-size: 12px; color: #646970; border-top: 1px solid #F0F0F1; padding-top: 4px; margin-top: 2px; }
+.jno-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.jno-list td { vertical-align: middle; }
+.jno-now-b { display: inline-block; padding: 0 6px; border-radius: 999px; background: #FFF4D6; color: #7A5B00; font-size: 11px; }
+.jno-prog { display: inline-block; width: 90px; height: 7px; background: #F0F0F1; border-radius: 999px; overflow: hidden; vertical-align: middle; }
+.jno-prog span { display: block; height: 100%; background: #00A32A; }
+.jno-upload { margin: 16px 0; padding: 10px 14px; background: #FFFFFF; border: 1px dashed #C3C4C7; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.jno-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; color: #3C434A; }
+.jno-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.jno-doc { max-width: 980px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; padding: 8px 28px 18px; font-size: 14px; line-height: 1.6; }
+.jno-doc h1 { font-size: 24px; } .jno-doc h2 { font-size: 19px; margin-top: 26px; border-bottom: 1px solid #F0F0F1; padding-bottom: 4px; } .jno-doc h3 { font-size: 16px; }
+.jno-doc code { background: #F6F7F7; padding: 1px 4px; border-radius: 4px; }
+.jno-doc pre { background: #1D2327; color: #F0F0F1; padding: 12px; border-radius: 8px; overflow: auto; }
+.jno-doc pre code { background: none; color: inherit; }
+.jno-doc blockquote { margin: 10px 0; padding: 4px 14px; border-left: 4px solid #DCDCDE; color: #50575E; }
+.jno-table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
+.jno-table th, .jno-table td { border: 1px solid #DCDCDE; padding: 5px 8px; text-align: left; vertical-align: top; }
+.jno-table th { background: #F6F7F7; }
+.jno-trow .jno-st { cursor: pointer; }
+.jno-st { font-weight: 700; }
+.jno-st-doing { color: #B26200; } .jno-st-done { color: #00733A; } .jno-st-todo { color: #8C8F94; }
+.jno-doc ul { list-style: disc; padding-left: 22px; }
+.jno-doc li.jno-task { list-style: none; margin-left: -20px; }
+.jno-box { display: inline-block; width: 15px; height: 15px; border: 2px solid #8C8F94; border-radius: 4px; vertical-align: -3px; cursor: pointer; margin-right: 4px; }
+.jno-doing > .jno-box { border-color: #B26200; background: linear-gradient(90deg, #F0B849 50%, transparent 50%); }
+.jno-done > .jno-box { border-color: #00A32A; background: #00A32A; box-shadow: inset 0 0 0 2px #FFFFFF; }
+.jno-done { color: #646970; text-decoration: line-through; text-decoration-color: #C3C4C7; }
+.is-busy { opacity: .5; }
+.jno-log { display: flex; gap: 8px; max-width: 980px; margin: 12px 0; }
+.jno-edit-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0; }
+.jno-title { font-size: 18px; flex: 1 1 360px; padding: 6px 10px; }
+.jno-tabs { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.jno-tabs .is-on { background: #2271B1; border-color: #2271B1; color: #FFFFFF; }
+#jno-body { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; max-width: 980px; }
+.jno-danger { color: #A3121B !important; }
+@media print { #adminmenumain, #wpadminbar, #wpfooter, .jno-actions, .jno-log, .page-title-action, .notice { display: none !important; } #wpcontent { margin: 0 !important; } .jno-doc { border: 0; } }

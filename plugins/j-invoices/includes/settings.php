@@ -37,6 +37,7 @@ function jinv_defaults() {
 		'account_docs'      => 1,         // doklady na stiahnutie v Môj účet
 		'due_days'     => 14,
 		'auto'         => 1,             // režim: 1 = automatický, 0 = manuálny (ostrá faktúra tlačidlom)
+		'bank_order_paid' => 0,          // platba z banky za objednávku → objednávka zaplatená
 		'transfer_when' => 'paid',       // ostrá faktúra pri prevode: paid = po zaplatení, fulfilled = pri vybavení
 		'fulfil_status' => 'completed',  // stav objednávky, ktorý znamená „vybavená“ (napr. Vybavené a odoslané)
 		'regen_number'  => 'new',        // pregenerovanie: new = nové číslo (stará sa stornuje), keep = ponechať číslo
@@ -73,6 +74,12 @@ function jinv_settings() {
 		}
 	}
 	return $s;
+}
+
+/** Zmena vybraných nastavení (ostatné ostávajú). */
+function jinv_settings_update( array $vals ) {
+	$out = wp_parse_args( (array) get_option( 'jinv_settings', array() ), jinv_defaults() );
+	update_option( 'jinv_settings', array_merge( $out, $vals ), false );
 }
 
 function jinv_opt( $k ) {

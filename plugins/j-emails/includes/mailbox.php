@@ -1,6 +1,6 @@
 <?php
 /**
- * Jupiter Email – schránka: priečinky, vyrovnávacia pamäť hlavičiek, konverzácie (vlákna), odložené správy.
+ * Jupiter Pošta – schránka: priečinky, vyrovnávacia pamäť hlavičiek, konverzácie (vlákna), odložené správy.
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

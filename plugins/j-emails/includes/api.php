@@ -1,6 +1,6 @@
 <?php
 /**
- * Jupiter Email – AJAX rozhranie pre aplikáciu v administrácii (admin-ajax.php, akcie jem_*).
+ * Jupiter Pošta – AJAX rozhranie pre aplikáciu v administrácii (admin-ajax.php, akcie jem_*).
  * Každá požiadavka: oprávnenie JEM_CAP + nonce „jem_app“.
  */
 if ( ! defined( 'ABSPATH' ) ) {

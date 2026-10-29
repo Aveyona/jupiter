@@ -37,7 +37,7 @@ function jhelp_plugins() {
 			'status' => 'planned',
 		),
 		'j-emails'   => array(
-			'name'   => 'J-Emails',
+			'name'   => 'J-Pošta',
 			'icon'   => 'dashicons-email-alt',
 			'what'   => 'E-maily: správca e-mailovej schránky obchodu priamo v administrácii (prijaté a odoslané správy, odpovede zákazníkom) a prepojenie s Mailchimpom pre zákazníkov (zoznam odberateľov, súhlasy, kampane).',
 			'status' => 'planned',

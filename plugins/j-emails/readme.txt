@@ -1,10 +1,10 @@
-=== J-Emails ===
+=== J-Pošta ===
 Contributors: aveyona
 Tags: email, imap, smtp, woocommerce, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.3.0
+Stable tag: 0.5.1
 License: GPLv2 or later
 
 E-mailová schránka obchodu priamo v administrácii WordPressu. Súčasť rodiny Jupiter.
@@ -23,9 +23,22 @@ Jupiter Email – pošta obchodu v administrácii WordPressu v štýle Gmailu:
 * HTML správy v izolovanom rámci, obrázky z internetu skryté, kým ich nezobrazíte (alebo odosielateľovi nedôverujete natrvalo).
 * Klávesové skratky ako v Gmaile (c, /, j, k, e, #, s, r, a, f…).
 
+Faktúry z e-mailu: externý účet Google (Gmail) sa pripojí cez Google API len na čítanie; faktúry zo zvolených štítkov sa prevezmú do J-Fakturácie aj s PDF.
+
 Pripája sa k schránke cez IMAP a SMTP, nepotrebuje rozšírenie php-imap. Heslo je uložené zašifrované. Poštu vidí len administrátor.
 
 == Changelog ==
+
+= 0.5.1 =
+* Faktúry z e-mailu: ak suma nie je v texte správy, vyčíta sa z PDF faktúry; inak sa dá zadať ručne (suma, VS) a PDF otvoriť priamo zo zoznamu.
+
+= 0.5.0 =
+* Nový názov: J-Pošta (Jupiter Pošta), v menu prvá v skupine Jupiter.
+* Faktúry z e-mailu: externý účet Google (Gmail API, OAuth, len čítanie) – výber štítkov s faktúrami, dodávateľ a kategória ku štítku, zoznam faktúr s PDF (suma, VS, obdobie a splatnosť sa vyčítajú zo správy), prevzatie do J-Fakturácie s PDF a automatickým spárovaním s platbou v banke.
+
+= 0.4.0 =
+* Šablóny e-mailov (J-Emails → Šablóny): vzhľad e-mailu s premennými ({obsah}, {meno}, {predmet}…), náhľad, úprava, obnovenie predvolených.
+* Odosielanie podľa šablóny pre iné doplnky (jem_send_template): každému príjemcovi vlastný e-mail, limity za hodinu a počtu príjemcov, záznam odoslaných.
 
 = 0.3.0 =
 * Jupiter Email: nové rozhranie v štýle Gmailu – konverzácie, hviezdičky, Dôležité, Archív, Odložené, Spam, rýchle a hromadné akcie, presun ťahaním, okno Napísať s formátovaním a prílohami, koncepty, aliasy odosielateľa, našepkávanie adries, klávesové skratky.

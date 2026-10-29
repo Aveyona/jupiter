@@ -4,7 +4,7 @@ Tags: woocommerce, stock, inventory, warehouse, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.2.4
+Stable tag: 0.3.1
 License: GPLv2 or later
 
 Sklad pre WooCommerce: príjemky, výdajky, kniha pohybov zásob a hodnota skladu. Súčasť rodiny Jupiter.
@@ -17,11 +17,19 @@ Zásoba ostáva v produktoch WooCommerce (Spravovať zásoby, Množstvo na sklad
 * Kniha pohybov: každá zmena zásoby – predaj v objednávke, vrátenie na sklad, doklady, ručná zmena v produkte, iný doplnok.
 * Otváracia príjemka pri zapnutí – súčasné zásoby ako počiatočný stav (zásoby sa nemenia).
 * Prehľad skladu: zásoba, nákupná cena, hodnota, filtre dochádza / vypredané / bez nákupnej ceny; box v detaile produktu.
-* Vyhľadanie produktov podľa názvu a SKU, aj čítačkou čiarových kódov.
+* Vyhľadanie produktov podľa názvu a čísla produktu, aj čítačkou čiarových kódov.
+* Inventúra: súpis na tlač, zadávanie spočítaných množstiev (aj čítačkou), priebežné ukladanie, manko a prebytok v nákupných cenách, zaúčtovanie a protokol (IN2026001), storno.
 
-Pripravuje sa: inventúra, PDF dokladov, import príjemky z CSV, dodávatelia, prepojenie s J-Fakturáciou, viac skladov.
+Pripravuje sa: PDF dokladov, import príjemky z CSV, návrh objednávky tovaru, viac skladov.
 
 == Changelog ==
+
+= 0.3.1 =
+* Príjemka: dodávateľ z adresára J-Fakturácie (našepkávač), prepojenie s prijatou faktúrou (odkaz na faktúru, alebo + Prijatá faktúra k príjemke).
+
+= 0.3.0 =
+* Inventúra: nová inventúra pre všetky produkty alebo kategóriu, tlač súpisu, zadávanie spočítaných množstiev s priebežným ukladaním, čítačka čiarových kódov (+1 ks na sken), filtre Nespočítané / Rozdiely, zaúčtovanie (zásoba = spočítané, rozdiel do Pohybov), protokol na tlač, storno.
+* Názov stĺpca „Číslo produktu“ aj v inventúre.
 
 = 0.2.4 =
 * Namiesto „SKU“ sa všade píše „Číslo produktu“ (prehľad, doklady, obrázky, vyhľadávanie).

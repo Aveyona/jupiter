@@ -59,10 +59,13 @@ function jsk_notice() {
 	$t = array(
 		'saved'     => array( 'success', 'Koncept je uložený.' ),
 		'posted'    => array( 'success', 'Doklad je zaúčtovaný – zásoby sú zmenené.' ),
-		'cancelled' => array( 'success', 'Doklad je stornovaný – zásoby sú vrátené.' ),
+		'cancelled' => array( 'success', 'Stornované – zásoby sú vrátené.' ),
 		'deleted'   => array( 'success', 'Koncept je zmazaný.' ),
 		'skipped'   => array( 'warning', 'Koncept je uložený, ale niektoré riadky sa vynechali (nulové alebo neplatné množstvo, neexistujúci produkt):' ),
 		'settings'  => array( 'success', 'Nastavenia sú uložené.' ),
+		'inv_new'   => array( 'success', 'Inventúra je založená – stav v evidencii je zapamätaný. Zadávaj spočítané množstvá; ukladajú sa priebežne.' ),
+		'inv_posted' => array( 'success', 'Inventúra je zaúčtovaná – zásoby sú nastavené podľa spočítaného stavu.' ),
+		'from_invoice' => array( 'success', 'Príjemka k prijatej faktúre je pripravená – pridaj tovar, množstvá a nákupné ceny, potom ju zaúčtuj.' ),
 		'err'       => array( 'error', 'Akcia sa nepodarila.' ),
 	);
 	if ( isset( $t[ $m ] ) ) {
@@ -259,7 +262,7 @@ function jsk_render_docs() {
 		<tbody>
 		<?php if ( ! $rows ) : ?><tr><td colspan="7">Zatiaľ žiadne doklady.</td></tr><?php endif; ?>
 		<?php foreach ( $rows as $r ) : ?>
-			<?php $link = 'draft' === $r['status'] ? jsk_url( 'j-sklad-docs', array( 'edit' => $r['id'] ) ) : jsk_url( 'j-sklad-docs', array( 'view' => $r['id'] ) ); ?>
+			<?php $link = 'inventory' === $r['type'] ? jsk_url( 'j-sklad-inventory', array( 'id' => $r['id'] ) ) : ( 'draft' === $r['status'] ? jsk_url( 'j-sklad-docs', array( 'edit' => $r['id'] ) ) : jsk_url( 'j-sklad-docs', array( 'view' => $r['id'] ) ) ); ?>
 			<tr>
 				<td><a href="<?php echo esc_url( $link ); ?>"><strong><?php echo esc_html( $r['number'] ? $r['number'] : 'Koncept #' . $r['id'] ); ?></strong></a></td>
 				<td><?php echo esc_html( jsk_doc_types()[ $r['type'] ][0] ?? $r['type'] ); ?></td>
@@ -267,7 +270,7 @@ function jsk_render_docs() {
 				<td><?php echo esc_html( trim( $r['partner'] . ( $r['partner_doc'] ? ' (' . $r['partner_doc'] . ')' : '' ) . ( $r['reason'] ? ' ' . $r['reason'] : '' ) ) ); ?></td>
 				<td class="n"><?php echo (int) $r['n']; ?></td>
 				<td class="n"><?php echo (float) $r['total'] ? esc_html( jsk_money( $r['total'] ) ) : '—'; ?></td>
-				<td><span class="jsk-st jsk-st-<?php echo esc_attr( $r['status'] ); ?>"><?php echo esc_html( jsk_status_label( $r['status'] ) ); ?></span></td>
+				<td><span class="jsk-st jsk-st-<?php echo esc_attr( $r['status'] ); ?>"><?php echo esc_html( 'inventory' === $r['type'] ? jsk_inv_status( $r['status'] ) : jsk_status_label( $r['status'] ) ); ?></span></td>
 			</tr>
 		<?php endforeach; ?>
 		</tbody>
@@ -302,13 +305,29 @@ function jsk_render_doc_form() {
 		<div class="jsk-head-fields">
 			<label>Dátum<br><input type="date" name="doc_date" value="<?php echo esc_attr( $d ? $d['doc_date'] : current_time( 'Y-m-d' ) ); ?>" required></label>
 			<?php if ( $rec ) : ?>
-				<label>Dodávateľ<br><input type="text" name="partner" value="<?php echo esc_attr( $d['partner'] ?? '' ); ?>" class="regular-text"></label>
+				<?php
+				$jpid = $d ? (int) ( $d['partner_id'] ?? 0 ) : (int) jsk_get( 'partner_id' );
+				$jpn  = $d['partner'] ?? '';
+				if ( ! $d && $jpid && function_exists( 'jinv_partner_get' ) ) {
+					$jpp = jinv_partner_get( $jpid );
+					$jpn = $jpp ? $jpp['name'] : '';
+				}
+				?>
+				<label>Dodávateľ<br><input type="text" name="partner" id="jsk-partner" value="<?php echo esc_attr( $jpn ); ?>" class="regular-text" autocomplete="off"<?php echo function_exists( 'jinv_partner_picker_js' ) ? ' placeholder="Začni písať – dodávatelia z J-Fakturácie"' : ''; ?>></label>
+				<input type="hidden" name="partner_id" id="jsk-partner-id" value="<?php echo (int) $jpid; ?>">
 				<label>Číslo dokladu dodávateľa<br><input type="text" name="partner_doc" value="<?php echo esc_attr( $d['partner_doc'] ?? '' ); ?>" placeholder="napr. faktúra / dodací list"></label>
 			<?php else : ?>
 				<label>Dôvod výdaja<br><select name="reason"><?php foreach ( jsk_reasons() as $r ) : ?><option <?php selected( $d['reason'] ?? '', $r ); ?>><?php echo esc_html( $r ); ?></option><?php endforeach; ?></select></label>
 			<?php endif; ?>
 			<label class="jsk-wide">Poznámka<br><input type="text" name="note" value="<?php echo esc_attr( $d['note'] ?? '' ); ?>" class="large-text"></label>
 		</div>
+		<?php
+		if ( $d && $rec ) {
+			echo '<p class="jsk-meta">';
+			jsk_invoice_link( $d );
+			echo '</p>';
+		}
+		?>
 		<div class="jsk-search">
 			<input type="search" id="jsk-find" placeholder="Pridať produkt: názov alebo číslo produktu (funguje aj čítačka čiarových kódov – Enter)" autocomplete="off">
 			<ul id="jsk-results" hidden></ul>
@@ -337,6 +356,11 @@ function jsk_render_doc_form() {
 			<a class="button-link" href="<?php echo esc_url( jsk_url( 'j-sklad-docs' ) ); ?>">Späť na doklady</a>
 		</p>
 	</form>
+	<?php
+	if ( $rec && function_exists( 'jinv_partner_picker_js' ) ) {
+		jinv_partner_picker_js( 'jsk-partner', 'jsk-partner-id' );
+	}
+	?>
 	<script>
 	(function(){
 		var rec=<?php echo $rec ? 'true' : 'false'; ?>,find=document.getElementById('jsk-find'),res=document.getElementById('jsk-results'),rows=document.getElementById('jsk-rows'),t=null;
@@ -384,6 +408,7 @@ function jsk_render_doc_view( $id ) {
 			<?php if ( $d['partner'] ) : ?><span>Dodávateľ: <strong><?php echo esc_html( $d['partner'] ); ?></strong><?php echo $d['partner_doc'] ? ' (' . esc_html( $d['partner_doc'] ) . ')' : ''; ?></span><?php endif; ?>
 			<?php if ( $d['reason'] ) : ?><span>Dôvod: <strong><?php echo esc_html( $d['reason'] ); ?></strong></span><?php endif; ?>
 			<span>Stav: <span class="jsk-st jsk-st-<?php echo esc_attr( $d['status'] ); ?>"><?php echo esc_html( jsk_status_label( $d['status'] ) ); ?></span></span>
+			<?php jsk_invoice_link( $d ); ?>
 			<?php $u = get_userdata( (int) $d['user_id'] ); ?><span>Vystavil: <?php echo esc_html( $u ? $u->display_name : '—' ); ?></span>
 		</p>
 		<?php if ( $d['note'] ) : ?><p><?php echo esc_html( $d['note'] ); ?></p><?php endif; ?>
@@ -410,6 +435,19 @@ function jsk_render_doc_view( $id ) {
 	</div>
 	</div>
 	<?php
+}
+
+/** Prijatá faktúra k príjemke (J-Fakturácia): odkaz na ňu, alebo tlačidlo na jej pridanie. */
+function jsk_invoice_link( array $d ) {
+	if ( 'receipt' !== $d['type'] || ! function_exists( 'jinv_get' ) ) {
+		return;
+	}
+	$inv = ! empty( $d['invoice_id'] ) ? jinv_get( (int) $d['invoice_id'] ) : null;
+	if ( $inv && 'received' === $inv['kind'] ) {
+		echo '<span>Prijatá faktúra: <a href="' . esc_url( jinv_admin_url( array( 'tab' => 'received', 'edit' => $inv['id'] ) ) ) . '"><strong>' . esc_html( $inv['number'] ) . '</strong></a></span>';
+	} else {
+		echo '<span><a class="button button-small" href="' . esc_url( jinv_admin_url( array( 'tab' => 'received', 'edit' => 'new', 'from_stock' => $d['id'] ) ) ) . '">+ Prijatá faktúra k príjemke</a></span>';
+	}
 }
 
 function jsk_back_err( $url, $err ) {
@@ -488,11 +526,13 @@ add_action( 'admin_post_jsk_doc_cancel', function () {
 		wp_die( 'Nemáte oprávnenie.' );
 	}
 	check_admin_referer( 'jsk_doc_cancel_' . $id );
-	$r = jsk_cancel_doc( $id );
+	$r    = jsk_cancel_doc( $id );
+	$d    = jsk_doc( $id );
+	$back = $d && 'inventory' === $d['type'] ? jsk_url( 'j-sklad-inventory', array( 'id' => $id ) ) : jsk_url( 'j-sklad-docs', array( 'view' => $id ) );
 	if ( is_wp_error( $r ) ) {
-		jsk_back_err( jsk_url( 'j-sklad-docs', array( 'view' => $id ) ), $r->get_error_message() );
+		jsk_back_err( $back, $r->get_error_message() );
 	}
-	wp_safe_redirect( jsk_url( 'j-sklad-docs', array( 'view' => $id, 'jsk_msg' => 'cancelled' ) ) );
+	wp_safe_redirect( add_query_arg( 'jsk_msg', 'cancelled', $back ) );
 	exit;
 } );
 
@@ -698,6 +738,7 @@ function jsk_render_settings() {
 			<tr><th>Formát čísla príjemky</th><td><input type="text" name="format_receipt" value="<?php echo esc_attr( $s['format_receipt'] ); ?>"><p class="description">{RRRR} = rok, {RR} = rok dvojmiestne, {nnn} / {nnnn} = poradie v roku → PR2026001.</p></td></tr>
 			<tr><th>Formát čísla výdajky</th><td><input type="text" name="format_issue" value="<?php echo esc_attr( $s['format_issue'] ); ?>"></td></tr>
 			<tr><th>Formát otváracej príjemky</th><td><input type="text" name="format_opening" value="<?php echo esc_attr( $s['format_opening'] ); ?>"></td></tr>
+			<tr><th>Formát čísla inventúry</th><td><input type="text" name="format_inventory" value="<?php echo esc_attr( $s['format_inventory'] ); ?>"></td></tr>
 			<tr><th>Hranica „dochádza“</th><td><input type="number" name="low_stock" min="0" step="any" value="<?php echo esc_attr( $s['low_stock'] ); ?>" class="small-text"> ks</td></tr>
 			<tr><th>Obrázky produktov</th><td><label><input type="checkbox" name="media" value="1" <?php checked( ! empty( $s['media'] ) ); ?>> Obrázky produktov spravuje J-Sklad</label><p class="description">Hlavné obrázky a galérie produktov sa spravujú v J-Sklad → Obrázky a Knižnica multimédií ich nezobrazuje (ostanú v nej len obrázky webu). Súbory sa nepresúvajú – po vypnutí je Knižnica opäť kompletná.</p></td></tr>
 			<tr><th>Dôvody výdaja</th><td><input type="text" name="reasons" value="<?php echo esc_attr( $s['reasons'] ); ?>" class="large-text"><p class="description">Oddelené čiarkou.</p></td></tr>
@@ -715,7 +756,7 @@ add_action( 'admin_post_jsk_settings', function () {
 	check_admin_referer( 'jsk_settings' );
 	$in  = wp_unslash( $_POST );
 	$out = jsk_settings();
-	foreach ( array( 'format_receipt', 'format_issue', 'format_opening' ) as $k ) {
+	foreach ( array( 'format_receipt', 'format_issue', 'format_opening', 'format_inventory' ) as $k ) {
 		$v         = sanitize_text_field( $in[ $k ] ?? '' );
 		$out[ $k ] = false !== strpos( $v, '{n' ) ? $v : jsk_defaults()[ $k ];
 	}
