@@ -456,7 +456,7 @@ function jem_g_import( $msg_id, array $override = array() ) {
 		$sup = array( 'name' => trim( $m[1] ) );
 	}
 	$issue = $p['date'];
-	return jinv_received_create( array(
+	$args = array(
 		'number'      => $f['number'],
 		'issue_date'  => $issue,
 		'supply_date' => $f['period_to'] ? $f['period_to'] : $issue,
@@ -471,7 +471,14 @@ function jem_g_import( $msg_id, array $override = array() ) {
 		'file_name'   => $fn,
 		'ref'         => 'gmail:' . $msg_id,
 		'source'      => 'email',
-	) );
+	);
+	$r = jinv_received_create( $args );
+	// Dodávateľ s rovnakým VS na všetkých faktúrach (napr. číslo zákazníka) – číslo faktúry sa doplní dátumom.
+	if ( is_wp_error( $r ) && 'jinv_dup' === $r->get_error_code() && 0 !== strpos( $r->get_error_message(), 'Faktúra je už prevzatá' ) ) {
+		$args['number'] = $f['number'] . '/' . str_replace( '-', '', $issue );
+		$r              = jinv_received_create( $args );
+	}
+	return $r;
 }
 
 /* ---------------------------------------------------------------- Akcie */
