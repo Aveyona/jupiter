@@ -117,7 +117,6 @@ add_action( 'phpmailer_init', function ( $m ) {
 	if ( ! empty( $GLOBALS['jem_smtp_skip'] ) || ! jem_configured() || ! jem_opt( 'site_mail' ) ) {
 		return;
 	}
-	$GLOBALS['jem_smtp_used'] = true;
 	$s = jem_settings();
 	$m->isSMTP();
 	$m->Host        = $s['smtp_host'];
@@ -137,35 +136,52 @@ add_action( 'phpmailer_init', function ( $m ) {
 	$m->Sender = $s['email'];
 }, 20 );
 
+/** wp_mail s už pripravenými (prefiltrovanými) údajmi e-mailu. */
+function jem_wp_mail_atts( array $a ) {
+	$args = array( $a['to'] ?? '', $a['subject'] ?? '', $a['message'] ?? '', $a['headers'] ?? '', $a['attachments'] ?? array() );
+	if ( array_key_exists( 'embeds', $a ) ) {
+		$args[] = $a['embeds'];
+	}
+	return wp_mail( ...$args );
+}
+
 /**
- * Poistka: keď SMTP schránky zlyhá, e-mail webu (objednávka, obnova hesla…) sa pošle ešte raz štandardne
- * cez server, aby sa nestratil. Zlyhanie sa zapíše a v administrácii sa zobrazí upozornenie.
+ * Poistka: keď SMTP schránky zlyhá, e-mail webu (objednávka, obnova hesla…) sa hneď pošle ešte raz štandardne
+ * cez server – s pôvodnými hlavičkami (Od, Odpovedať, Kópia…), prílohami a výsledkom pre volajúceho
+ * (napr. J-Fakturácia tak nepovažuje doklad za neodoslaný a nepošle ho druhýkrát).
  */
-add_action( 'wp_mail_failed', function ( $error ) {
-	if ( empty( $GLOBALS['jem_smtp_used'] ) || ! empty( $GLOBALS['jem_smtp_skip'] ) ) {
-		return;
+add_filter( 'pre_wp_mail', function ( $return, $atts ) {
+	if ( null !== $return || ! empty( $GLOBALS['jem_in_send'] ) || ! jem_configured() || ! jem_opt( 'site_mail' ) ) {
+		return $return;
 	}
-	$GLOBALS['jem_smtp_used'] = false;
-	update_option( 'jem_smtp_failed', array( 'time' => time(), 'msg' => mb_substr( $error->get_error_message(), 0, 300 ) ), false );
-	if ( ! empty( $GLOBALS['jem_no_fallback'] ) ) {
-		return;
-	}
-	$d = (array) $error->get_error_data();
-	if ( empty( $d['to'] ) ) {
-		return;
-	}
-	$GLOBALS['jem_smtp_skip'] = true;
+	global $wp_filter;
+	$GLOBALS['jem_in_send'] = true;
+	// Údaje už prešli filtrom wp_mail – pri vnútornom odoslaní sa nesmú upraviť druhýkrát.
+	$saved = $wp_filter['wp_mail'] ?? null;
+	unset( $wp_filter['wp_mail'] );
+	$err = '';
+	$cb  = function ( $e ) use ( &$err ) {
+		$err = $e->get_error_message();
+	};
+	add_action( 'wp_mail_failed', $cb );
 	try {
-		wp_mail( $d['to'], $d['subject'] ?? '', $d['message'] ?? '', $d['headers'] ?? array(), $d['attachments'] ?? array() );
+		$ok = jem_wp_mail_atts( (array) $atts );
+		if ( ! $ok && empty( $GLOBALS['jem_no_fallback'] ) ) {
+			$smtp_err                 = $err;
+			$GLOBALS['jem_smtp_skip'] = true;
+			$ok                       = jem_wp_mail_atts( (array) $atts );
+			update_option( 'jem_smtp_failed', array( 'time' => time(), 'msg' => mb_substr( $smtp_err, 0, 300 ), 'fallback' => $ok ? 'ok' : 'fail' ), false );
+		}
 	} finally {
+		remove_action( 'wp_mail_failed', $cb );
+		if ( null !== $saved ) {
+			$wp_filter['wp_mail'] = $saved;
+		}
+		$GLOBALS['jem_in_send']   = false;
 		$GLOBALS['jem_smtp_skip'] = false;
 	}
-} );
-
-// Úspešné odoslanie cez SMTP – príznak pre ďalší e-mail v tej istej požiadavke sa vynuluje.
-add_action( 'wp_mail_succeeded', function () {
-	$GLOBALS['jem_smtp_used'] = false;
-} );
+	return (bool) $ok;
+}, 10, 2 );
 
 // Upozornenie v administrácii po zlyhaní SMTP (posledných 24 hodín).
 add_action( 'admin_notices', function () {
@@ -180,5 +196,6 @@ add_action( 'admin_notices', function () {
 	if ( ! is_array( $f ) || empty( $f['time'] ) || time() - (int) $f['time'] > DAY_IN_SECONDS || ! current_user_can( 'manage_options' ) ) {
 		return;
 	}
-	echo '<div class="notice notice-warning"><p><strong>J-Emails:</strong> odoslanie e-mailu webu cez SMTP schránky zlyhalo (' . esc_html( wp_date( 'j. n. Y H:i', (int) $f['time'] ) ) . ': ' . esc_html( (string) $f['msg'] ) . '). E-mail sa poslal náhradne cez server webu. <a href="' . esc_url( admin_url( 'admin.php?page=j-emails-settings' ) ) . '">Skontrolujte nastavenia</a> – po úspešnom skúšobnom e-maile upozornenie zmizne.</p></div>';
+	$fb = 'ok' === ( $f['fallback'] ?? '' ) ? 'E-mail sa poslal náhradne cez server webu.' : 'Nepodarilo sa ho poslať ani náhradne cez server webu.';
+	echo '<div class="notice ' . ( 'ok' === ( $f['fallback'] ?? '' ) ? 'notice-warning' : 'notice-error' ) . '"><p><strong>J-Emails:</strong> odoslanie e-mailu webu cez SMTP schránky zlyhalo (' . esc_html( wp_date( 'j. n. Y H:i', (int) $f['time'] ) ) . ': ' . esc_html( (string) $f['msg'] ) . '). ' . esc_html( $fb ) . ' <a href="' . esc_url( admin_url( 'admin.php?page=j-emails-settings' ) ) . '">Skontrolujte nastavenia</a> – po úspešnom skúšobnom e-maile upozornenie zmizne.</p></div>';
 } );

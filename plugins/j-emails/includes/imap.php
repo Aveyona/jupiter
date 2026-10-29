@@ -104,10 +104,21 @@ class JEM_Imap {
 			}
 			$lit = (string) ( $lits[ $i ] ?? '' );
 			fwrite( $this->fp, $part . '{' . strlen( $lit ) . "}\r\n" );
-			$l = (string) fgets( $this->fp );
-			if ( 0 !== strpos( $l, '+' ) ) {
-				$out['text'] = trim( preg_replace( '/^\S+\s+(OK|NO|BAD)\s*/i', '', $l ) );
-				return $out;
+			// Čakanie na „+“; nevyžiadané riadky „* …“ sa uložia, záverečná odpoveď príkazu sa prečíta celá.
+			while ( true ) {
+				$resp = $this->read_response();
+				if ( null === $resp ) {
+					$out['text'] = 'Spojenie so serverom sa prerušilo.';
+					return $out;
+				}
+				if ( 0 === strpos( $resp['line'], '+' ) ) {
+					break;
+				}
+				if ( 0 === strpos( $resp['line'], $tag . ' ' ) ) {
+					$out['text'] = trim( preg_replace( '/^(OK|NO|BAD)\s*(\[[^\]]*\]\s*)?/i', '', substr( $resp['line'], strlen( $tag ) + 1 ) ) );
+					return $out;
+				}
+				$out['untagged'][] = $resp;
 			}
 			fwrite( $this->fp, $lit );
 		}

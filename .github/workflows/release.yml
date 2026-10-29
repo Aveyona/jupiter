@@ -42,7 +42,8 @@ jobs:
               plugin=$(basename "$dir")
               ver=$(grep -m1 -E '^\s*\*\s*Version:' "$dir/$plugin.php" | awk '{print $NF}')
               tag="$plugin-v$ver"
-              if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then tags="$tags $tag"; fi
+              # Vydať, ak chýba značka, vydanie alebo jeho ZIP (aj po neúspešnom predchádzajúcom behu).
+              if ! gh release view "$tag" --json assets -q '.assets[].name' 2>/dev/null | grep -qx "$tag.zip"; then tags="$tags $tag"; fi
             done
           fi
           for tag in $tags; do

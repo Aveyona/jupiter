@@ -142,7 +142,15 @@ function jinv_credit_remaining( $order_id, $invoice = null ) {
 	if ( ! $invoice ) {
 		return 0.0;
 	}
-	$credited = (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(ABS(total)),0) FROM ' . jinv_table() . " WHERE order_id = %d AND kind = 'creditnote' AND status <> 'cancelled'", $order_id ) ); // phpcs:ignore
+	$credited = 0.0;
+	$rows     = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT total, data FROM ' . jinv_table() . " WHERE order_id = %d AND kind = 'creditnote' AND status <> 'cancelled'", $order_id ), ARRAY_A ); // phpcs:ignore
+	foreach ( $rows as $r ) {
+		$d = json_decode( (string) $r['data'], true );
+		// Rátajú sa dobropisy k tejto faktúre (aj staršie bez čísla faktúry, napr. prevzaté z Woo Faktura).
+		if ( empty( $d['invoice'] ) || (string) $d['invoice'] === (string) $invoice['number'] ) {
+			$credited += abs( (float) $r['total'] );
+		}
+	}
 	return max( 0.0, round( abs( (float) $invoice['total'] ) - $credited, 2 ) );
 }
 
@@ -340,13 +348,18 @@ add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to
 	try {
 		$transfer = jinv_is_transfer_order( $order );
 		// Zálohová faktúra pri prevode: objednávka čaká na platbu.
+		$note = function ( $r, $what ) use ( $order ) {
+			if ( is_wp_error( $r ) ) {
+				$order->add_order_note( 'J-Fakturácia: ' . $what . ' sa nevystavila – ' . $r->get_error_message() . ' Vystavte ju tlačidlom v boxe Faktúry.' );
+			}
+		};
 		if ( $transfer && jinv_auto_on( 'auto_proforma' ) && 'on-hold' === $to && ! $order->is_paid() ) {
-			jinv_create_doc( $order, 'proforma' );
+			$note( jinv_create_doc( $order, 'proforma' ), 'zálohová faktúra' );
 		}
 		if ( jinv_auto_on( 'auto' ) ) {
 			$paid_now = in_array( $to, array( 'processing', 'completed' ), true ) && $order->is_paid();
 			if ( ( $transfer && ( $paid_now || 'completed' === $to ) ) || ( ! $transfer && 'completed' === $to ) ) {
-				jinv_create_doc( $order, 'issued' );
+				$note( jinv_create_doc( $order, 'issued' ), 'faktúra' );
 			}
 		}
 		// Objednávka zrušená: zálohová faktúra sa stornuje (faktúru rieši dobropis).

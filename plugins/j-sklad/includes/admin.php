@@ -583,6 +583,7 @@ add_action( 'wp_ajax_jsk_set_cost', function () {
 		wp_send_json_error( 'Zadajte kladné číslo.' );
 	}
 	$old = jsk_cost( $id );
+	jsk_ensure_opening( $id, jsk_db_stock( $id ) ); // počiatočný stav ešte s pôvodnou nákupnou cenou
 	if ( '' === $raw ) {
 		delete_post_meta( $id, '_jsk_cost' );
 	} else {
@@ -590,7 +591,6 @@ add_action( 'wp_ajax_jsk_set_cost', function () {
 	}
 	$new = '' === $raw ? null : round( (float) $raw, 4 );
 	if ( $old !== $new ) {
-		jsk_ensure_opening( $id, jsk_db_stock( $id ) );
 		$last = jsk_last_move( $id );
 		jsk_log_move( $id, 0, $last && null !== $last['stock_after'] ? $last['stock_after'] : jsk_db_stock( $id ), 'cost', array( 'cost' => $new, 'note' => 'Nákupná cena: ' . jsk_money( $old ) . ' → ' . jsk_money( $new ) ) );
 	}
