@@ -17,13 +17,28 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		'J-Fakturácia',
 	);
 	$guides[] = array(
-		'Kedy vznikne faktúra',
+		'Postup fakturácie – manuálny režim',
 		array(
-			'Prevod na účet: zálohová faktúra hneď pri objednávke, faktúra keď je objednávka zaplatená (stav Vybavuje sa / Spracováva sa).',
-			'Dobierka, osobný odber a ostatné platby: faktúra, keď je objednávka vybavená.',
-			'Kedykoľvek ručne: detail objednávky → box Doklady → Vystaviť faktúru / zálohovú faktúru / dobropis.',
-			'Automatiku vypneš v J-Fakturácia → Nastavenia → Vystaviť faktúru automaticky.',
-			'Hromadne: v zozname objednávok WooCommerce vyber objednávky → Hromadné akcie → Vystaviť faktúry (J-Fakturácia).', 'Kým beží doplnok Woo Faktura, nič sa nevystavuje ani neposiela automaticky (režim prechodu).',
+			'Tak, ako to robí väčšina malých e-shopov: ostrú faktúru vystavíš sám pri vybavení objednávky – v deň, keď ju dáš do stavu vybavená (napr. „Vybavené a odoslané“), prípadne o deň skôr.',
+			'Prevod na účet: objednávka má dve faktúry – zálohovú faktúru (proformu) z dňa objednávky, ktorá vznikne automaticky a odíde zákazníkovi s QR kódom, a ostrú faktúru z dňa vybavenia, ktorú vystavíš tlačidlom.',
+			'Dobierka: kým objednávka čaká na spracovanie, faktúru nemá. Ostrá faktúra vznikne až pri vybavení a ostáva neuhradená, kým zákazník zaplatí pri prevzatí.',
+			'Číslo faktúry: podľa nastavenia číslovania – rovnaké ako číslo objednávky, alebo vlastný rad (napr. 2026001). Pri prechode z Woo Faktury nastav „Pokračovať od čísla“ podľa jej počítadla. Variabilný symbol je vždy číslo objednávky.',
+			'Dátum vystavenia je deň, keď klikneš na Vystaviť faktúru. Splatnosť sa počíta od neho podľa nastaveného počtu dní. Dátum dodania je deň vybavenia (alebo zaplatenia).',
+			'Pregenerovať: keď sa objednávka po vystavení zmení (položky, adresa, doprava), v boxe Doklady alebo v detaile faktúry klikni Pregenerovať – faktúra sa vytvorí znova z aktuálnej objednávky. Podľa nastavenia dostane nové číslo (pôvodná sa stornuje a ostane v evidencii) alebo si ponechá pôvodné číslo; dátum vystavenia je dnešný alebo pôvodný. E-mail zákazníkovi sa pri pregenerovaní nepošle.',
+			'Kde vystaviť: detail objednávky → box Doklady → Vystaviť faktúru; hromadne v zozname objednávok WooCommerce → Hromadné akcie → Vystaviť faktúry (J-Fakturácia).',
+		),
+		'J-Fakturácia',
+	);
+	$guides[] = array(
+		'Nastavenie postupu fakturácie',
+		array(
+			'J-Fakturácia → Nastavenia → Doklady a číslovanie → Postup fakturácie.',
+			'Režim fakturácie: Manuálny – ostrú faktúru vystavuješ tlačidlom; Automatický – faktúra vznikne sama.',
+			'Stav „vybavená“: ktorý stav objednávky znamená vybavenie (napr. Vybavené a odoslané). Pri ňom vzniká faktúra v automatickom režime a faktúra sa označí ako uhradená (okrem dobierky).',
+			'Ostrá faktúra pri prevode na účet (automatický režim): pri vybavení objednávky (ako manuálny postup) alebo hneď po zaplatení.',
+			'Pregenerovanie – číslo: nové číslo (pôvodná faktúra sa stornuje) alebo ponechať pôvodné. Pregenerovanie – dátum vystavenia: dnešný alebo pôvodný.',
+			'Zálohová faktúra pri platbe prevodom a Dobropis pri vrátení peňazí sa zapínajú samostatne (fungujú v oboch režimoch).',
+			'Kým beží doplnok Woo Faktura, nič sa nevystavuje ani neposiela automaticky (režim prechodu).',
 		),
 		'J-Fakturácia',
 	);

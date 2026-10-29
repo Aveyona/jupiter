@@ -7,9 +7,13 @@
  *               istého druhu k objednávke (napr. ďalší dobropis) dostane príponu -2, -3 …
  *  - „series“ – vlastný ročný rad pre každý druh dokladu podľa formátu ({RRRR}{nnn} → 2026001, ZF{RRRR}{nnn}, D{RRRR}{nnn}).
  *
- * Automatika (kým beží Woo Faktura, je vypnutá – režim prechodu):
- *  - prevod na účet: zálohová faktúra hneď pri objednávke (stav Čaká na platbu), faktúra po zaplatení;
- *  - dobierka, osobný odber a ostatné: faktúra, keď je objednávka vybavená.
+ * Postup (Nastavenia → Doklady a číslovanie → Postup fakturácie; kým beží Woo Faktura, automatika je vypnutá):
+ *  - manuálny režim: ostrú faktúru vystaví obsluha tlačidlom; zálohová faktúra pri prevode môže vznikať automaticky;
+ *  - automatický režim: prevod na účet – zálohová faktúra pri objednávke, ostrá po zaplatení alebo pri vybavení
+ *    (podľa nastavenia); dobierka, osobný odber a ostatné – ostrá faktúra pri vybavení;
+ *  - „vybavená“ = stav z nastavenia (napr. Vybavené a odoslané), predvolene Vybavené (completed);
+ *  - Pregenerovať: faktúra sa vytvorí znova z aktuálnej objednávky – s novým číslom (pôvodná sa stornuje)
+ *    alebo s pôvodným číslom; dátum vystavenia dnešný alebo pôvodný.
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -33,6 +37,17 @@ function jinv_kind_label( $kind ) {
 function jinv_transfer_methods() {
 	$list = array_filter( array_map( 'trim', explode( ',', (string) jinv_opt( 'transfer_methods' ) ) ) );
 	return apply_filters( 'jinv_transfer_methods', $list ? $list : array( 'bacs' ) );
+}
+
+/** Stav objednávky, ktorý znamená „vybavená“ (bez wc-). */
+function jinv_fulfil_status() {
+	$s = preg_replace( '/^wc-/', '', sanitize_key( (string) jinv_opt( 'fulfil_status' ) ) );
+	return '' !== $s ? $s : 'completed';
+}
+
+/** Je objednávka vybavená (stav z nastavenia alebo štandardné Vybavené)? */
+function jinv_is_fulfilled( WC_Order $o ) {
+	return $o->has_status( array_unique( array( 'completed', jinv_fulfil_status() ) ) );
 }
 
 function jinv_is_transfer_order( WC_Order $o ) {
@@ -82,6 +97,11 @@ function jinv_next_number( $kind, $o, $year, $try = 0 ) {
 	// Vlastný ročný rad: len natívne doklady s malým poradím (prevzaté a „podľa objednávky“ majú veľké čísla).
 	$max = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(seq) FROM ' . jinv_table() . " WHERE kind = %s AND source = '' AND year = %d AND seq < 1000000", $kind, $year ) ); // phpcs:ignore
 	$seq = $max + 1;
+	// Pokračovanie v rade (napr. podľa počítadla Woo Faktury) – len v roku, keď bolo číslo zadané.
+	$start = (int) jinv_opt( 'next_' . $kind );
+	if ( $start > $seq && (int) jinv_opt( 'next_year' ) === (int) $year ) {
+		$seq = $start;
+	}
 	while ( jinv_number_taken( $kind, $year, $seq, jinv_format_number( $year, $seq, jinv_kind_format( $kind ) ) ) ) {
 		$seq++;
 	}
@@ -227,7 +247,7 @@ function jinv_create_doc_locked( WC_Order $o, $kind, $opts ) {
 	$year    = (int) current_time( 'Y' );
 	$cod     = jinv_is_cod_order( $o );
 	// Dobierka: vybavená (odoslaná) objednávka ešte nie je zaplatená – faktúra je neuhradená, platí sa pri prevzatí.
-	$paid    = $cod ? false : ( $o->is_paid() || $o->has_status( 'completed' ) );
+	$paid    = $cod ? false : ( $o->is_paid() || jinv_is_fulfilled( $o ) );
 	$refund  = ! empty( $opts['refund_id'] ) ? wc_get_order( (int) $opts['refund_id'] ) : null;
 	if ( 'creditnote' === $kind && ! $refund ) {
 		$refund = jinv_uncredited_refund( $o );
@@ -321,6 +341,105 @@ function jinv_create_doc_locked( WC_Order $o, $kind, $opts ) {
 	return new WP_Error( 'jinv_insert', 'Doklad sa nepodarilo uložiť: ' . $wpdb->last_error );
 }
 
+/**
+ * Pregenerovanie faktúry alebo zálohovej faktúry z aktuálnej objednávky (zmenené položky, adresa, doprava…).
+ * Podľa nastavenia: nové číslo (pôvodný doklad sa stornuje) alebo pôvodné číslo; dátum vystavenia dnes alebo pôvodný.
+ * Vráti ID (nového) dokladu alebo WP_Error.
+ */
+function jinv_regenerate_doc( $id ) {
+	global $wpdb;
+	$inv = jinv_get( $id );
+	if ( ! $inv || ! in_array( $inv['kind'], array( 'issued', 'proforma' ), true ) ) {
+		return new WP_Error( 'jinv_regen', 'Pregenerovať sa dá faktúra alebo zálohová faktúra.' );
+	}
+	if ( 'cancelled' === $inv['status'] ) {
+		return new WP_Error( 'jinv_regen', 'Stornovaný doklad sa nedá pregenerovať.' );
+	}
+	$o = $inv['order_id'] ? wc_get_order( (int) $inv['order_id'] ) : null;
+	if ( ! $o ) {
+		return new WP_Error( 'jinv_regen', 'Doklad nemá objednávku – pregenerovať sa dá len doklad k objednávke.' );
+	}
+	if ( 'issued' === $inv['kind'] && jinv_credit_remaining( $o->get_id(), $inv ) < abs( (float) $inv['total'] ) - 0.005 ) {
+		return new WP_Error( 'jinv_regen', 'K faktúre je vystavený dobropis – namiesto pregenerovania vystavte ďalší dobropis.' );
+	}
+	$lock = 'jinv_doc_' . $o->get_id();
+	if ( ! (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 15)', $lock ) ) ) {
+		return new WP_Error( 'jinv_locked', 'K objednávke sa práve vystavuje iný doklad. Skúste to znova o chvíľu.' );
+	}
+	try {
+		$kind  = $inv['kind'];
+		$label = mb_strtolower( jinv_kind_label( $kind ) );
+		if ( 'new' === jinv_opt( 'regen_number' ) ) {
+			// Nové číslo: pôvodný doklad sa stornuje (ostáva v evidencii), vystaví sa nový.
+			jinv_update( $inv['id'], array( 'status' => 'cancelled' ) );
+			$meta = jinv_kinds()[ $kind ][1];
+			if ( (string) $o->get_meta( $meta ) === (string) $inv['number'] ) {
+				$o->delete_meta_data( $meta );
+				$o->save();
+			}
+			$new = jinv_create_doc_locked( $o, $kind, array( 'send' => false ) );
+			if ( is_wp_error( $new ) ) {
+				jinv_update( $inv['id'], array( 'status' => $inv['status'] ) ); // vrátiť späť
+				$o->update_meta_data( $meta, $inv['number'] );
+				$o->save();
+				return $new;
+			}
+			$doc = jinv_get( $new );
+			if ( 'keep' === jinv_opt( 'regen_date' ) && $doc ) {
+				$due = gmdate( 'Y-m-d', strtotime( $inv['issue_date'] . ' +' . (int) jinv_opt( 'due_days' ) . ' days' ) );
+				jinv_update( $new, array( 'issue_date' => $inv['issue_date'], 'due_date' => $due ) );
+			}
+			if ( 'paid' === $inv['status'] && $doc && 'paid' !== $doc['status'] ) {
+				jinv_update( $new, array( 'status' => 'paid', 'paid_at' => $inv['paid_at'] ? $inv['paid_at'] : current_time( 'mysql' ) ) );
+			}
+			$o->add_order_note( sprintf( 'J-Fakturácia: %s č. %s pregenerovaná ako č. %s (pôvodná stornovaná).', $label, $inv['number'], $doc ? $doc['number'] : '' ) );
+			do_action( 'jinv_document_regenerated', $new, $inv['id'], $o );
+			return (int) $new;
+		}
+		// Pôvodné číslo: údaje dokladu sa prepíšu podľa aktuálnej objednávky.
+		$data             = (array) $inv['data'];
+		$data['supplier'] = jinv_supplier_snapshot();
+		$data['customer'] = jinv_customer_from_order( $o );
+		$data['items']    = jinv_items_from_order( $o );
+		$data['payment']  = $o->get_payment_method_title();
+		$data['pay_code'] = $o->get_payment_method();
+		$data['order_no'] = $o->get_order_number();
+		$data['regenerated'] = current_time( 'mysql' );
+		if ( 'issued' === $kind ) {
+			$pf = jinv_by_order( $o->get_id(), 'proforma' );
+			if ( $pf ) {
+				$data['proforma'] = $pf['number'];
+			}
+		}
+		$today  = current_time( 'Y-m-d' );
+		$issue  = 'keep' === jinv_opt( 'regen_date' ) ? $inv['issue_date'] : $today;
+		$supply = 'proforma' === $kind ? $inv['supply_date'] : ( $o->get_date_completed() ? $o->get_date_completed()->date_i18n( 'Y-m-d' ) : ( $o->get_date_paid() ? $o->get_date_paid()->date_i18n( 'Y-m-d' ) : $issue ) );
+		$cod    = jinv_is_cod_order( $o );
+		$paid   = 'paid' === $inv['status'] || ( ! $cod && ( $o->is_paid() || ( 'issued' === $kind && jinv_is_fulfilled( $o ) ) ) );
+		$fields = array(
+			'issue_date'     => $issue,
+			'supply_date'    => $supply,
+			'due_date'       => gmdate( 'Y-m-d', strtotime( $issue . ' +' . (int) jinv_opt( 'due_days' ) . ' days' ) ),
+			'vs'             => jinv_doc_vs( $o, $inv['number'] ),
+			'currency'       => $o->get_currency(),
+			'total'          => round( (float) $o->get_total(), 2 ),
+			'customer_name'  => $data['customer']['company'] ? $data['customer']['company'] : $data['customer']['name'],
+			'customer_email' => $data['customer']['email'],
+			'data'           => wp_json_encode( $data, JSON_UNESCAPED_UNICODE ),
+			'status'         => $paid ? 'paid' : 'issued',
+			'paid_at'        => $paid ? ( $inv['paid_at'] ? $inv['paid_at'] : current_time( 'mysql' ) ) : null,
+			'source'         => '',
+			'file'           => '',
+		);
+		jinv_update( $inv['id'], $fields );
+		$o->add_order_note( sprintf( 'J-Fakturácia: %s č. %s pregenerovaná podľa aktuálnej objednávky.', $label, $inv['number'] ) );
+		do_action( 'jinv_document_regenerated', (int) $inv['id'], (int) $inv['id'], $o );
+		return (int) $inv['id'];
+	} finally {
+		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
+	}
+}
+
 /** Spätná kompatibilita: faktúra z objednávky. */
 function jinv_create_from_order( $order ) {
 	return jinv_create_doc( $order, 'issued' );
@@ -357,8 +476,10 @@ add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to
 			$note( jinv_create_doc( $order, 'proforma' ), 'zálohová faktúra' );
 		}
 		if ( jinv_auto_on( 'auto' ) ) {
-			$paid_now = in_array( $to, array( 'processing', 'completed' ), true ) && $order->is_paid();
-			if ( ( $transfer && ( $paid_now || 'completed' === $to ) ) || ( ! $transfer && 'completed' === $to ) ) {
+			$fulfilled = in_array( $to, array_unique( array( 'completed', jinv_fulfil_status() ) ), true );
+			$paid_now  = ( 'processing' === $to || $fulfilled ) && $order->is_paid();
+			$on_paid   = 'paid' === jinv_opt( 'transfer_when' );
+			if ( $fulfilled || ( $transfer && $on_paid && $paid_now ) ) {
 				$note( jinv_create_doc( $order, 'issued' ), 'faktúra' );
 			}
 		}
@@ -377,7 +498,7 @@ add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to
 
 // Objednávka zaplatená alebo vybavená → faktúra aj zálohová faktúra uhradené.
 add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to, $order ) {
-	if ( ! $order instanceof WC_Order || jinv_woo_faktura_active() || ! ( 'completed' === $to || ( 'processing' === $to && $order->is_paid() ) ) ) {
+	if ( ! $order instanceof WC_Order || jinv_woo_faktura_active() || ! ( in_array( $to, array_unique( array( 'completed', jinv_fulfil_status() ) ), true ) || ( 'processing' === $to && $order->is_paid() ) ) ) {
 		return;
 	}
 	foreach ( array( 'issued', 'proforma' ) as $kind ) {

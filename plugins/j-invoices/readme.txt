@@ -4,7 +4,7 @@ Tags: woocommerce, faktúry, faktúra, slovensko, jupiter
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.9.4
+Stable tag: 0.9.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,9 @@ Faktúry pre slovenské e-shopy na WooCommerce. Súčasť rodiny doplnkov Jupite
 Pripravuje sa: PDF s QR kódom PAY by square, odoslanie zákazníkovi e-mailom po potvrdení, ručné faktúry, dobropisy, prijaté faktúry, export pre účtovníka.
 
 == Changelog ==
+
+= 0.9.5 =
+* Postup fakturácie v Nastaveniach: manuálny/automatický režim, stav „vybavená“ (napr. Vybavené a odoslané), ostrá faktúra pri prevode po zaplatení alebo pri vybavení, Pregenerovať faktúru (nové alebo pôvodné číslo, dnešný alebo pôvodný dátum), pokračovanie číselného radu od zadaného čísla; návod v J-Pomocníkovi.
 
 = 0.9.4 =
 * Dobropisy najviac do výšky faktúry, doklad sa bez zámku nevystaví, kompatibilita s HPOS, sumy v CSV ako čísla, ochrana vydaných dokladov.

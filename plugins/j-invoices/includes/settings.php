@@ -36,7 +36,15 @@ function jinv_defaults() {
 		'email_text'        => '',        // doplnkový text e-mailu s dokladom
 		'account_docs'      => 1,         // doklady na stiahnutie v Môj účet
 		'due_days'     => 14,
-		'auto'         => 1,             // vytvárať faktúry z objednávok automaticky
+		'auto'         => 1,             // režim: 1 = automatický, 0 = manuálny (ostrá faktúra tlačidlom)
+		'transfer_when' => 'paid',       // ostrá faktúra pri prevode: paid = po zaplatení, fulfilled = pri vybavení
+		'fulfil_status' => 'completed',  // stav objednávky, ktorý znamená „vybavená“ (napr. Vybavené a odoslané)
+		'regen_number'  => 'new',        // pregenerovanie: new = nové číslo (stará sa stornuje), keep = ponechať číslo
+		'regen_date'    => 'today',      // pregenerovanie: today = dátum vystavenia dnes, keep = pôvodný dátum
+		'next_issued'     => 0,          // pokračovať v číselnom rade od čísla (napr. podľa počítadla Woo Faktury)
+		'next_proforma'   => 0,
+		'next_creditnote' => 0,
+		'next_year'       => 0,          // rok, pre ktorý platia počiatočné čísla
 		'cod_item'      => 1,            // pri dobierke vždy uviesť položku dobierky
 		'cod_item_name' => 'Dobierka',
 		'company_fields'   => 1,         // pokladňa: Nakupujem na firmu + IČO, DIČ, IČ DPH
@@ -75,16 +83,34 @@ function jinv_opt( $k ) {
 function jinv_settings_sections() {
 	return array(
 		'dodavatel' => array( 'Dodávateľ', array( 'Dodávateľ (údaje na faktúre)', 'Platba', 'Kontakt' ) ),
-		'doklady'   => array( 'Doklady a číslovanie', array( 'Číslovanie a vystavovanie' ) ),
+		'doklady'   => array( 'Doklady a číslovanie', array( 'Postup fakturácie', 'Číslovanie a vystavovanie' ) ),
 		'emaily'    => array( 'E-maily a Môj účet', array( 'E-maily a Môj účet' ) ),
 		'firma'     => array( 'Nákup na firmu', array( 'Nákup na firmu' ) ),
 		'import'    => array( 'Importy údajov', array() ),
 	);
 }
 
+/** Stavy objednávok WooCommerce bez predpony wc-: kód => názov. */
+function jinv_order_status_options() {
+	$out = array();
+	if ( function_exists( 'wc_get_order_statuses' ) ) {
+		foreach ( wc_get_order_statuses() as $k => $label ) {
+			$out[ preg_replace( '/^wc-/', '', $k ) ] = $label;
+		}
+	}
+	return $out ? $out : array( 'completed' => 'Vybavené' );
+}
+
 /** Polia nastavení: kľúč => [popis, typ, nápoveda]. */
 function jinv_setting_fields() {
 	return array(
+		'Postup fakturácie' => array(
+			'auto'          => array( 'Režim fakturácie', 'select', 'Manuálny: ostrú faktúru vystavuješ tlačidlom Vystaviť faktúru (v objednávke alebo v J-Objednávky); zálohová faktúra pri prevode môže vznikať automaticky. Automatický: faktúra vznikne sama podľa pravidiel nižšie. Kým beží Woo Faktura, automatika nefunguje.', array( '0' => 'Manuálny – ostrú faktúru vystavujem ja', '1' => 'Automatický – faktúra vznikne sama' ) ),
+			'fulfil_status' => array( 'Stav „vybavená“', 'select', 'Stav objednávky, keď je vybavená (odoslaná). Pri ňom vzniká faktúra (automatický režim) a objednávka sa ráta ako vybavená – napr. „Vybavené a odoslané“.', jinv_order_status_options() ),
+			'transfer_when' => array( 'Ostrá faktúra pri prevode na účet', 'select', 'Kedy v automatickom režime vznikne ostrá faktúra k objednávke zaplatenej prevodom. Pri vybavení = ako manuálny postup s Woo Faktura (proforma pri objednávke, ostrá pri vybavení).', array( 'fulfilled' => 'Pri vybavení objednávky', 'paid' => 'Hneď po zaplatení' ) ),
+			'regen_number'  => array( 'Pregenerovanie – číslo', 'select', 'Pregenerovať vytvorí faktúru znova z aktuálnej objednávky (zmenené položky, adresa, doprava).', array( 'new' => 'Nové číslo – pôvodná faktúra sa stornuje', 'keep' => 'Ponechať pôvodné číslo' ) ),
+			'regen_date'    => array( 'Pregenerovanie – dátum vystavenia', 'select', 'Splatnosť sa prepočíta od dátumu vystavenia.', array( 'today' => 'Dnešný dátum', 'keep' => 'Ponechať pôvodný dátum' ) ),
+		),
 		'Dodávateľ (údaje na faktúre)' => array(
 			'company'  => array( 'Obchodné meno', 'text', '' ),
 			'street'   => array( 'Ulica a číslo', 'text', '' ),
@@ -125,7 +151,9 @@ function jinv_setting_fields() {
 			'format'    => array( 'Formát čísla faktúry', 'text', 'Pri vlastnom rade: {RRRR} = rok (2026), {RR} = rok dvojmiestne, {nnn} / {nnnn} = poradie v roku. Predvolené {RRRR}{nnn} → 2026001.' ),
 			'format_proforma'   => array( 'Formát čísla zálohovej faktúry', 'text', 'Pri vlastnom rade, napr. ZF{RRRR}{nnn} → ZF2026001.' ),
 			'format_creditnote' => array( 'Formát čísla dobropisu', 'text', 'Pri vlastnom rade, napr. D{RRRR}{nnn} → D2026001.' ),
-			'auto'      => array( 'Vystaviť faktúru automaticky z objednávky', 'checkbox', 'Prevod na účet: keď je objednávka zaplatená. Dobierka, osobný odber a ostatné: keď je objednávka vybavená. Kým beží Woo Faktura, automatika nefunguje.' ),
+			'next_issued'     => array( 'Pokračovať od čísla – faktúry', 'int', 'Pri vlastnom rade: poradové číslo ďalšej faktúry v tomto roku (napr. podľa počítadla Woo Faktury). 0 = automaticky nasleduje za poslednou faktúrou. Menšie číslo, než je už použité, sa ignoruje.' ),
+			'next_proforma'   => array( 'Pokračovať od čísla – zálohové faktúry', 'int', '' ),
+			'next_creditnote' => array( 'Pokračovať od čísla – dobropisy', 'int', '' ),
 			'auto_proforma'   => array( 'Zálohová faktúra pri platbe prevodom', 'checkbox', 'Vystaví sa hneď, keď objednávka s platbou prevodom prejde do stavu Čaká na platbu (Pozastavené).' ),
 			'auto_creditnote' => array( 'Dobropis pri vrátení peňazí', 'checkbox', 'Pri vrátení peňazí (Refund) vo WooCommerce sa k faktúre vystaví dobropis na vrátenú sumu.' ),
 			'transfer_methods' => array( 'Platby prevodom na účet', 'text', 'Kódy spôsobov platby oddelené čiarkou (predvolene bacs = Priamy bankový prevod).' ),
@@ -156,6 +184,8 @@ add_action( 'admin_post_jinv_save_settings', function () {
 				$out[ $k ] = empty( $in[ $k ] ) ? 0 : 1;
 			} elseif ( 'select' === $f[1] ) {
 				$out[ $k ] = isset( $in[ $k ], $f[3][ $in[ $k ] ] ) ? $in[ $k ] : $out[ $k ];
+			} elseif ( 'int' === $f[1] ) {
+				$out[ $k ] = max( 0, min( 99999999, (int) ( isset( $in[ $k ] ) ? $in[ $k ] : 0 ) ) );
 			} elseif ( 'number' === $f[1] ) {
 				$out[ $k ] = max( 0, min( 365, (int) ( isset( $in[ $k ] ) ? $in[ $k ] : 14 ) ) );
 			} elseif ( 'email' === $f[1] ) {
@@ -175,6 +205,9 @@ add_action( 'admin_post_jinv_save_settings', function () {
 		if ( false === strpos( (string) $out[ $fk ], '{n' ) ) {
 			$out[ $fk ] = $fd;
 		}
+	}
+	if ( 'doklady' === $section ) {
+		$out['next_year'] = (int) current_time( 'Y' ); // počiatočné čísla platia v roku, keď boli zadané
 	}
 	$out['transfer_methods'] = implode( ',', array_filter( array_map( 'sanitize_key', explode( ',', (string) $out['transfer_methods'] ) ) ) );
 	update_option( 'jinv_settings', $out, false );

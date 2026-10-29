@@ -50,6 +50,14 @@ add_action( 'admin_post_jinv_action', function () {
 			set_transient( 'jinv_err_' . get_current_user_id(), $r->get_error_message(), 60 );
 		}
 		$id = is_wp_error( $r ) ? 0 : (int) $r;
+	} elseif ( 'regen' === $do ) {
+		$r   = jinv_regenerate_doc( $id );
+		$msg = is_wp_error( $r ) ? 'err' : 'regenerated';
+		if ( is_wp_error( $r ) ) {
+			set_transient( 'jinv_err_' . get_current_user_id(), $r->get_error_message(), 60 );
+		} else {
+			$id = (int) $r;
+		}
 	} elseif ( 'send' === $do ) {
 		$r   = jinv_send_doc( $id );
 		$msg = is_wp_error( $r ) ? 'senderr' : 'sent';
@@ -101,6 +109,7 @@ function jinv_render_admin( $tab = 'issued' ) {
 	$view = isset( $_GET['view'] ) ? (int) $_GET['view'] : 0; // phpcs:ignore
 	$msgs = array(
 		'created'   => 'Doklad je vystavený.',
+		'regenerated' => 'Doklad je pregenerovaný podľa aktuálnej objednávky.',
 		'paid'      => 'Doklad je označený ako uhradený.',
 		'unpaid'    => 'Doklad je znova neuhradený.',
 		'cancelled' => 'Doklad je stornovaný.',
@@ -210,6 +219,9 @@ function jinv_render_view( $id ) {
 		<?php if ( 'cancelled' !== $inv['status'] && $inv['customer_email'] && ( ! $wf || $wf_f ) ) : ?>
 			<a class="button" href="<?php echo esc_url( jinv_action_url( 'send', $id, $back ) ); ?>" onclick="return confirm('Poslať doklad <?php echo esc_js( $inv['number'] ); ?> e-mailom na <?php echo esc_js( $inv['customer_email'] ); ?>?');"><?php echo $inv['sent_at'] ? 'Poslať znova e-mailom' : 'Poslať e-mailom'; ?></a>
 		<?php endif; ?>
+		<?php if ( 'cancelled' !== $inv['status'] && $o && in_array( $inv['kind'], array( 'issued', 'proforma' ), true ) ) : ?>
+			<a class="button" href="<?php echo esc_url( jinv_action_url( 'regen', $id, '' ) ); ?>" onclick="return confirm('<?php echo esc_js( jinv_regen_confirm( $inv ) ); ?>');" title="Vytvorí doklad znova z aktuálnej objednávky">Pregenerovať</a>
+		<?php endif; ?>
 		<?php if ( 'issued' === $inv['status'] ) : ?><a class="button" href="<?php echo esc_url( jinv_action_url( 'paid', $id, $back ) ); ?>">Označiť ako uhradený</a><?php endif; ?>
 		<?php if ( 'paid' === $inv['status'] ) : ?><a class="button" href="<?php echo esc_url( jinv_action_url( 'unpaid', $id, $back ) ); ?>">Zrušiť úhradu</a><?php endif; ?>
 		<?php if ( 'cancelled' !== $inv['status'] ) : ?><a class="button jinv-danger" href="<?php echo esc_url( jinv_action_url( 'cancel', $id, $back ) ); ?>" onclick="return confirm('Stornovať doklad <?php echo esc_js( $inv['number'] ); ?>? Číslo ostane obsadené.');">Stornovať</a><?php endif; ?>
@@ -270,7 +282,7 @@ function jinv_render_settings() {
 								<?php elseif ( 'checkbox' === $f[1] ) : ?>
 									<label><input id="jinv-<?php echo esc_attr( $k ); ?>" type="checkbox" name="<?php echo esc_attr( $k ); ?>" value="1" <?php checked( ! empty( $s[ $k ] ) ); ?>> áno</label>
 								<?php else : ?>
-									<input id="jinv-<?php echo esc_attr( $k ); ?>" type="<?php echo esc_attr( $f[1] ); ?>" name="<?php echo esc_attr( $k ); ?>" value="<?php echo esc_attr( (string) $s[ $k ] ); ?>" class="<?php echo 'number' === $f[1] ? 'small-text' : 'regular-text'; ?>">
+									<input id="jinv-<?php echo esc_attr( $k ); ?>" type="<?php echo esc_attr( 'int' === $f[1] ? 'number' : $f[1] ); ?>" name="<?php echo esc_attr( $k ); ?>" value="<?php echo esc_attr( (string) $s[ $k ] ); ?>" class="<?php echo in_array( $f[1], array( 'number', 'int' ), true ) ? 'small-text' : 'regular-text'; ?>"<?php echo 'int' === $f[1] ? ' min="0"' : ''; ?>>
 								<?php endif; ?>
 								<?php if ( $f[2] ) : ?><p class="description"><?php echo esc_html( $f[2] ); ?></p><?php endif; ?>
 							</td>
@@ -286,4 +298,12 @@ function jinv_render_settings() {
 		<?php submit_button( 'Uložiť nastavenia' ); ?>
 	</form>
 	<?php
+}
+
+/** Text potvrdenia pred pregenerovaním podľa nastavení. */
+function jinv_regen_confirm( array $inv ) {
+	$what = mb_strtolower( jinv_kind_label( $inv['kind'] ) );
+	$num  = 'new' === jinv_opt( 'regen_number' ) ? 'dostane nové číslo a pôvodná č. ' . $inv['number'] . ' sa stornuje' : 'ponechá si číslo ' . $inv['number'];
+	$date = 'keep' === jinv_opt( 'regen_date' ) ? 'pôvodný dátum vystavenia' : 'dnešný dátum vystavenia';
+	return 'Pregenerovať ' . $what . ' podľa aktuálnej objednávky? Doklad ' . $num . ', ' . $date . '. E-mail zákazníkovi sa nepošle.';
 }
