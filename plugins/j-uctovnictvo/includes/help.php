@@ -20,7 +20,7 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		array(
 			'Každý zápis má účet MD a účet Dal – kniha je vždy vyrovnaná. Zaúčtovaný doklad sa nemení; oprava = Stornovať (vznikne doklad so zápornými sumami) a nový doklad.',
 			'Automaticky: vydaná faktúra 311/604 (tovar) a 311/602 (doprava, poplatky), dobropis so zápornou sumou, prijatá faktúra podľa kategórie (napr. Hosting → 518) / 321, úhrady z banky 221/311 a 321/221, platba zálohy alebo objednávky 221/324 a pri faktúre 324/311, bankový poplatok 568/221, transakčná daň 538/221.',
-			'J-Sklad (spôsob A): príjemka 132/131, predaný tovar za ukončený mesiac 504/132 v nákupných cenách, manko 549/132, prebytok 132/504.',
+			'J-Sklad (spôsob A): príjemka 132/131, predaný tovar za ukončený mesiac 504/132 v nákupných cenách, manko 549/132, prebytok 132/648.',
 			'Keď sa zdrojový doklad zmení (pregenerovaná faktúra, spárovanie platby, storno), pôvodný zápis sa stornuje a zaúčtuje sa nový. Opakované účtovanie nič nezdvojí.',
 			'Na zaúčtovanie: pohyby v banke bez faktúry (nákup kartou, vklad, výplata dobierok…) – vyberiete predkontáciu alebo účet a kliknete Zaúčtovať.',
 		),

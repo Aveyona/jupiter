@@ -27,6 +27,7 @@ function jhelp_menu_order() {
 		'j-invoices' => 30,
 		'j-uctovnictvo' => 35,
 		'j-emails'   => 40,
+		'j-notes'    => 45,
 		'j-help'     => 1000,
 	) );
 }

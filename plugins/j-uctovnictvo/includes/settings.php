@@ -40,7 +40,7 @@ function juc_defaults() {
 		'acc_goods'      => '132',
 		'acc_cogs'       => '504',
 		'acc_inv_minus'  => '549',
-		'acc_inv_plus'   => '504',
+		'acc_inv_plus'   => '648',
 		'acc_bank_fees'  => '568',
 		'acc_tx_tax'     => '538',
 		'acc_interest'   => '662',

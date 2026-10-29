@@ -15,7 +15,7 @@
  *  úhrada zálohy alebo objednávky na účet 221/324, pri faktúre zúčtovanie 324/311;
  *  prijatá faktúra náklad podľa kategórie (Tovar 131 pri metóde A) / 321;
  *  banka: príjem 221/311, výdaj 321/221, poplatok 568/221, transakčná daň 538/221, úrok 221/662;
- *  hotovosť 211, karta / brána 261; J-Sklad: príjemka 132/131, predaj (mesačne) 504/132, manko 549/132, prebytok 132/504.
+ *  hotovosť 211, karta / brána 261; J-Sklad: príjemka 132/131, predaj (mesačne) 504/132, manko 549/132, prebytok 132/648.
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -285,7 +285,7 @@ function juc_build_stock_doc( array $d ) {
 			}
 		}
 		$lines[] = array( 'md' => juc_acc_opt( 'acc_inv_minus', '549' ), 'd' => $goods, 'amount' => round( $minus, 2 ), 'text' => 'Inventúrne manko – ' . $d['number'] );
-		$lines[] = array( 'md' => $goods, 'd' => juc_acc_opt( 'acc_inv_plus', '504' ), 'amount' => round( $plus, 2 ), 'text' => 'Inventúrny prebytok – ' . $d['number'] );
+		$lines[] = array( 'md' => $goods, 'd' => juc_acc_opt( 'acc_inv_plus', '648' ), 'amount' => round( $plus, 2 ), 'text' => 'Inventúrny prebytok – ' . $d['number'] );
 	} else {
 		return null;
 	}

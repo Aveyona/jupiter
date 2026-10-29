@@ -132,7 +132,7 @@ function juc_wiz_step_2( $w, $s ) {
 		<tr><th>Veľkosť účtovnej jednotky</th><td>
 			<label><input type="radio" name="size" value="micro" <?php checked( $s['size'], 'micro' ); ?>> <strong>Mikro účtovná jednotka</strong> – účtovná závierka vo forme pre mikro účtovné jednotky (súvaha a výkaz ziskov a strát Úč MUJ)</label><br>
 			<label><input type="radio" name="size" value="small" <?php checked( $s['size'], 'small' ); ?>> Malá účtovná jednotka (Úč POD)</label>
-			<p class="description">Mikro účtovná jednotka nesmie prekročiť aspoň dve z troch hraníc (§ 2 ods. 5 zákona o účtovníctve): celková suma majetku, čistý obrat, priemerný počet zamestnancov. Nová malá s. r. o. s e-shopom je spravidla mikro účtovná jednotka.</p>
+			<p class="description">Mikro účtovná jednotka nesmie prekročiť aspoň dve z troch hraníc (§ 2 ods. 6 zákona o účtovníctve; od 1. 6. 2024: majetok 450 000 €, čistý obrat 900 000 €, 10 zamestnancov): celková suma majetku, čistý obrat, priemerný počet zamestnancov. Nová malá s. r. o. s e-shopom je spravidla mikro účtovná jednotka.</p>
 		</td></tr>
 		<tr><th>DPH</th><td>
 			<label><input type="radio" name="vat_payer" value="0" <?php checked( (int) $s['vat_payer'], 0 ); ?>> <strong>Neplatiteľ DPH</strong></label><br>
