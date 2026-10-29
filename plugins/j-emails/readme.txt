@@ -4,7 +4,7 @@ Tags: email, imap, smtp, woocommerce, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.3.0
+Stable tag: 0.4.0
 License: GPLv2 or later
 
 E-mailová schránka obchodu priamo v administrácii WordPressu. Súčasť rodiny Jupiter.
@@ -26,6 +26,10 @@ Jupiter Email – pošta obchodu v administrácii WordPressu v štýle Gmailu:
 Pripája sa k schránke cez IMAP a SMTP, nepotrebuje rozšírenie php-imap. Heslo je uložené zašifrované. Poštu vidí len administrátor.
 
 == Changelog ==
+
+= 0.4.0 =
+* Šablóny e-mailov (J-Emails → Šablóny): vzhľad e-mailu s premennými ({obsah}, {meno}, {predmet}…), náhľad, úprava, obnovenie predvolených.
+* Odosielanie podľa šablóny pre iné doplnky (jem_send_template): každému príjemcovi vlastný e-mail, limity za hodinu a počtu príjemcov, záznam odoslaných.
 
 = 0.3.0 =
 * Jupiter Email: nové rozhranie v štýle Gmailu – konverzácie, hviezdičky, Dôležité, Archív, Odložené, Spam, rýchle a hromadné akcie, presun ťahaním, okno Napísať s formátovaním a prílohami, koncepty, aliasy odosielateľa, našepkávanie adries, klávesové skratky.
