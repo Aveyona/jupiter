@@ -24,8 +24,10 @@ define( 'JEM_URL', plugin_dir_url( __FILE__ ) );
 require_once JEM_DIR . 'includes/imap.php';
 require_once JEM_DIR . 'includes/mime.php';
 require_once JEM_DIR . 'includes/settings.php';
+require_once JEM_DIR . 'includes/mailbox.php';
 require_once JEM_DIR . 'includes/send.php';
 require_once JEM_DIR . 'includes/admin.php';
+require_once JEM_DIR . 'includes/api.php';
 require_once JEM_DIR . 'includes/help.php';
 
 register_deactivation_hook( __FILE__, function () {

@@ -233,3 +233,82 @@ function jem_date_ts( $value ) {
 	$ts = strtotime( $v );
 	return $ts ? $ts : 0;
 }
+
+/** HTML → čistý text (náhľad, citácia v odpovedi). */
+function jem_html_to_text( $html ) {
+	$html = preg_replace( '#<(style|script|head|title)\b.*?</\1>#is', ' ', (string) $html );
+	$html = preg_replace( '#<(br|/p|/div|/tr|/h\d|/li|/blockquote)[^>]*>#i', "\n", $html );
+	$text = html_entity_decode( wp_strip_all_tags( $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	return trim( preg_replace( "/\n{3,}/", "\n\n", preg_replace( "/[ \t\x{00A0}]+/u", ' ', str_replace( "\r", '', $text ) ) ) );
+}
+
+/**
+ * Náhľad textu správy (ako v Gmaile) zo začiatku tela – aj keď je časť useknutá.
+ *
+ * @param string $headers surové hlavičky (Content-Type…)
+ * @param string $chunk   začiatok tela (BODY[TEXT]<0.4000>)
+ */
+function jem_snippet( $headers, $chunk, $len = 160 ) {
+	$h = jem_parse_headers( $headers );
+	$t = jem_snippet_part( $h, (string) $chunk, 0 );
+	$t = trim( preg_replace( '/\s+/u', ' ', $t ) );
+	// Bez citácie predošlej správy („> …“, „Dňa … napísal:“).
+	$t = preg_replace( '/\s*(On |Dňa |Dna |Am |Le |\d{1,2}\. ?\d{1,2}\. ?\d{4})[^>]{1,160}?(wrote|napísal|napisal|schrieb|a écrit)\(?a?\)?:.*$/iu', '', $t );
+	$t = preg_replace( '/\s*>.*$/u', '', $t );
+	return mb_strlen( $t ) > $len ? rtrim( mb_substr( $t, 0, $len ) ) . '…' : $t;
+}
+
+function jem_snippet_part( array $h, $body, $depth ) {
+	if ( $depth > 6 ) {
+		return '';
+	}
+	list( $type, $tp ) = jem_header_params( $h['content-type'] ?? 'text/plain' );
+	if ( 0 === strpos( $type, 'multipart/' ) && ! empty( $tp['boundary'] ) ) {
+		$chunks = preg_split( '/^--' . preg_quote( $tp['boundary'], '/' ) . '(?:--)?[ \t]*\r?$/m', $body );
+		array_shift( $chunks );
+		$html = '';
+		foreach ( $chunks as $c ) {
+			list( $ph, $pb ) = jem_split_part( preg_replace( '/^\r?\n/', '', $c ) );
+			$sub             = jem_parse_headers( $ph );
+			list( $st )      = jem_header_params( $sub['content-type'] ?? 'text/plain' );
+			if ( 0 === strpos( $st, 'multipart/' ) || 'text/plain' === $st ) {
+				$r = jem_snippet_part( $sub, $pb, $depth + 1 );
+				if ( '' !== trim( $r ) ) {
+					return $r;
+				}
+			} elseif ( 'text/html' === $st && '' === $html ) {
+				$html = jem_snippet_part( $sub, $pb, $depth + 1 );
+			}
+		}
+		return $html;
+	}
+	if ( 'text/plain' !== $type && 'text/html' !== $type ) {
+		return '';
+	}
+	$enc = strtolower( trim( $h['content-transfer-encoding'] ?? '' ) );
+	if ( 'base64' === $enc ) {
+		$b    = preg_replace( '/[^A-Za-z0-9+\/=]/', '', $body );
+		$body = (string) base64_decode( substr( $b, 0, strlen( $b ) - strlen( $b ) % 4 ) );
+	} elseif ( 'quoted-printable' === $enc ) {
+		$body = quoted_printable_decode( preg_replace( '/=[0-9A-Fa-f]?$/', '', $body ) );
+	}
+	$text = jem_to_utf8( $body, $tp['charset'] ?? '' );
+	$text = mb_check_encoding( $text, 'UTF-8' ) ? $text : mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
+	return 'text/html' === $type ? jem_html_to_text( $text ) : $text;
+}
+
+/** Normalizovaný predmet pre spájanie konverzácií (bez Re:, Fwd:, Odp:, [značiek]). */
+function jem_norm_subject( $s ) {
+	$s = mb_strtolower( trim( (string) $s ) );
+	do {
+		$prev = $s;
+		$s    = trim( preg_replace( '/^((re|aw|odp|fw|fwd|pd|wg|tr|sv|vs)(\[\d+\])?\s*:\s*)/iu', '', $s ) );
+	} while ( $s !== $prev );
+	return $s;
+}
+
+/** Message-ID z hlavičky (aj zoznam z References). */
+function jem_msgids( $value ) {
+	preg_match_all( '/<[^<>\s]+>/', (string) $value, $m );
+	return array_map( 'strtolower', $m[0] );
+}
