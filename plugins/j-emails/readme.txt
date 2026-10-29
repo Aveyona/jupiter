@@ -4,7 +4,7 @@ Tags: email, imap, smtp, woocommerce, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 
 E-mailová schránka obchodu priamo v administrácii WordPressu. Súčasť rodiny Jupiter.
@@ -16,6 +16,9 @@ Doručená pošta, Odoslané a Kôš ako samostatné stránky, čítanie správ 
 Pripravuje sa: HTML odpovede, šablóny odpovedí, prepojenie s Mailchimpom pre zákazníkov e-shopu.
 
 == Changelog ==
+
+= 0.2.1 =
+* Bezpečnejšie zobrazenie HTML e-mailov, náhradné odoslanie pri zlyhaní SMTP s upozornením, šetrný presun do koša, diakritika v hľadaní.
 
 = 0.2.0 =
 * E-maily webu (objednávky, faktúry, registrácia) sa posielajú cez SMTP schránky – nepadajú do spamu. Odosielateľ z cudzej domény sa nahradí adresou schránky.

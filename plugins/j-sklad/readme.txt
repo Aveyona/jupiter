@@ -4,7 +4,7 @@ Tags: woocommerce, stock, inventory, warehouse, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.1.2
+Stable tag: 0.2.3
 License: GPLv2 or later
 
 Sklad pre WooCommerce: príjemky, výdajky, kniha pohybov zásob a hodnota skladu. Súčasť rodiny Jupiter.
@@ -22,6 +22,9 @@ Zásoba ostáva v produktoch WooCommerce (Spravovať zásoby, Množstvo na sklad
 Pripravuje sa: inventúra, PDF dokladov, import príjemky z CSV, dodávatelia, prepojenie s J-Fakturáciou, viac skladov.
 
 == Changelog ==
+
+= 0.2.3 =
+* Knižnica médií skrýva len používané obrázky produktov, ochrana dokladov pred dvojitým zaúčtovaním, výdajka nepôjde do mínusu, varianty so zásobou hlavného produktu.
 
 = 0.1.2 =
 * Prehľad skladu: fotka produktu, väčší názov, cena a stav zásoby; pri zľave aj pôvodná cena.
