@@ -15,7 +15,7 @@ add_action( 'admin_menu', function () {
 } );
 
 add_action( 'admin_enqueue_scripts', function ( $hook ) {
-	if ( false !== strpos( (string) $hook, 'j-sklad' ) || ( 'post.php' === $hook && 'product' === get_post_type() ) ) {
+	if ( false !== strpos( (string) $hook, 'j-sklad' ) || ( in_array( $hook, array( 'post.php', 'post-new.php', 'edit.php' ), true ) && 'product' === ( get_post_type() ? get_post_type() : ( $_GET['post_type'] ?? '' ) ) ) ) { // phpcs:ignore
 		wp_enqueue_style( 'j-sklad', JSK_URL . 'assets/admin.css', array(), JSK_VERSION );
 	}
 } );
