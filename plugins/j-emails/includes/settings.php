@@ -105,7 +105,7 @@ function jem_connect() {
  */
 function jem_folder_map( JEM_Imap $imap ) {
 	$cached = get_transient( 'jem_folders' );
-	if ( ! is_array( $cached ) ) {
+	if ( ! is_array( $cached ) || ! array_key_exists( 'snoozed', $cached ) ) { // aj pamäť zo starej verzie (bez Archívu, Spamu…)
 		$cached = array( 'inbox' => 'INBOX', 'sent' => '', 'trash' => '', 'archive' => '', 'spam' => '', 'snoozed' => '', 'drafts' => '' );
 		$list   = $imap->folders();
 		$names  = array(

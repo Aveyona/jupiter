@@ -91,6 +91,8 @@ add_action( 'wp_ajax_jem_boot', function () {
 			'trash'   => '' !== $map['trash'],
 			'sent'    => '' !== $map['sent'],
 		),
+		'folders'  => array_map( 'jem_folder_label', array_diff_key( $map, array( 'all' => 1 ) ) ),
+		'all'      => array_map( 'jem_folder_label', (array) ( $map['all'] ?? array() ) ),
 		'signature' => (string) jem_opt( 'signature' ),
 		'per'       => max( 10, min( 100, (int) jem_opt( 'per_page' ) ) ),
 	);
@@ -571,11 +573,15 @@ add_action( 'wp_ajax_jem_draft', function () {
 	if ( '' === $id || ! isset( $all[ $id ] ) ) {
 		$id = strtolower( wp_generate_password( 12, false ) );
 	}
+	// Adresy „Meno <adresa>“ – sanitize_text_field by časť <…> zmazal ako HTML značku.
+	$addr       = function ( $v ) {
+		return mb_substr( trim( preg_replace( '/[\r\n\t]+/', ' ', wp_check_invalid_utf8( (string) $v ) ) ), 0, 2000 );
+	};
 	$all[ $id ] = array(
 		'from'     => sanitize_email( (string) jem_in( 'from' ) ),
-		'to'       => sanitize_text_field( (string) jem_in( 'to' ) ),
-		'cc'       => sanitize_text_field( (string) jem_in( 'cc' ) ),
-		'bcc'      => sanitize_text_field( (string) jem_in( 'bcc' ) ),
+		'to'       => $addr( jem_in( 'to' ) ),
+		'cc'       => $addr( jem_in( 'cc' ) ),
+		'bcc'      => $addr( jem_in( 'bcc' ) ),
 		'subject'  => sanitize_text_field( (string) jem_in( 'subject' ) ),
 		'html'     => wp_kses_post( (string) jem_in( 'html' ) ),
 		'mode'     => sanitize_key( (string) jem_in( 'mode', 'new' ) ),
