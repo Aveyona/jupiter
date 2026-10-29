@@ -16,3 +16,6 @@ jobs:
           files=$(find . -name '*.php' -not -path './vendor/*')
           [ -z "$files" ] && echo "zatiaľ žiadne PHP súbory" && exit 0
           echo "$files" | xargs -n1 php -l
+      - name: Kontrola verzií (hlavička, konštanta, updates.json)
+        if: matrix.php == '8.3'
+        run: php .github/scripts/check-versions.php
