@@ -83,3 +83,7 @@ a.juc-chip { max-width: 520px; overflow: hidden; text-overflow: ellipsis; vertic
 .juc-log { list-style: none; margin: 0; padding: 0; max-width: 820px; }
 .juc-log li { padding: 8px 12px; border-left: 3px solid #DCDCDE; margin-bottom: 8px; background: #FFFFFF; }
 .juc-cards > div > a { display: block; font-size: 12px; margin-top: 4px; }
+.juc-prio { font-size: 12px; min-height: 26px; border-radius: 12px; padding: 0 22px 0 8px; font-weight: 600; }
+.juc-prio-1 { background-color: #FCE7E7; color: #8A1F11; border-color: #E6A5A0; }
+.juc-prio-2 { background-color: #FFF2CC; color: #6B4E00; border-color: #E3C766; }
+.juc-prio-3 { background-color: #F0F0F1; color: #50575E; }

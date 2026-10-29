@@ -29,6 +29,17 @@ function juc_issue_statuses() {
 	return array( 'open' => 'Čaká', 'doing' => 'Rieši sa', 'done' => 'Hotové', 'dismissed' => 'Netreba riešiť' );
 }
 
+/** Priorita: 1 = najvyššia. */
+function juc_issue_priorities() {
+	return array( 1 => 'Vysoká', 2 => 'Stredná', 3 => 'Nízka' );
+}
+
+/** Priorita chýbajúceho dokladu podľa sumy. */
+function juc_issue_amount_priority( $amount ) {
+	$a = abs( (float) $amount );
+	return $a >= 100 ? 1 : ( $a >= 10 ? 2 : 3 );
+}
+
 function juc_issue_owners() {
 	return array( 'me' => 'Ja', 'accountant' => 'Účtovník' );
 }
@@ -119,11 +130,14 @@ function juc_issues_detect() {
 			$who  = trim( (string) $t['counter_name'] );
 			$what = $who ? $who : trim( preg_replace( '/^(Nákup|Kredit):\s*/u', '', (string) $t['message'] ) );
 			$what = mb_substr( preg_replace( '/,.*$/u', '', $what ), 0, 60 );
+			if ( '' === $what && $t['vs'] ) {
+				$what = 'platba VS ' . $t['vs'];
+			}
 			$out[ 'banktx:' . $t['id'] ] = array(
 				'kind'      => 'missing',
 				'title'     => 'Chýba doklad: ' . ( $what ? $what : $t['tx_type'] ) . ' ' . juc_money( $t['amount'] ) . ' € (' . juc_date( $t['tx_date'] ) . ')',
 				'body'      => trim( $t['message'] . ( $t['vs'] ? ' · VS ' . $t['vs'] : '' ) . ' · ' . $t['tx_type'], ' ·' ) . "\nDoplňte faktúru (J-Fakturácia → Prijaté faktúry a spárujte s pohybom v Banke) alebo zaúčtujte pohyb v „Na zaúčtovanie“.",
-				'priority'  => 2,
+				'priority'  => juc_issue_amount_priority( $t['amount'] ),
 				'link_type' => 'banktx',
 				'link_id'   => (string) $t['id'],
 			);
@@ -265,20 +279,20 @@ add_action( 'juc_issues_daily', function () {
 /** Súhrn otvorených položiek v Markdowne (úlohy - [ ] / - [~]). */
 function juc_issues_markdown() {
 	global $wpdb;
-	$rows  = (array) $wpdb->get_results( 'SELECT * FROM ' . juc_t( 'issues' ) . " WHERE status IN ('open','doing') ORDER BY priority, (due IS NULL), due, kind, id", ARRAY_A ); // phpcs:ignore
+	$rows  = (array) $wpdb->get_results( 'SELECT * FROM ' . juc_t( 'issues' ) . " WHERE status IN ('open','doing') ORDER BY priority, (due IS NULL), due, FIELD(kind,'deadline','check','decision','question','task','missing','note'), id", ARRAY_A ); // phpcs:ignore
 	$kinds = juc_issue_kinds();
-	$md    = "# Na riešenie – účtovníctvo\n\nPrehľad z J-Účtovníctva → Na riešenie (aktualizované " . date_i18n( 'j. n. Y H:i' ) . "). Otvorených položiek: " . count( $rows ) . ".\n";
+	$md    = "# Na riešenie – účtovníctvo\n\nPrehľad z J-Účtovníctva → Na riešenie (aktualizované " . date_i18n( 'j. n. Y H:i' ) . "), zoradený podľa priority. Otvorených položiek: " . count( $rows ) . ".\n";
 	$group = array();
 	foreach ( $rows as $r ) {
-		$group[ $r['kind'] ][] = $r;
+		$group[ (int) $r['priority'] ][] = $r;
 	}
-	foreach ( array( 'deadline', 'check', 'decision', 'question', 'task', 'missing', 'note' ) as $k ) {
-		if ( empty( $group[ $k ] ) ) {
+	foreach ( juc_issue_priorities() as $p => $pl ) {
+		if ( empty( $group[ $p ] ) ) {
 			continue;
 		}
-		$md .= "\n## " . $kinds[ $k ] . ' (' . count( $group[ $k ] ) . ")\n\n";
-		foreach ( $group[ $k ] as $r ) {
-			$md .= '- [' . ( 'doing' === $r['status'] ? '~' : ' ' ) . '] ' . $r['title'] . ( $r['due'] ? ' – termín ' . juc_date( $r['due'] ) : '' ) . ( 'accountant' === $r['owner'] ? ' (účtovník)' : '' ) . "\n";
+		$md .= "\n## Priorita: " . $pl . ' (' . count( $group[ $p ] ) . ")\n\n";
+		foreach ( $group[ $p ] as $r ) {
+			$md .= '- [' . ( 'doing' === $r['status'] ? '~' : ' ' ) . '] ' . ( in_array( $r['kind'], array( 'missing', 'check', 'deadline' ), true ) ? '' : $kinds[ $r['kind'] ] . ': ' ) . $r['title'] . ( $r['due'] ? ' – termín ' . juc_date( $r['due'] ) : '' ) . ( 'accountant' === $r['owner'] ? ' (účtovník)' : '' ) . "\n";
 		}
 	}
 	return $md;
@@ -333,6 +347,22 @@ add_action( 'admin_post_juc_issue_status', function () {
 		juc_issue_save( array( 'status' => $st ), $id );
 	}
 	wp_cache_delete( 'juc_issues_n', 'juc' );
+	wp_safe_redirect( wp_get_referer() ? wp_get_referer() : juc_url( 'j-uctovnictvo-issues' ) );
+	exit;
+} );
+
+add_action( 'admin_post_juc_issue_prio', function () {
+	if ( ! current_user_can( JUC_CAP ) ) {
+		wp_die( 'Nemáte oprávnenie.' );
+	}
+	$id = (int) ( $_GET['id'] ?? 0 ); // phpcs:ignore
+	check_admin_referer( 'juc_issue_status_' . $id );
+	$p   = max( 1, min( 3, (int) ( $_GET['p'] ?? 2 ) ) ); // phpcs:ignore
+	$old = juc_issue( $id );
+	if ( $old && (int) $old['priority'] !== $p ) {
+		juc_issue_save( array( 'priority' => $p ), $id );
+		juc_issue_log( $id, 'Priorita: ' . juc_issue_priorities()[ (int) $old['priority'] ] . ' → ' . juc_issue_priorities()[ $p ] . '.' );
+	}
 	wp_safe_redirect( wp_get_referer() ? wp_get_referer() : juc_url( 'j-uctovnictvo-issues' ) );
 	exit;
 } );
@@ -416,14 +446,14 @@ add_action( 'admin_post_juc_issues_print', function () {
 	$owner = sanitize_key( $_GET['owner'] ?? '' ); // phpcs:ignore
 	$kind  = sanitize_key( $_GET['kind'] ?? '' ); // phpcs:ignore
 	$w     = "status IN ('open','doing')" . ( $owner ? $wpdb->prepare( ' AND owner = %s', $owner ) : '' ) . ( $kind ? $wpdb->prepare( ' AND kind = %s', $kind ) : '' );
-	$rows  = (array) $wpdb->get_results( 'SELECT * FROM ' . juc_t( 'issues' ) . " WHERE $w ORDER BY kind, priority, id", ARRAY_A ); // phpcs:ignore
+	$rows  = (array) $wpdb->get_results( 'SELECT * FROM ' . juc_t( 'issues' ) . " WHERE $w ORDER BY priority, (due IS NULL), due, kind, id", ARRAY_A ); // phpcs:ignore
 	$t     = 'accountant' === $owner ? 'Otázky a úlohy pre účtovníka' : 'Na riešenie – účtovníctvo';
 	if ( function_exists( 'juc_cash_print_head' ) ) {
 		juc_cash_print_head( $t );
 	}
-	echo '<h1>' . esc_html( $t ) . '</h1><p>Stav k ' . esc_html( date_i18n( 'j. n. Y' ) ) . ', otvorených ' . count( $rows ) . '.</p><table><thead><tr><th>#</th><th>Druh</th><th>Položka</th><th>Termín</th><th style="width:35%">Poznámka / odpoveď</th></tr></thead><tbody>';
+	echo '<h1>' . esc_html( $t ) . '</h1><p>Stav k ' . esc_html( date_i18n( 'j. n. Y' ) ) . ', otvorených ' . count( $rows ) . '.</p><table><thead><tr><th>#</th><th>Priorita</th><th>Druh</th><th>Položka</th><th>Termín</th><th style="width:35%">Poznámka / odpoveď</th></tr></thead><tbody>';
 	foreach ( $rows as $i => $r ) {
-		echo '<tr><td>' . (int) ( $i + 1 ) . '</td><td>' . esc_html( juc_issue_kinds()[ $r['kind'] ] ?? '' ) . '</td><td><strong>' . esc_html( $r['title'] ) . '</strong>' . ( $r['body'] ? '<br><small>' . nl2br( esc_html( $r['body'] ) ) . '</small>' : '' ) . '</td><td>' . esc_html( $r['due'] ? juc_date( $r['due'] ) : '' ) . '</td><td></td></tr>';
+		echo '<tr><td>' . (int) ( $i + 1 ) . '</td><td>' . esc_html( juc_issue_priorities()[ (int) $r['priority'] ] ?? '' ) . '</td><td>' . esc_html( juc_issue_kinds()[ $r['kind'] ] ?? '' ) . '</td><td><strong>' . esc_html( $r['title'] ) . '</strong>' . ( $r['body'] ? '<br><small>' . nl2br( esc_html( $r['body'] ) ) . '</small>' : '' ) . '</td><td>' . esc_html( $r['due'] ? juc_date( $r['due'] ) : '' ) . '</td><td></td></tr>';
 	}
 	echo '</tbody></table></body></html>';
 	exit;
@@ -451,7 +481,7 @@ function juc_page_issues() {
 	$w       .= $f_kind ? $wpdb->prepare( ' AND kind = %s', $f_kind ) : '';
 	$w       .= $f_owner ? $wpdb->prepare( ' AND owner = %s', $f_owner ) : '';
 	$w       .= '' !== $s ? $wpdb->prepare( ' AND (title LIKE %s OR body LIKE %s)', '%' . $wpdb->esc_like( $s ) . '%', '%' . $wpdb->esc_like( $s ) . '%' ) : '';
-	$rows     = (array) $wpdb->get_results( 'SELECT * FROM ' . juc_t( 'issues' ) . " WHERE $w ORDER BY FIELD(status,'doing','open','done','dismissed'), priority, (due IS NULL), due, FIELD(kind,'deadline','check','decision','question','task','missing','note'), id DESC LIMIT 500", ARRAY_A ); // phpcs:ignore
+	$rows     = (array) $wpdb->get_results( 'SELECT * FROM ' . juc_t( 'issues' ) . " WHERE $w ORDER BY " . ( in_array( $f_status, array( 'active', 'open', 'doing' ), true ) ? '' : "FIELD(status,'doing','open','done','dismissed'), " ) . "priority, (due IS NULL), due, FIELD(status,'doing','open'), FIELD(kind,'deadline','check','decision','question','task','missing','note'), id DESC LIMIT 500", ARRAY_A ); // phpcs:ignore
 	$cnt      = array();
 	foreach ( (array) $wpdb->get_results( 'SELECT kind, COUNT(*) n FROM ' . juc_t( 'issues' ) . " WHERE status IN ('open','doing') GROUP BY kind", ARRAY_A ) as $c ) { // phpcs:ignore
 		$cnt[ $c['kind'] ] = (int) $c['n'];
@@ -481,9 +511,9 @@ function juc_page_issues() {
 		<button class="button-link">Skontrolovať teraz</button> <span class="juc-muted"><?php echo $last ? 'naposledy ' . esc_html( date_i18n( 'j. n. H:i', strtotime( $last ) ) ) : ''; ?></span>
 	</form>
 	<table class="widefat striped juc-table juc-issues">
-		<thead><tr><th>Druh</th><th>Položka</th><th>Väzba</th><th>Kto</th><th>Termín</th><th>Stav</th><th></th></tr></thead>
+		<thead><tr><th>Priorita</th><th>Druh</th><th>Položka</th><th>Väzba</th><th>Kto</th><th>Termín</th><th>Stav</th><th></th></tr></thead>
 		<tbody>
-		<?php if ( ! $rows ) : ?><tr><td colspan="7" class="juc-ok">✓ Nič na riešenie.</td></tr><?php endif; ?>
+		<?php if ( ! $rows ) : ?><tr><td colspan="8" class="juc-ok">✓ Nič na riešenie.</td></tr><?php endif; ?>
 		<?php foreach ( $rows as $r ) :
 			$nonce = wp_create_nonce( 'juc_issue_status_' . $r['id'] );
 			$su    = function ( $st ) use ( $r, $nonce ) {
@@ -491,8 +521,9 @@ function juc_page_issues() {
 			};
 			?>
 			<tr class="juc-p<?php echo (int) $r['priority']; ?> juc-st-<?php echo esc_attr( $r['status'] ); ?>">
+				<td><select class="juc-prio juc-prio-<?php echo (int) $r['priority']; ?>" data-url="<?php echo esc_url( admin_url( 'admin-post.php?action=juc_issue_prio&id=' . (int) $r['id'] . '&_wpnonce=' . $nonce ) ); ?>" aria-label="Priorita"><?php foreach ( juc_issue_priorities() as $pk => $pl ) : ?><option value="<?php echo (int) $pk; ?>" <?php selected( (int) $r['priority'], $pk ); ?>><?php echo esc_html( $pl ); ?></option><?php endforeach; ?></select></td>
 				<td><?php echo juc_issue_badge( $r ); // phpcs:ignore ?></td>
-				<td><a href="<?php echo esc_url( juc_url( 'j-uctovnictvo-issues', array( 'issue' => $r['id'] ) ) ); ?>"><strong><?php echo esc_html( $r['title'] ); ?></strong></a><?php echo 1 === (int) $r['priority'] ? ' <span class="juc-warn">!</span>' : ''; ?><?php echo $r['auto_key'] ? ' <small class="juc-muted">(automaticky)</small>' : ''; ?></td>
+				<td><a href="<?php echo esc_url( juc_url( 'j-uctovnictvo-issues', array( 'issue' => $r['id'] ) ) ); ?>"><strong><?php echo esc_html( $r['title'] ); ?></strong></a><?php echo $r['auto_key'] ? ' <small class="juc-muted">(automaticky)</small>' : ''; ?></td>
 				<td><?php echo juc_issue_link( $r ); // phpcs:ignore ?></td>
 				<td><?php echo esc_html( juc_issue_owners()[ $r['owner'] ] ?? '' ); ?></td>
 				<td><?php echo esc_html( $r['due'] ? juc_date( $r['due'] ) : '' ); ?></td>
@@ -509,7 +540,8 @@ function juc_page_issues() {
 		<?php endforeach; ?>
 		</tbody>
 	</table>
-	<p class="description">Automatické položky (chýbajúci doklad, nesúlad banky, faktúry po splatnosti, termíny) vytvára a zatvára kontrola sama – po hodinovom automatickom účtovaní, každé ráno a pri otvorení tejto stránky. Súhrn otvorených položiek sa každé ráno zapíše do poznámky „Na riešenie – účtovníctvo“ v J-Notes.</p>
+	<script>document.querySelectorAll('.juc-prio').forEach(function(s){s.addEventListener('change',function(){location.href=s.dataset.url+'&p='+s.value;});});</script>
+	<p class="description">Zoradené podľa priority (vysoká hore), potom podľa termínu. Prioritu zmeníte priamo v zozname. Chýbajúci doklad dostane prioritu podľa sumy: od 100 € vysoká, od 10 € stredná, inak nízka. Automatické položky (chýbajúci doklad, nesúlad banky, faktúry po splatnosti, termíny) vytvára a zatvára kontrola sama – po hodinovom automatickom účtovaní, každé ráno a pri otvorení tejto stránky. Súhrn otvorených položiek sa každé ráno zapíše do poznámky „Na riešenie – účtovníctvo“ v J-Notes.</p>
 	</div>
 	<?php
 }
@@ -536,7 +568,7 @@ function juc_render_issue( $id ) {
 			<label>Druh<br><select name="kind" <?php disabled( $auto ); ?>><?php foreach ( juc_issue_kinds() as $k => $l ) : if ( ! $auto && in_array( $k, array( 'missing', 'check' ), true ) && $v( 'kind' ) !== $k ) { continue; } ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $v( 'kind', 'task' ), $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
 			<label>Kto rieši<br><select name="owner"><?php foreach ( juc_issue_owners() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $v( 'owner', 'me' ), $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
 			<label>Stav<br><select name="status"><?php foreach ( juc_issue_statuses() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $v( 'status', 'open' ), $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
-			<label>Priorita<br><select name="priority"><option value="1" <?php selected( $v( 'priority', '2' ), '1' ); ?>>vysoká</option><option value="2" <?php selected( $v( 'priority', '2' ), '2' ); ?>>bežná</option><option value="3" <?php selected( $v( 'priority', '2' ), '3' ); ?>>nízka</option></select></label>
+			<label>Priorita<br><select name="priority"><?php foreach ( juc_issue_priorities() as $pk => $pl ) : ?><option value="<?php echo (int) $pk; ?>" <?php selected( (int) $v( 'priority', '2' ), $pk ); ?>><?php echo esc_html( $pl ); ?></option><?php endforeach; ?></select></label>
 			<label>Termín<br><input type="date" name="due" value="<?php echo esc_attr( $v( 'due' ) ); ?>"></label>
 			<label>Väzba<br><select name="link_type" <?php disabled( $auto ); ?>><?php foreach ( juc_issue_link_types() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $v( 'link_type' ), $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
 			<label>ID / číslo (doklad, účet, rok…)<br><input name="link_id" value="<?php echo esc_attr( $v( 'link_id' ) ); ?>" <?php disabled( $auto ); ?> style="width:140px"></label>

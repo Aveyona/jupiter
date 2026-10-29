@@ -30,6 +30,9 @@ Program nenahrádza odborné posúdenie – pred podaním účtovnej závierky a
 
 == Changelog ==
 
+= 0.5.1 =
+* Na riešenie: stĺpec Priorita (vysoká / stredná / nízka) so zmenou priamo v zozname, zoradenie od najvyššej priority, chýbajúci doklad dostane prioritu podľa sumy; súhrn a tlač zoradené podľa priority.
+
 = 0.5.0 =
 * Na riešenie: prehľad úloh, rozhodnutí, otázok pre účtovníka a poznámok so stavom, termínom, prioritou, väzbou na doklad / pohyb v banke / účet / partnera / rok a históriou riešenia.
 * Automatické kontroly: pohyb v banke bez dokladu, prijatá faktúra bez PDF, faktúra po splatnosti, nesúlad banky s výpisom, záporná pokladňa, termín závierky a DPPO; po vyriešení sa zatvoria samy.
