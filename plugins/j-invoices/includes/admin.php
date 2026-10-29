@@ -263,6 +263,9 @@ function jinv_render_settings() {
 		return;
 	}
 	$all = jinv_setting_fields();
+	if ( 'doklady' === $section ) {
+		jinv_render_presets( $s );
+	}
 	?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="jinv-settings">
 		<?php wp_nonce_field( 'jinv_settings' ); ?>
@@ -306,4 +309,45 @@ function jinv_regen_confirm( array $inv ) {
 	$num  = 'new' === jinv_opt( 'regen_number' ) ? 'dostane nové číslo a pôvodná č. ' . $inv['number'] . ' sa stornuje' : 'ponechá si číslo ' . $inv['number'];
 	$date = 'keep' === jinv_opt( 'regen_date' ) ? 'pôvodný dátum vystavenia' : 'dnešný dátum vystavenia';
 	return 'Pregenerovať ' . $what . ' podľa aktuálnej objednávky? Doklad ' . $num . ', ' . $date . '. E-mail zákazníkovi sa nepošle.';
+}
+
+/** Box „Odporúčané nastavenia“ – predvoľby postupu fakturácie jedným klikom. */
+function jinv_render_presets( array $s ) {
+	$presets = jinv_presets();
+	if ( ! $presets ) {
+		return;
+	}
+	$done   = isset( $_GET['preset_done'] ) ? sanitize_key( wp_unslash( $_GET['preset_done'] ) ) : ''; // phpcs:ignore
+	$fields = array();
+	foreach ( jinv_setting_fields() as $group ) {
+		$fields += $group;
+	}
+	if ( $done && isset( $presets[ $done ] ) ) {
+		echo '<div class="notice notice-success is-dismissible"><p>Nastavené: <strong>' . esc_html( $presets[ $done ]['label'] ) . '</strong>. Hodnoty nižšie sú už uložené – skontroluj ich.</p></div>';
+	}
+	echo '<div class="jinv-presets"><h2>Odporúčané nastavenia</h2><p class="description">Nastaví postup fakturácie naraz. Prepíšu sa len uvedené hodnoty, údaje dodávateľa a ostatné nastavenia ostanú.</p>';
+	foreach ( $presets as $key => $p ) {
+		$lines = array();
+		foreach ( (array) ( $p['values'] ?? array() ) as $k => $v ) {
+			if ( ! isset( $fields[ $k ] ) ) {
+				continue;
+			}
+			$f       = $fields[ $k ];
+			$shown   = isset( $f[3] ) && is_array( $f[3] ) && isset( $f[3][ $v ] ) ? $f[3][ $v ] : ( 'checkbox' === $f[1] ? ( $v ? 'áno' : 'nie' ) : (string) $v );
+			$lines[] = $f[0] . ': ' . $shown;
+		}
+		$active = isset( $s['preset'] ) && $s['preset'] === $key;
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="jinv-preset' . ( $active ? ' is-active' : '' ) . '">';
+		wp_nonce_field( 'jinv_preset' );
+		echo '<input type="hidden" name="action" value="jinv_apply_preset"><input type="hidden" name="preset" value="' . esc_attr( $key ) . '">';
+		echo '<strong>' . esc_html( $p['label'] ) . '</strong>' . ( $active ? ' <span class="jinv-preset-on">nastavené</span>' : '' );
+		if ( ! empty( $p['desc'] ) ) {
+			echo '<p>' . esc_html( $p['desc'] ) . '</p>';
+		}
+		if ( $lines ) {
+			echo '<ul><li>' . implode( '</li><li>', array_map( 'esc_html', $lines ) ) . '</li></ul>';
+		}
+		echo '<button class="button" onclick="return confirm(\'' . esc_js( 'Nastaviť „' . $p['label'] . '“? Uvedené hodnoty sa prepíšu.' ) . '\');">Nastaviť</button></form>';
+	}
+	echo '</div>';
 }

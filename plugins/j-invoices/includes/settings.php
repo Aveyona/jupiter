@@ -45,6 +45,7 @@ function jinv_defaults() {
 		'next_proforma'   => 0,
 		'next_creditnote' => 0,
 		'next_year'       => 0,          // rok, pre ktorý platia počiatočné čísla
+		'preset'          => '',         // naposledy nastavená predvoľba (len informácia)
 		'cod_item'      => 1,            // pri dobierke vždy uviesť položku dobierky
 		'cod_item_name' => 'Dobierka',
 		'company_fields'   => 1,         // pokladňa: Nakupujem na firmu + IČO, DIČ, IČ DPH
@@ -89,6 +90,72 @@ function jinv_settings_sections() {
 		'import'    => array( 'Importy údajov', array() ),
 	);
 }
+
+/**
+ * Odporúčané nastavenia (predvoľby) – tlačidlom ich nastavíš naraz v Nastavenia → Doklady a číslovanie.
+ * Web si môže pridať vlastnú predvoľbu filtrom „jinv_presets“ (napr. v mu-plugine), bez zásahu do doplnku:
+ *
+ *     add_filter( 'jinv_presets', function ( $p ) {
+ *         $p['moj-eshop'] = array( 'label' => 'Môj e-shop', 'desc' => '…', 'values' => array( 'due_days' => 7 ) );
+ *         return $p;
+ *     } );
+ */
+function jinv_presets() {
+	$presets = array(
+		'woo-faktura-manual' => array(
+			'label'  => 'Manuálny postup ako Woo Faktura',
+			'desc'   => 'Číslo faktúry = číslo objednávky; zálohová faktúra pri prevode automaticky, ostrú faktúru vystavuješ pri vybavení (stav Vybavené); pregenerovanie s novým číslom a dnešným dátumom.',
+			'values' => array(
+				'numbering'     => 'order',
+				'auto'          => '0',
+				'auto_proforma' => 1,
+				'fulfil_status' => 'completed',
+				'transfer_when' => 'fulfilled',
+				'regen_number'  => 'new',
+				'regen_date'    => 'today',
+			),
+		),
+		'automatic' => array(
+			'label'  => 'Plná automatika',
+			'desc'   => 'Zálohová faktúra pri prevode, ostrá faktúra sama pri vybavení objednávky (aj pri prevode), dobropis pri vrátení peňazí.',
+			'values' => array(
+				'auto'            => '1',
+				'auto_proforma'   => 1,
+				'auto_creditnote' => 1,
+				'fulfil_status'   => 'completed',
+				'transfer_when'   => 'fulfilled',
+			),
+		),
+	);
+	return (array) apply_filters( 'jinv_presets', $presets );
+}
+
+/** Nastaviť predvoľbu: prepíše len hodnoty predvoľby, ostatné nastavenia ostanú. */
+add_action( 'admin_post_jinv_apply_preset', function () {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		wp_die( 'Nemáte oprávnenie.' );
+	}
+	check_admin_referer( 'jinv_preset' );
+	$key     = sanitize_key( wp_unslash( $_POST['preset'] ?? '' ) );
+	$presets = jinv_presets();
+	if ( ! isset( $presets[ $key ]['values'] ) ) {
+		wp_die( 'Neznáma predvoľba.' );
+	}
+	$out     = wp_parse_args( (array) get_option( 'jinv_settings', array() ), jinv_defaults() );
+	$allowed = array_keys( jinv_defaults() );
+	foreach ( (array) $presets[ $key ]['values'] as $k => $v ) {
+		if ( in_array( $k, $allowed, true ) && is_scalar( $v ) ) {
+			$out[ $k ] = is_int( $v ) ? $v : sanitize_text_field( (string) $v );
+		}
+	}
+	if ( isset( $presets[ $key ]['values']['due_days'] ) ) {
+		$out['due_days'] = max( 0, min( 365, (int) $out['due_days'] ) );
+	}
+	$out['preset'] = $key;
+	update_option( 'jinv_settings', $out, false );
+	wp_safe_redirect( admin_url( 'admin.php?page=j-invoices-settings&section=doklady&preset_done=' . rawurlencode( $key ) ) );
+	exit;
+} );
 
 /** Stavy objednávok WooCommerce bez predpony wc-: kód => názov. */
 function jinv_order_status_options() {
