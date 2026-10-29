@@ -170,9 +170,12 @@ function jsk_render_overview() {
 			if ( ! $p ) {
 				continue;
 			}
-			$trk  = 'yes' === get_post_meta( $pid, '_manage_stock', true );
-			$st   = (float) $p->get_stock_quantity();
-			$cost = jsk_cost( $pid );
+			// Variant so „zásobu spravuje hlavný produkt“: zásoba aj nákupná cena sú pri hlavnom produkte.
+			$trk    = $p->managing_stock();
+			$sid    = $trk ? jsk_stock_id( $p ) : $pid;
+			$shared = $trk && $sid !== (int) $pid;
+			$st     = (float) $p->get_stock_quantity();
+			$cost   = jsk_cost( $sid );
 			$last = jsk_last_move( $pid );
 			$edit = get_edit_post_link( $p->is_type( 'variation' ) ? $p->get_parent_id() : $pid );
 			?>
@@ -180,10 +183,10 @@ function jsk_render_overview() {
 				<td class="jsk-img-col"><a href="<?php echo esc_url( $edit ); ?>" tabindex="-1"><?php echo jsk_thumb( $p, 56 ); // phpcs:ignore ?></a></td>
 				<td class="jsk-pname"><a href="<?php echo esc_url( $edit ); ?>"><?php echo esc_html( $p->get_name() ); ?></a></td>
 				<td><?php echo esc_html( $p->get_sku() ); ?></td>
-				<td class="n jsk-stock"><?php echo $trk ? esc_html( jsk_qty( $st ) ) : '<small class="jsk-muted" title="Zásoby sa pri tomto produkte nesledujú (Zásoby → Spravovať zásoby).">' . ( $p->is_virtual() ? 'služba' : 'nesleduje sa' ) . '</small>'; ?></td>
+				<td class="n jsk-stock"><?php echo $trk ? esc_html( jsk_qty( $st ) ) . ( $shared ? '<br><small class="jsk-muted" title="Zásobu vedie hlavný produkt – spoločná pre všetky jeho varianty.">spoločná</small>' : '' ) : '<small class="jsk-muted" title="Zásoby sa pri tomto produkte nesledujú (Zásoby → Spravovať zásoby).">' . ( $p->is_virtual() ? 'služba' : 'nesleduje sa' ) . '</small>'; ?></td>
 				<td class="n jsk-price"><input type="number" class="jsk-sell" data-id="<?php echo (int) $pid; ?>" value="<?php echo esc_attr( (string) $p->get_regular_price() ); ?>" min="0" step="0.01" placeholder="cena" aria-label="Predajná cena"><?php if ( $p->is_on_sale() && '' !== (string) $p->get_sale_price() ) : ?><br><small class="jsk-sale">v akcii <?php echo esc_html( jsk_money( $p->get_sale_price() ) ); ?></small><?php endif; ?></td>
-				<td class="n"><?php if ( $trk ) : ?><input type="number" class="jsk-cost" data-id="<?php echo (int) $pid; ?>" data-qty="<?php echo esc_attr( max( 0, $st ) ); ?>" value="<?php echo null === $cost ? '' : esc_attr( round( $cost, 4 ) ); ?>" min="0" step="0.01" placeholder="zadať" aria-label="Nákupná cena"><?php else : ?><span class="jsk-muted">—</span><?php endif; ?></td>
-				<td class="n jsk-val"><?php echo null === $cost || ! $trk ? '—' : esc_html( jsk_money( max( 0, $st ) * $cost ) ); ?></td>
+				<td class="n"><?php if ( $trk ) : ?><input type="number" class="jsk-cost" data-id="<?php echo (int) $pid; ?>"<?php echo $shared ? ' data-shared="1"' : ''; ?> data-qty="<?php echo esc_attr( max( 0, $st ) ); ?>" value="<?php echo null === $cost ? '' : esc_attr( round( $cost, 4 ) ); ?>" min="0" step="0.01" placeholder="zadať" aria-label="Nákupná cena"><?php else : ?><span class="jsk-muted">—</span><?php endif; ?></td>
+				<td class="n jsk-val"><?php echo null === $cost || ! $trk ? '—' : ( $shared ? '<span title="Hodnota spoločnej zásoby sa ráta pri hlavnom produkte.">—</span>' : '' ) . ( $shared ? '' : esc_html( jsk_money( max( 0, $st ) * $cost ) ) ); ?></td>
 				<td><?php echo $last ? esc_html( jsk_move_sources()[ $last['source'] ] ?? $last['source'] ) . '<br><small>' . esc_html( date_i18n( 'j. n. Y H:i', strtotime( $last['created_at'] ) ) ) . '</small>' : '—'; ?></td>
 				<td><a href="<?php echo esc_url( jsk_url( 'j-sklad-moves', array( 'product' => $pid ) ) ); ?>">História</a></td>
 			</tr>
@@ -202,7 +205,7 @@ function jsk_render_overview() {
 			inp.classList.remove('jsk-ok','jsk-bad');inp.disabled=true;
 			fetch(ajaxurl,{method:'POST',body:f,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
 				inp.disabled=false;
-				if(j&&j.success){inp.setAttribute('data-saved',inp.value);inp.classList.add('jsk-ok');if(!sell){var c=inp.closest('tr').querySelector('.jsk-val');c.textContent=inp.value===''?'—':fmt(parseFloat(inp.dataset.qty)*parseFloat(inp.value));}}
+				if(j&&j.success){inp.setAttribute('data-saved',inp.value);inp.classList.add('jsk-ok');if(!sell&&!inp.dataset.shared){var c=inp.closest('tr').querySelector('.jsk-val');c.textContent=inp.value===''?'—':fmt(parseFloat(inp.dataset.qty)*parseFloat(inp.value));}}
 				else{inp.classList.add('jsk-bad');alert((j&&j.data)||'Nepodarilo sa uložiť.');}
 			}).catch(function(){inp.disabled=false;inp.classList.add('jsk-bad');});
 		}
@@ -294,6 +297,7 @@ function jsk_render_doc_form() {
 		<?php wp_nonce_field( 'jsk_doc' ); ?>
 		<input type="hidden" name="action" value="jsk_doc_save">
 		<input type="hidden" name="id" value="<?php echo (int) $id; ?>">
+		<input type="hidden" name="form_token" value="<?php echo esc_attr( wp_generate_uuid4() ); ?>">
 		<input type="hidden" name="type" value="<?php echo esc_attr( $type ); ?>">
 		<div class="jsk-head-fields">
 			<label>Dátum<br><input type="date" name="doc_date" value="<?php echo esc_attr( $d ? $d['doc_date'] : current_time( 'Y-m-d' ) ); ?>" required></label>
@@ -425,7 +429,24 @@ add_action( 'admin_post_jsk_doc_save', function () {
 	foreach ( $pids as $i => $pid ) {
 		$items[] = array( 'product_id' => (int) $pid, 'qty' => $in['items']['qty'][ $i ] ?? 0, 'price' => $in['items']['price'][ $i ] ?? '' );
 	}
+	// Nový doklad odoslaný dvakrát (dvojklik, opakované odoslanie) – druhý raz sa nevytvorí ďalší koncept.
+	$tok = (int) ( $in['id'] ?? 0 ) ? '' : preg_replace( '/[^a-f0-9-]/', '', strtolower( (string) ( $in['form_token'] ?? '' ) ) );
+	if ( $tok ) {
+		jsk_lock( 'jsk_tok', 10 );
+		$prev = (int) get_transient( 'jsk_tok_' . md5( $tok ) );
+		if ( $prev ) {
+			jsk_unlock( 'jsk_tok' );
+			wp_safe_redirect( jsk_url( 'j-sklad-docs', array( 'view' => $prev ) ) );
+			exit;
+		}
+	}
 	$id = jsk_save_draft( (int) ( $in['id'] ?? 0 ), sanitize_key( is_string( $in['type'] ?? null ) ? $in['type'] : 'receipt' ), $in, $items );
+	if ( $tok ) {
+		if ( ! is_wp_error( $id ) ) {
+			set_transient( 'jsk_tok_' . md5( $tok ), (int) $id, DAY_IN_SECONDS );
+		}
+		jsk_unlock( 'jsk_tok' );
+	}
 	if ( is_wp_error( $id ) ) {
 		jsk_back_err( jsk_url( 'j-sklad-docs' ), $id->get_error_message() );
 	}
@@ -569,6 +590,7 @@ add_action( 'wp_ajax_jsk_set_cost', function () {
 	}
 	$new = '' === $raw ? null : round( (float) $raw, 4 );
 	if ( $old !== $new ) {
+		jsk_ensure_opening( $id, jsk_db_stock( $id ) );
 		$last = jsk_last_move( $id );
 		jsk_log_move( $id, 0, $last && null !== $last['stock_after'] ? $last['stock_after'] : jsk_db_stock( $id ), 'cost', array( 'cost' => $new, 'note' => 'Nákupná cena: ' . jsk_money( $old ) . ' → ' . jsk_money( $new ) ) );
 	}

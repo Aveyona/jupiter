@@ -67,6 +67,14 @@ function jsk_log_move( $product_id, $qty, $stock_after, $source, $args = array()
 	return (int) $wpdb->insert_id;
 }
 
+/** Kniha produktu začína vždy počiatočným stavom – ak ešte nemá žiadny pohyb, zapíše ho. */
+function jsk_ensure_opening( $product_id, $stock ) {
+	if ( jsk_last_move( $product_id ) || null === $stock ) {
+		return;
+	}
+	jsk_log_move( $product_id, (float) $stock, (float) $stock, 'opening', array( 'cost' => jsk_cost( $product_id ), 'note' => 'Prvý záznam produktu v J-Sklade' ) );
+}
+
 /** ID produktu, ktorý nesie zásobu (variant s „zásobu spravuje hlavný produkt“ → hlavný produkt). */
 function jsk_stock_id( $p ) {
 	if ( ! $p instanceof WC_Product ) {
@@ -97,12 +105,28 @@ function jsk_apply_move( $product_id, $qty, $source, $args = array() ) {
 		return (float) $p->get_stock_quantity();
 	}
 	$has_cost = isset( $args['cost'] ) && null !== $args['cost'] && '' !== $args['cost'];
+	// Výdaj dokladom: kontrola zásoby pod zámkom produktu – súbežná objednávka ju nemôže medzitým minúť.
+	$guard = $qty < 0 && ! empty( $args['no_negative'] ) && ! $p->backorders_allowed();
+	unset( $args['no_negative'] );
+	if ( $guard ) {
+		if ( ! jsk_lock( 'jsk_stock_' . $sid ) ) {
+			return new WP_Error( 'jsk_busy', 'Zásoba produktu „' . $p->get_name() . '“ sa práve mení – skúste to znova.' );
+		}
+		$st = jsk_db_stock( $sid );
+		if ( null !== $st && $st + $qty < -JSK_EPS ) {
+			jsk_unlock( 'jsk_stock_' . $sid );
+			return new WP_Error( 'jsk_short', sprintf( 'Na sklade nie je dosť: „%s“ – na sklade %s, výdaj %s.', $p->get_name(), jsk_qty( $st ), jsk_qty( abs( $qty ) ) ) );
+		}
+	}
 	$GLOBALS['jsk_ctx'] = array( 'id' => $sid, 'source' => $source, 'args' => $args, 'row' => 0, 'before' => null, 'after' => null );
 	try {
 		$after = wc_update_product_stock( $p, abs( $qty ), $qty >= 0 ? 'increase' : 'decrease' );
 		$ctx   = $GLOBALS['jsk_ctx'];
 	} finally {
 		$GLOBALS['jsk_ctx'] = null;
+		if ( $guard ) {
+			jsk_unlock( 'jsk_stock_' . $sid );
+		}
 	}
 	if ( false === $after || null === $after || is_wp_error( $after ) ) {
 		return new WP_Error( 'jsk_stock', 'Zásobu produktu „' . $p->get_name() . '“ sa nepodarilo zmeniť.' );
@@ -124,6 +148,7 @@ function jsk_apply_move( $product_id, $qty, $source, $args = array() ) {
 	if ( ! $ctx['row'] ) {
 		// Hák WooCommerce sa nespustil (iný doplnok ho mohol vypnúť) – zápis priamo.
 		$args['cost'] = $has_cost && $qty > 0 ? $args['cost'] : jsk_cost( $sid );
+		jsk_ensure_opening( $sid, $old );
 		jsk_log_move( $sid, $qty, $after, $source, $args );
 	} elseif ( $qty > 0 && $has_cost ) {
 		global $wpdb;
@@ -210,6 +235,9 @@ function jsk_record_change( $product, $id, $before ) {
 	}
 	$args = array( 'cost' => jsk_cost( $id ) );
 	$oc   = $GLOBALS['jsk_order_ctx'];
+	if ( $oc && ! empty( $oc['product'] ) && (int) $oc['product'] !== (int) $id ) {
+		$oc = null; // kontext úpravy objednávky patrí inému produktu
+	}
 	if ( $oc && $oc['order'] instanceof WC_Order ) {
 		$num              = $oc['order']->get_order_number();
 		$args['order_id'] = $oc['order']->get_id();
@@ -236,8 +264,8 @@ function jsk_record_change( $product, $id, $before ) {
 
 /* Kontext objednávky – nastaví sa pred zmenou zásob, aby sa pohyb zapísal rovno s číslom objednávky. */
 
-function jsk_set_order_ctx( $order, $kind, $once = false ) {
-	$GLOBALS['jsk_order_ctx'] = $order instanceof WC_Order ? array( 'order' => $order, 'kind' => $kind, 'once' => $once ) : null;
+function jsk_set_order_ctx( $order, $kind, $once = false, $product_id = 0 ) {
+	$GLOBALS['jsk_order_ctx'] = $order instanceof WC_Order ? array( 'order' => $order, 'kind' => $kind, 'once' => $once, 'product' => (int) $product_id ) : null;
 }
 
 add_filter( 'woocommerce_can_reduce_order_stock', function ( $can, $order = null ) {
@@ -273,11 +301,17 @@ add_action( 'woocommerce_order_refunded', function () {
 
 // Pridanie / odobratie / zmena množstva položky v úprave objednávky (wc_maybe_adjust_line_item_product_stock).
 add_filter( 'woocommerce_prevent_adjust_line_item_product_stock', function ( $prevent, $item = null ) {
-	if ( ! $prevent && $item instanceof WC_Order_Item && $item->get_order_id() ) {
-		jsk_set_order_ctx( wc_get_order( $item->get_order_id() ), 'edit', true );
+	if ( ! $prevent && $item instanceof WC_Order_Item_Product && $item->get_order_id() ) {
+		$prod = $item->get_product();
+		jsk_set_order_ctx( wc_get_order( $item->get_order_id() ), 'edit', true, $prod ? jsk_stock_id( $prod ) : 0 );
 	}
 	return $prevent;
 }, PHP_INT_MAX, 2 );
+
+// Poistka: kontext objednávky neprežije koniec požiadavky ani výnimku pri vrátení peňazí.
+add_action( 'shutdown', function () {
+	$GLOBALS['jsk_order_ctx'] = null;
+}, 0 );
 
 // Poistka: kontext objednávky po dokončení jej uloženia už neplatí.
 add_action( 'woocommerce_after_order_object_save', function () {

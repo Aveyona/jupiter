@@ -4,7 +4,8 @@
  *
  * Keď je zapnuté:
  * - J-Sklad → Obrázky: evidencia obrázkov ku každému produktu a variantu (hlavný obrázok, galéria) s úpravou na jednom mieste,
- * - Knižnica multimédií neukazuje obrázky produktov (hlavné, galérie a nahraté k produktu) – ostávajú v nej len obrázky webu,
+ * - Knižnica multimédií neukazuje obrázky, ktoré produkty práve používajú (hlavný obrázok, galéria) – ostávajú v nej obrázky webu;
+ *   obrázok, ktorý je zároveň náhľadovým obrázkom článku či stránky, v Knižnici ostane,
  * - výber obrázka v úprave produktu a v J-Sklade ukazuje všetky obrázky ako doteraz.
  * Súbory sa nikam nepresúvajú; vypnutím voľby je Knižnica opäť kompletná.
  */
@@ -16,7 +17,10 @@ function jsk_media_on() {
 	return (bool) jsk_opt( 'media' );
 }
 
-/** ID všetkých obrázkov produktov: hlavné obrázky, galérie a prílohy nahraté k produktu alebo variantu. */
+/**
+ * ID obrázkov, ktoré produkty práve používajú: hlavný obrázok a galéria produktov a variantov (len obrázky).
+ * Neráta sa podľa „nahraté k produktu“ – obrázok odobratý z produktu sa tak hneď vráti do Knižnice.
+ */
 function jsk_product_image_ids() {
 	global $wpdb;
 	static $ids = null;
@@ -26,15 +30,20 @@ function jsk_product_image_ids() {
 	$types = "'product','product_variation'";
 	$thumb = $wpdb->get_col( "SELECT pm.meta_value FROM {$wpdb->postmeta} pm JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE pm.meta_key = '_thumbnail_id' AND p.post_type IN ($types)" ); // phpcs:ignore
 	$gal   = $wpdb->get_col( "SELECT pm.meta_value FROM {$wpdb->postmeta} pm JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE pm.meta_key = '_product_image_gallery' AND pm.meta_value <> '' AND p.post_type IN ($types)" ); // phpcs:ignore
-	$att   = $wpdb->get_col( "SELECT a.ID FROM {$wpdb->posts} a JOIN {$wpdb->posts} p ON p.ID = a.post_parent WHERE a.post_type = 'attachment' AND p.post_type IN ($types)" ); // phpcs:ignore
 	$all   = $thumb;
 	foreach ( $gal as $g ) {
 		$all = array_merge( $all, explode( ',', $g ) );
 	}
-	$ids = array_values( array_unique( array_filter( array_map( 'intval', array_merge( $all, $att ) ) ) ) );
-	// Obrázok, ktorý web používa aj inde (logo, ikona webu, zástupný obrázok WooCommerce), v Knižnici ostane.
-	$keep = array_filter( array_map( 'intval', array( get_option( 'site_icon' ), get_theme_mod( 'custom_logo' ), get_option( 'woocommerce_placeholder_image' ) ) ) );
-	$ids  = array_values( array_diff( $ids, $keep ) );
+	$ids = array_values( array_unique( array_filter( array_map( 'intval', $all ) ) ) );
+	if ( $ids ) {
+		// Len prílohy typu obrázok (nie PDF, ZIP a pod.).
+		$in  = implode( ',', $ids );
+		$ids = array_map( 'intval', $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%' AND ID IN ($in)" ) ); // phpcs:ignore
+	}
+	// Obrázok, ktorý web používa aj inde (náhľad článku či stránky, logo, ikona webu, zástupný obrázok WooCommerce), v Knižnici ostane.
+	$other = array_map( 'intval', $wpdb->get_col( "SELECT pm.meta_value FROM {$wpdb->postmeta} pm JOIN {$wpdb->posts} p ON p.ID = pm.post_id WHERE pm.meta_key = '_thumbnail_id' AND p.post_type NOT IN ($types)" ) ); // phpcs:ignore
+	$keep  = array_merge( $other, array_map( 'intval', array( get_option( 'site_icon' ), get_theme_mod( 'custom_logo' ), get_option( 'woocommerce_placeholder_image' ) ) ) );
+	$ids   = array_values( array_diff( $ids, array_filter( $keep ) ) );
 	return $ids;
 }
 
@@ -144,7 +153,7 @@ function jsk_render_media() {
 	$total = count( jsk_product_image_ids() );
 	jsk_head( 'Obrázky produktov' );
 	echo '<hr class="wp-header-end">';
-	echo '<p class="description" style="max-width:820px">Hlavný obrázok a galéria každého produktu a variantu na jednom mieste. Knižnica multimédií ich nezobrazuje (' . (int) $total . ' obrázkov), aby v nej ostali len obrázky webu. Kliknutím na obrázok ho otvoríš v plnej veľkosti, × ho odoberie z produktu (súbor ostane).</p>';
+	echo '<p class="description" style="max-width:820px">Hlavný obrázok a galéria každého produktu a variantu na jednom mieste. Knižnica multimédií obrázky používané produktmi nezobrazuje (' . (int) $total . ' obrázkov), aby v nej ostali obrázky webu; obrázok odobratý z produktu sa do Knižnice vráti. Kliknutím na obrázok ho otvoríš v plnej veľkosti, × ho odoberie z produktu (súbor ostane).</p>';
 	echo '<form method="get" class="jsk-filter"><input type="hidden" name="page" value="j-sklad-media">'
 		. '<input type="search" name="s" value="' . esc_attr( $q ) . '" placeholder="Názov alebo SKU">'
 		. '<select name="f"><option value="">Všetky produkty</option><option value="noimg"' . selected( $f, 'noimg', false ) . '>Bez hlavného obrázka</option></select>'
@@ -226,11 +235,5 @@ add_action( 'wp_ajax_jsk_media', function () {
 		wp_send_json_error( 'Neplatná akcia.' );
 	}
 	$p->save();
-	// Obrázky bez väzby priradiť k produktu (evidencia: obrázok patrí produktu).
-	foreach ( $ids as $id ) {
-		if ( ! wp_get_post_parent_id( $id ) ) {
-			wp_update_post( array( 'ID' => $id, 'post_parent' => $p->get_id() ) );
-		}
-	}
 	wp_send_json_success( array( 'row' => jsk_media_row( wc_get_product( $p->get_id() ), $p->is_type( 'variation' ) ) ) );
 } );
