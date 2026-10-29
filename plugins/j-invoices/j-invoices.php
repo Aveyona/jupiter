@@ -3,7 +3,7 @@
  * Plugin Name:       J-Fakturácia
  * Plugin URI:        https://github.com/Aveyona/jupiter
  * Description:       Doklady pre WooCommerce: faktúry z objednávok s číselným radom, splatnosťou a variabilným symbolom, prehľad a tlačový náhľad; pripravujú sa zálohové faktúry, dobropisy, PDF s QR PAY by square, e-mail, Pohoda a prechod z Woo Faktura. Súčasť rodiny Jupiter.
- * Version:           0.9.5
+ * Version:           0.10.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -17,8 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JINV_VERSION', '0.9.5' );
-define( 'JINV_DB_VERSION', 2 );
+define( 'JINV_VERSION', '0.10.0' );
+define( 'JINV_DB_VERSION', 3 );
 define( 'JINV_FILE', __FILE__ );
 define( 'JINV_DIR', plugin_dir_path( __FILE__ ) );
 define( 'JINV_URL', plugin_dir_url( __FILE__ ) );
@@ -48,11 +48,17 @@ require_once JINV_DIR . 'includes/checkout-blocks.php';
 require_once JINV_DIR . 'includes/import.php';
 require_once JINV_DIR . 'includes/help.php';
 require_once JINV_DIR . 'includes/received.php';
+require_once JINV_DIR . 'includes/payments.php';
+require_once JINV_DIR . 'includes/partners.php';
 
 register_activation_hook( __FILE__, 'jinv_install' );
 add_action( 'plugins_loaded', function () {
 	if ( (int) get_option( 'jinv_db_version' ) < JINV_DB_VERSION ) {
+		$was = (int) get_option( 'jinv_db_version' );
 		jinv_install();
+		if ( $was && $was < 3 ) {
+			jinv_partners_from_received(); // dodávatelia z doterajších prijatých faktúr
+		}
 	}
 } );
 

@@ -9,11 +9,11 @@
       "notes": "Poradie v menu: J-Sklad, J-Objednávky, J-Fakturácia, J-Emails, J-Pomocník vždy posledný."
     },
     "j-invoices": {
-      "version": "0.9.5",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.9.5/j-invoices-v0.9.5.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.9.5",
+      "version": "0.10.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.10.0/j-invoices-v0.10.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.10.0",
       "published": "2026-10-29",
-      "notes": "Postup fakturácie v Nastaveniach: manuálny/automatický režim, stav „vybavená“ (napr. Vybavené a odoslané), ostrá faktúra pri prevode po zaplatení alebo pri vybavení, Pregenerovať faktúru (nové alebo pôvodné číslo, dnešný alebo pôvodný dátum), pokračovanie číselného radu od zadaného čísla; návod v J-Pomocníkovi."
+      "notes": "Dodávatelia (adresár, načítanie z registra podľa IČO, detail s faktúrami a príjemkami), prijaté faktúry s našepkávačom dodávateľa, filtrami a prepojením na príjemku J-Skladu, úhrady dokladov vrátane čiastočných platieb."
     },
     "j-emails": {
       "version": "0.3.0",
@@ -30,11 +30,11 @@
       "notes": "Prepojenie s J-Fakturáciou: stĺpec Doklady (zálohová faktúra aj faktúra so stavom a PDF), Vystaviť faktúru a Pregenerovať pri riadku, filter Na fakturáciu (vybavené bez faktúry), hromadne Vybaviť a vystaviť faktúry."
     },
     "j-sklad": {
-      "version": "0.3.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.3.0/j-sklad-v0.3.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.3.0",
+      "version": "0.3.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.3.1/j-sklad-v0.3.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.3.1",
       "published": "2026-10-29",
-      "notes": "Inventúra: súpis na tlač, zadávanie spočítaných množstiev s priebežným ukladaním a čítačkou čiarových kódov, manko a prebytok v nákupných cenách, zaúčtovanie, protokol a storno."
+      "notes": "Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
     }
   }
 }

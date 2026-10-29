@@ -68,6 +68,7 @@ function jsk_save_draft_locked( $id, $type, array $head, array $items ) {
 		'doc_date'    => preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $head['doc_date'] ?? '' ) ) ? $head['doc_date'] : current_time( 'Y-m-d' ),
 		'partner'     => sanitize_text_field( $head['partner'] ?? '' ),
 		'partner_doc' => sanitize_text_field( $head['partner_doc'] ?? '' ),
+		'partner_id'  => (int) ( $head['partner_id'] ?? 0 ),
 		'reason'      => sanitize_text_field( $head['reason'] ?? '' ),
 		'note'        => sanitize_textarea_field( $head['note'] ?? '' ),
 	);

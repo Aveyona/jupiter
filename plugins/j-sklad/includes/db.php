@@ -28,6 +28,8 @@ function jsk_install() {
   doc_date date NOT NULL,
   partner varchar(200) NOT NULL DEFAULT '',
   partner_doc varchar(100) NOT NULL DEFAULT '',
+  partner_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  invoice_id bigint(20) unsigned NOT NULL DEFAULT 0,
   reason varchar(100) NOT NULL DEFAULT '',
   note text NULL,
   status varchar(20) NOT NULL DEFAULT 'draft',
@@ -38,6 +40,7 @@ function jsk_install() {
   PRIMARY KEY  (id),
   KEY type_year (type,year,seq),
   KEY status (status),
+  KEY partner_id (partner_id),
   KEY doc_date (doc_date)
 ) $c;" );
 	dbDelta( 'CREATE TABLE ' . jsk_t( 'doc_items' ) . " (

@@ -4,9 +4,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-function jinv_table() {
+/** Tabuľka: faktúry (predvolené), partners, payments. */
+function jinv_table( $name = '' ) {
 	global $wpdb;
-	return $wpdb->prefix . 'j_invoices';
+	return $wpdb->prefix . 'j_invoices' . ( $name ? '_' . $name : '' );
 }
 
 function jinv_install() {
@@ -30,6 +31,7 @@ function jinv_install() {
   total decimal(12,2) NOT NULL DEFAULT 0,
   customer_name varchar(200) NOT NULL DEFAULT '',
   customer_email varchar(200) NOT NULL DEFAULT '',
+  partner_id bigint(20) unsigned NOT NULL DEFAULT 0,
   data longtext NOT NULL,
   source varchar(20) NOT NULL DEFAULT '',
   file varchar(255) NOT NULL DEFAULT '',
@@ -40,7 +42,49 @@ function jinv_install() {
   UNIQUE KEY kind_year_seq (kind,year,seq),
   KEY order_id (order_id),
   KEY source (source),
-  KEY issue_date (issue_date)
+  KEY issue_date (issue_date),
+  KEY partner_id (partner_id)
+) $c;" );
+	// Adresár partnerov (dodávatelia, odberatelia).
+	dbDelta( 'CREATE TABLE ' . jinv_table( 'partners' ) . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  type varchar(20) NOT NULL DEFAULT 'supplier',
+  name varchar(200) NOT NULL DEFAULT '',
+  ico varchar(20) NOT NULL DEFAULT '',
+  dic varchar(20) NOT NULL DEFAULT '',
+  icdph varchar(20) NOT NULL DEFAULT '',
+  street varchar(200) NOT NULL DEFAULT '',
+  city varchar(100) NOT NULL DEFAULT '',
+  zip varchar(20) NOT NULL DEFAULT '',
+  country char(2) NOT NULL DEFAULT 'SK',
+  email varchar(200) NOT NULL DEFAULT '',
+  phone varchar(50) NOT NULL DEFAULT '',
+  web varchar(200) NOT NULL DEFAULT '',
+  iban varchar(40) NOT NULL DEFAULT '',
+  due_days smallint(5) unsigned NULL DEFAULT NULL,
+  category varchar(100) NOT NULL DEFAULT '',
+  note text NULL,
+  active tinyint(1) NOT NULL DEFAULT 1,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY ico (ico),
+  KEY name (name(50))
+) $c;" );
+	// Úhrady dokladov (čiastočné aj celé; zdroj: ručne, banka, pokladňa).
+	dbDelta( 'CREATE TABLE ' . jinv_table( 'payments' ) . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  doc_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  pay_date date NOT NULL,
+  amount decimal(12,2) NOT NULL DEFAULT 0,
+  method varchar(20) NOT NULL DEFAULT 'bank',
+  source varchar(20) NOT NULL DEFAULT 'manual',
+  ref varchar(100) NOT NULL DEFAULT '',
+  note varchar(255) NOT NULL DEFAULT '',
+  user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY doc_id (doc_id),
+  KEY source_ref (source,ref)
 ) $c;" );
 	update_option( 'jinv_db_version', JINV_DB_VERSION, false );
 }

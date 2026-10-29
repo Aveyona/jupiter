@@ -65,6 +65,7 @@ function jsk_notice() {
 		'settings'  => array( 'success', 'Nastavenia sú uložené.' ),
 		'inv_new'   => array( 'success', 'Inventúra je založená – stav v evidencii je zapamätaný. Zadávaj spočítané množstvá; ukladajú sa priebežne.' ),
 		'inv_posted' => array( 'success', 'Inventúra je zaúčtovaná – zásoby sú nastavené podľa spočítaného stavu.' ),
+		'from_invoice' => array( 'success', 'Príjemka k prijatej faktúre je pripravená – pridaj tovar, množstvá a nákupné ceny, potom ju zaúčtuj.' ),
 		'err'       => array( 'error', 'Akcia sa nepodarila.' ),
 	);
 	if ( isset( $t[ $m ] ) ) {
@@ -304,13 +305,29 @@ function jsk_render_doc_form() {
 		<div class="jsk-head-fields">
 			<label>Dátum<br><input type="date" name="doc_date" value="<?php echo esc_attr( $d ? $d['doc_date'] : current_time( 'Y-m-d' ) ); ?>" required></label>
 			<?php if ( $rec ) : ?>
-				<label>Dodávateľ<br><input type="text" name="partner" value="<?php echo esc_attr( $d['partner'] ?? '' ); ?>" class="regular-text"></label>
+				<?php
+				$jpid = $d ? (int) ( $d['partner_id'] ?? 0 ) : (int) jsk_get( 'partner_id' );
+				$jpn  = $d['partner'] ?? '';
+				if ( ! $d && $jpid && function_exists( 'jinv_partner_get' ) ) {
+					$jpp = jinv_partner_get( $jpid );
+					$jpn = $jpp ? $jpp['name'] : '';
+				}
+				?>
+				<label>Dodávateľ<br><input type="text" name="partner" id="jsk-partner" value="<?php echo esc_attr( $jpn ); ?>" class="regular-text" autocomplete="off"<?php echo function_exists( 'jinv_partner_picker_js' ) ? ' placeholder="Začni písať – dodávatelia z J-Fakturácie"' : ''; ?>></label>
+				<input type="hidden" name="partner_id" id="jsk-partner-id" value="<?php echo (int) $jpid; ?>">
 				<label>Číslo dokladu dodávateľa<br><input type="text" name="partner_doc" value="<?php echo esc_attr( $d['partner_doc'] ?? '' ); ?>" placeholder="napr. faktúra / dodací list"></label>
 			<?php else : ?>
 				<label>Dôvod výdaja<br><select name="reason"><?php foreach ( jsk_reasons() as $r ) : ?><option <?php selected( $d['reason'] ?? '', $r ); ?>><?php echo esc_html( $r ); ?></option><?php endforeach; ?></select></label>
 			<?php endif; ?>
 			<label class="jsk-wide">Poznámka<br><input type="text" name="note" value="<?php echo esc_attr( $d['note'] ?? '' ); ?>" class="large-text"></label>
 		</div>
+		<?php
+		if ( $d && $rec ) {
+			echo '<p class="jsk-meta">';
+			jsk_invoice_link( $d );
+			echo '</p>';
+		}
+		?>
 		<div class="jsk-search">
 			<input type="search" id="jsk-find" placeholder="Pridať produkt: názov alebo číslo produktu (funguje aj čítačka čiarových kódov – Enter)" autocomplete="off">
 			<ul id="jsk-results" hidden></ul>
@@ -339,6 +356,11 @@ function jsk_render_doc_form() {
 			<a class="button-link" href="<?php echo esc_url( jsk_url( 'j-sklad-docs' ) ); ?>">Späť na doklady</a>
 		</p>
 	</form>
+	<?php
+	if ( $rec && function_exists( 'jinv_partner_picker_js' ) ) {
+		jinv_partner_picker_js( 'jsk-partner', 'jsk-partner-id' );
+	}
+	?>
 	<script>
 	(function(){
 		var rec=<?php echo $rec ? 'true' : 'false'; ?>,find=document.getElementById('jsk-find'),res=document.getElementById('jsk-results'),rows=document.getElementById('jsk-rows'),t=null;
@@ -386,6 +408,7 @@ function jsk_render_doc_view( $id ) {
 			<?php if ( $d['partner'] ) : ?><span>Dodávateľ: <strong><?php echo esc_html( $d['partner'] ); ?></strong><?php echo $d['partner_doc'] ? ' (' . esc_html( $d['partner_doc'] ) . ')' : ''; ?></span><?php endif; ?>
 			<?php if ( $d['reason'] ) : ?><span>Dôvod: <strong><?php echo esc_html( $d['reason'] ); ?></strong></span><?php endif; ?>
 			<span>Stav: <span class="jsk-st jsk-st-<?php echo esc_attr( $d['status'] ); ?>"><?php echo esc_html( jsk_status_label( $d['status'] ) ); ?></span></span>
+			<?php jsk_invoice_link( $d ); ?>
 			<?php $u = get_userdata( (int) $d['user_id'] ); ?><span>Vystavil: <?php echo esc_html( $u ? $u->display_name : '—' ); ?></span>
 		</p>
 		<?php if ( $d['note'] ) : ?><p><?php echo esc_html( $d['note'] ); ?></p><?php endif; ?>
@@ -412,6 +435,19 @@ function jsk_render_doc_view( $id ) {
 	</div>
 	</div>
 	<?php
+}
+
+/** Prijatá faktúra k príjemke (J-Fakturácia): odkaz na ňu, alebo tlačidlo na jej pridanie. */
+function jsk_invoice_link( array $d ) {
+	if ( 'receipt' !== $d['type'] || ! function_exists( 'jinv_get' ) ) {
+		return;
+	}
+	$inv = ! empty( $d['invoice_id'] ) ? jinv_get( (int) $d['invoice_id'] ) : null;
+	if ( $inv && 'received' === $inv['kind'] ) {
+		echo '<span>Prijatá faktúra: <a href="' . esc_url( jinv_admin_url( array( 'tab' => 'received', 'edit' => $inv['id'] ) ) ) . '"><strong>' . esc_html( $inv['number'] ) . '</strong></a></span>';
+	} else {
+		echo '<span><a class="button button-small" href="' . esc_url( jinv_admin_url( array( 'tab' => 'received', 'edit' => 'new', 'from_stock' => $d['id'] ) ) ) . '">+ Prijatá faktúra k príjemke</a></span>';
+	}
 }
 
 function jsk_back_err( $url, $err ) {

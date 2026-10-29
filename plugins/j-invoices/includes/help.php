@@ -111,5 +111,27 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		),
 		'J-Fakturácia',
 	);
+	$guides[] = array(
+		'Dodávatelia (adresár)',
+		array(
+			'J-Fakturácia → Dodávatelia: adresár firiem, od ktorých nakupuješ – IČO, DIČ, IČ DPH, adresa, kontakt, IBAN, splatnosť ich faktúr a predvolená kategória.',
+			'Nový dodávateľ: zadaj IČO a klikni Načítať z registra – názov a adresa sa doplnia z Registra právnických osôb. DIČ a IBAN doplň z faktúry.',
+			'Detail dodávateľa: neuhradené a po splatnosti, nákupy za rok, všetky jeho prijaté faktúry a príjemky na sklad. Tlačidlá + Prijatá faktúra a + Príjemka na sklad ho rovno predvyplnia.',
+			'Doterajší dodávatelia z prijatých faktúr sa do adresára preniesli automaticky. Nepoužívaného dodávateľa archivuj (Upraviť → Archivovaný) – doklady ostanú.',
+		),
+		'J-Fakturácia',
+	);
+	$guides[] = array(
+		'Prijaté faktúry a úhrady',
+		array(
+			'Prijaté faktúry → + Pridať: začni písať názov alebo IČO dodávateľa a vyber ho – doplní sa IČO, DIČ, IBAN, kategória a splatnosť. Nového dodávateľa faktúra uloží do adresára.',
+			'Priloženie PDF alebo fotky faktúry, variabilný symbol sa navrhne z čísla faktúry.',
+			'Úhrady: v detaile faktúry Pridať úhradu (dátum, suma, spôsob) – môže ich byť viac (čiastočné platby). Keď súčet dosiahne sumu faktúry, faktúra je Uhradená. Rýchlo: v zozname odkaz Uhradená zapíše úhradu zvyšnej sumy s dnešným dátumom.',
+			'Filtre Neuhradené, Po splatnosti, Uhradené; karta Splatné do 7 dní ukáže, čo treba čoskoro zaplatiť.',
+			'Tovar na sklad: pri novej faktúre zaškrtni Vytvoriť príjemku, alebo v detaile faktúry Vytvoriť príjemku na sklad – v J-Sklade sa otvorí príjemka s dodávateľom a číslom faktúry, doplníš tovar a nákupné ceny. Opačne: v príjemke tlačidlo + Prijatá faktúra k príjemke.',
+			'Úhrady majú aj vydané faktúry (detail faktúry). Pripravuje sa import bankového výpisu s automatickým párovaním podľa variabilného symbolu a pokladňa.',
+		),
+		'J-Fakturácia',
+	);
 	return $guides;
 } );
