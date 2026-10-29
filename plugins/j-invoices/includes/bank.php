@@ -213,6 +213,13 @@ function jinv_fio_sync( $account_id ) {
 		'last_sync'  => current_time( 'mysql' ),
 		'last_error' => '',
 	);
+	// Zostatok na začiatku načítaného obdobia (napr. k 1. 1. – pre počiatočné stavy v účtovníctve).
+	if ( isset( $info['openingBalance'] ) && ! empty( $info['dateStart'] ) ) {
+		$opening                                = (array) ( $acc['opening'] ?? array() );
+		$opening[ substr( $info['dateStart'], 0, 10 ) ] = (float) $info['openingBalance'];
+		ksort( $opening );
+		$upd['opening'] = $opening;
+	}
 	if ( isset( $info['closingBalance'] ) ) {
 		$upd['balance']    = (float) $info['closingBalance'];
 		$upd['balance_at'] = current_time( 'mysql' );
@@ -429,7 +436,11 @@ add_action( 'admin_post_jinv_bank_account', function () {
 		exit;
 	}
 	$all[ $id ]['name']  = sanitize_text_field( $in['name'] ?? '' ) ?: 'Fio účet';
-	$all[ $id ]['since'] = preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $in['since'] ?? '' ) ) ? $in['since'] : gmdate( 'Y-m-d', strtotime( '-30 days' ) );
+	$since = preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $in['since'] ?? '' ) ) ? $in['since'] : gmdate( 'Y-m-d', strtotime( '-30 days' ) );
+	if ( ! empty( $all[ $id ]['since'] ) && $since < $all[ $id ]['since'] ) {
+		$all[ $id ]['last_sync'] = ''; // dátum posunutý dozadu – načítajú sa aj staršie pohyby (už uložené sa nezdvoja)
+	}
+	$all[ $id ]['since'] = $since;
 	$all[ $id ]['auto']  = ! empty( $in['auto'] ) ? 1 : 0;
 	$tok                 = preg_replace( '/\s+/', '', (string) ( $in['token'] ?? '' ) );
 	if ( '' !== $tok ) {
@@ -556,6 +567,7 @@ function jinv_render_bank() {
 			<div class="jinv-bank-acc">
 				<span><?php echo esc_html( $a['name'] ?? 'Účet' ); ?><?php echo ! empty( $a['iban'] ) ? ' · ' . esc_html( jinv_iban_format( $a['iban'] ) ) : ''; ?></span>
 				<strong><?php echo isset( $a['balance'] ) ? esc_html( jinv_money( $a['balance'], $a['currency'] ?? 'EUR' ) ) : '—'; ?></strong>
+				<?php if ( ! empty( $a['opening'] ) ) : $od = array_key_first( (array) $a['opening'] ); ?><small>zostatok k <?php echo esc_html( jinv_date( $od ) ); ?>: <?php echo esc_html( jinv_money( $a['opening'][ $od ], $a['currency'] ?? 'EUR' ) ); ?></small><?php endif; ?>
 				<small><?php echo ! empty( $a['last_sync'] ) ? 'načítané ' . esc_html( date_i18n( 'j. n. Y H:i', strtotime( $a['last_sync'] ) ) ) : 'zatiaľ nenačítané'; ?><?php echo ! empty( $a['last_error'] ) ? ' · <span class="jinv-warn-t">' . esc_html( $a['last_error'] ) . '</span>' : ''; ?><?php echo jinv_bank_token_warning( $a ); // phpcs:ignore ?></small>
 			</div>
 		<?php endforeach; ?>

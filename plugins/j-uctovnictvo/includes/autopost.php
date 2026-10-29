@@ -309,7 +309,8 @@ function juc_build_sales_month( $ym ) {
 	global $wpdb;
 	$from = substr( $ym, 0, 4 ) . '-' . substr( $ym, 4, 2 ) . '-01';
 	$to   = gmdate( 'Y-m-t', strtotime( $from ) );
-	$val  = (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(-qty * COALESCE(cost,0)),0) FROM ' . jsk_t( 'moves' ) . " WHERE source IN ('order','restore') AND created_at >= %s AND created_at <= %s", $from . ' 00:00:00', $to . ' 23:59:59' ) ); // phpcs:ignore
+	// Pohyby bez nákupnej ceny (cena doplnená neskôr) sa ocenia aktuálnou priemernou nákupnou cenou produktu.
+	$val  = (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(-m.qty * COALESCE(m.cost, CAST(c.meta_value AS DECIMAL(14,4)), 0)),0) FROM ' . jsk_t( 'moves' ) . " m LEFT JOIN {$wpdb->postmeta} c ON c.post_id = m.product_id AND c.meta_key = '_jsk_cost' WHERE m.source IN ('order','restore') AND m.created_at >= %s AND m.created_at <= %s", $from . ' 00:00:00', $to . ' 23:59:59' ) ); // phpcs:ignore
 	return array(
 		'head'  => array( 'series' => 'SK', 'number' => 'PRED-' . $ym, 'entry_date' => $to, 'descr' => 'Predaný tovar ' . substr( $ym, 4, 2 ) . '/' . substr( $ym, 0, 4 ) . ' – výdaj zo skladu v nákupných cenách' ),
 		'lines' => array( array( 'md' => juc_acc_opt( 'acc_cogs', '504' ), 'd' => juc_acc_opt( 'acc_goods', '132' ), 'amount' => round( $val, 2 ), 'text' => 'Predaj tovaru ' . substr( $ym, 4, 2 ) . '/' . substr( $ym, 0, 4 ) ) ),
