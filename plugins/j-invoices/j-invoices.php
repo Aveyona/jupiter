@@ -3,7 +3,7 @@
  * Plugin Name:       J-Fakturácia
  * Plugin URI:        https://github.com/Aveyona/jupiter
  * Description:       Doklady pre WooCommerce: faktúry z objednávok s číselným radom, splatnosťou a variabilným symbolom, prehľad a tlačový náhľad; pripravujú sa zálohové faktúry, dobropisy, PDF s QR PAY by square, e-mail, Pohoda a prechod z Woo Faktura. Súčasť rodiny Jupiter.
- * Version:           0.9.3
+ * Version:           0.9.4
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -17,11 +17,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JINV_VERSION', '0.9.3' );
+define( 'JINV_VERSION', '0.9.4' );
 define( 'JINV_DB_VERSION', 2 );
 define( 'JINV_FILE', __FILE__ );
 define( 'JINV_DIR', plugin_dir_path( __FILE__ ) );
 define( 'JINV_URL', plugin_dir_url( __FILE__ ) );
+
+// Kompatibilita s HPOS (tabuľky objednávok) a s blokovou pokladňou WooCommerce.
+add_action( 'before_woocommerce_init', function () {
+	if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', JINV_FILE, true );
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', JINV_FILE, true );
+	}
+} );
 
 require_once JINV_DIR . 'includes/db.php';
 require_once JINV_DIR . 'includes/settings.php';

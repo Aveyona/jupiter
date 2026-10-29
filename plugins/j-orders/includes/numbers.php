@@ -137,14 +137,26 @@ function jord_number_exists( $number ) {
 	return (bool) $wpdb->get_var( $wpdb->prepare( "SELECT $col FROM $t WHERE meta_key = %s AND meta_value = %s LIMIT 1", JORD_META, $number ) ); // phpcs:ignore
 }
 
+/** Číslo objednávky priamo z databázy (mimo objektu objednávky a object cache) – klasické úložisko aj HPOS. */
+function jord_db_number( $order_id ) {
+	global $wpdb;
+	list( $t, $col ) = jord_meta_table();
+	return trim( (string) $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM $t WHERE $col = %d AND meta_key = %s ORDER BY meta_value DESC LIMIT 1", absint( $order_id ), JORD_META ) ) ); // phpcs:ignore
+}
+
 /** Uložené číslo objednávky (aj pre objekt načítaný pred pridelením čísla). */
 function jord_stored_number( WC_Order $order ) {
-	$n = '';
-	if ( ! jord_hpos() ) {
-		$n = trim( (string) get_post_meta( $order->get_id(), JORD_META, true ) );
+	static $cache = array();
+	$id = $order->get_id();
+	if ( isset( $cache[ $id ] ) ) {
+		return $cache[ $id ];
 	}
+	$n = jord_db_number( $id );
 	if ( '' === $n ) {
 		$n = trim( (string) $order->get_meta( JORD_META, true ) );
+	}
+	if ( '' !== $n ) {
+		$cache[ $id ] = $n; // pridelené číslo sa už nemení – ušetrí dotazy pri zozname objednávok
 	}
 	return $n;
 }
@@ -178,6 +190,19 @@ function jord_assign( $order_or_id ) {
 	}
 	global $wpdb;
 	$locked = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', JORD_LOCK ) );
+	if ( ! $locked ) {
+		// Bez zámku by dve objednávky mohli dostať rovnaké číslo – radšej neskôr znova (o minútu).
+		error_log( 'J-Objednávky: zámok číslovania nedostupný, objednávka ' . $order->get_id() . ' dostane číslo o chvíľu.' ); // phpcs:ignore
+		if ( ! wp_next_scheduled( 'jord_assign_retry', array( $order->get_id() ) ) ) {
+			wp_schedule_single_event( time() + 60, 'jord_assign_retry', array( $order->get_id() ) );
+		}
+		return;
+	}
+	// Pod zámkom ešte raz priamo z databázy – súbežná požiadavka mohla číslo práve prideliť.
+	if ( '' !== jord_db_number( $order->get_id() ) ) {
+		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', JORD_LOCK ) );
+		return;
+	}
 
 	$s = jord_numbers_settings( true );
 	$s['last'] = jord_effective_last( $s, true );
@@ -196,10 +221,10 @@ function jord_assign( $order_or_id ) {
 		// Priamo do post meta – objekt objednávky z pokladne o tomto údaji nevie a nemôže ho prepísať.
 		update_post_meta( $order->get_id(), JORD_META, $number );
 	}
-	if ( $locked ) {
-		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', JORD_LOCK ) );
-	}
+	$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', JORD_LOCK ) );
 }
+
+add_action( 'jord_assign_retry', 'jord_assign' );
 
 add_action( 'init', function () {
 	if ( ! jord_numbers_active() ) {

@@ -37,6 +37,21 @@ function jsk_next_number( $type, $year ) {
 
 /** Uloží koncept dokladu (nový alebo existujúci). $items = [ [product_id, qty, price], … ]. Vráti ID alebo WP_Error. */
 function jsk_save_draft( $id, $type, array $head, array $items ) {
+	if ( $id ) {
+		// Rovnaký zámok ako zaúčtovanie – koncept sa nedá prepísať, kým sa zaúčtováva.
+		if ( ! jsk_lock( 'jsk_doc_' . (int) $id, 5 ) ) {
+			return new WP_Error( 'jsk_busy', 'Doklad sa práve zaúčtováva – úprava sa neuložila.' );
+		}
+		try {
+			return jsk_save_draft_locked( $id, $type, $head, $items );
+		} finally {
+			jsk_unlock( 'jsk_doc_' . (int) $id );
+		}
+	}
+	return jsk_save_draft_locked( 0, $type, $head, $items );
+}
+
+function jsk_save_draft_locked( $id, $type, array $head, array $items ) {
 	global $wpdb;
 	if ( $id ) {
 		$d = jsk_doc( $id );
@@ -158,6 +173,7 @@ function jsk_post_doc( $id ) {
 				'doc_id'  => $id,
 				'item_id' => (int) $it['id'],
 				'cost'    => $sign > 0 ? $it['price'] : null,
+				'no_negative' => $sign < 0,
 				'note'    => $label . ( 'issue' === $d['type'] && $d['reason'] ? ' – ' . $d['reason'] : '' ),
 			) );
 			if ( is_wp_error( $r ) ) {

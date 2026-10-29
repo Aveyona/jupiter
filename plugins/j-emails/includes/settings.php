@@ -64,7 +64,8 @@ function jem_decrypt( $stored ) {
 /** Je schránka nastavená? */
 function jem_configured() {
 	$s = jem_settings();
-	return '' !== $s['email'] && '' !== $s['imap_host'] && '' !== $s['pass'];
+	// Heslo sa musí dať aj dešifrovať (po zmene kľúčov WordPressu – salts – ho treba zadať znova).
+	return '' !== $s['email'] && '' !== $s['imap_host'] && '' !== $s['pass'] && '' !== jem_decrypt( $s['pass'] );
 }
 
 /** Pripojenie k schránke s nastaveniami webu. */
@@ -165,6 +166,7 @@ add_action( 'admin_post_jem_save_settings', function () {
 		$new['pass'] = '';
 	}
 	update_option( 'jem_settings', $new, false );
+	delete_option( 'jem_smtp_failed' );
 	delete_transient( 'jem_folders' );
 	delete_transient( 'jem_unseen' );
 	wp_safe_redirect( admin_url( 'admin.php?page=j-emails-settings&saved=1' ) );
@@ -187,8 +189,13 @@ add_action( 'admin_post_jem_test_mail', function () {
 		$err = $e->get_error_message();
 	};
 	add_action( 'wp_mail_failed', $cb );
+	$GLOBALS['jem_no_fallback'] = true; // test má ukázať skutočný výsledok SMTP, nie náhradné odoslanie
 	$ok = wp_mail( $to, 'Skúšobný e-mail z webu ' . wp_parse_url( home_url(), PHP_URL_HOST ), "Tento e-mail poslal web cez J-Emails, rovnako ako e-maily objednávok.\n\nOdoslané: " . wp_date( 'j. n. Y H:i' ), $headers );
 	remove_action( 'wp_mail_failed', $cb );
+	$GLOBALS['jem_no_fallback'] = false;
+	if ( $ok ) {
+		delete_option( 'jem_smtp_failed' );
+	}
 	set_transient( 'jem_test_' . get_current_user_id(), array( $ok ? array( 'ok', 'Skúšobný e-mail je odoslaný na ' . $to . ( $headers ? ' (odosielateľ ' . $woo . ')' : '' ) . '. Po chvíli ho uvidíte v Doručenej pošte.' ) : array( 'err', 'Skúšobný e-mail sa nepodarilo odoslať: ' . $err ) ), 300 );
 	wp_safe_redirect( admin_url( 'admin.php?page=j-emails-settings&tested=1' ) );
 	exit;

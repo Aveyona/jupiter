@@ -144,8 +144,13 @@ function jem_render_list( $box ) {
 	}
 	$q = isset( $_GET['s'] ) ? trim( sanitize_text_field( wp_unslash( $_GET['s'] ) ) ) : ''; // phpcs:ignore
 	if ( '' !== $q ) {
-		$qq   = JEM_Imap::q( $q );
-		$uids = $imap->uids( 'CHARSET UTF-8 OR OR FROM ' . $qq . ' SUBJECT ' . $qq . ' TO ' . $qq );
+		if ( JEM_Imap::needs_literal( $q ) ) {
+			// Diakritika: hľadaný text ako literál {n} (v úvodzovkách ho prísne servery odmietnu).
+			$uids = $imap->uids( "CHARSET UTF-8 OR OR FROM \x01 SUBJECT \x01 TO \x01", array( $q, $q, $q ) );
+		} else {
+			$qq   = JEM_Imap::q( $q );
+			$uids = $imap->uids( 'CHARSET UTF-8 OR OR FROM ' . $qq . ' SUBJECT ' . $qq . ' TO ' . $qq );
+		}
 	} else {
 		$uids = $imap->uids();
 	}
@@ -219,8 +224,8 @@ function jem_render_list( $box ) {
 
 /** Bezpečné zobrazenie HTML správy v izolovanom rámci (bez skriptov, vzdialené obrázky len na požiadanie). */
 function jem_html_frame( $html, array $atts, $box, $uid, $show_images ) {
-	$html = preg_replace( '#<(script|iframe|object|embed|form)\b[^>]*>.*?</\1>#is', '', $html );
-	$html = preg_replace( '#<(script|iframe|object|embed|meta|base|link)\b[^>]*>#i', '', $html );
+	$html = preg_replace( '#<(script|iframe|object|embed|form|noscript)\b[^>]*>.*?</\1>#is', '', $html );
+	$html = preg_replace( '#</?(script|iframe|frame|frameset|object|embed|applet|meta|base|link|form|input|button|textarea|select)\b[^>]*>#i', '', $html );
 	$html = preg_replace( '/\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html );
 	$html = preg_replace( '/(href|src)\s*=\s*(["\']?)\s*javascript:/i', '$1=$2#', $html );
 	foreach ( $atts as $i => $a ) {
@@ -229,11 +234,11 @@ function jem_html_frame( $html, array $atts, $box, $uid, $show_images ) {
 			$html = str_ireplace( array( 'cid:' . $a['cid'] ), $src, $html );
 		}
 	}
-	$u    = wp_parse_url( admin_url() );
-	$self = $u['scheme'] . '://' . $u['host'] . ( isset( $u['port'] ) ? ':' . $u['port'] : '' );
-	$csp  = "default-src 'none'; style-src 'unsafe-inline' " . ( $show_images ? '*' : '' ) . '; img-src data: ' . $self . ( $show_images ? ' https: http:' : '' ) . '; font-src ' . ( $show_images ? '*' : "'none'" );
+	// Vložené obrázky (cid:) len cez admin-post.php – e-mail nemôže volať iné adresy webu s prihlásením správcu.
+	$part = strtok( admin_url( 'admin-post.php' ), '?' );
+	$csp  = "default-src 'none'; style-src 'unsafe-inline' " . ( $show_images ? '*' : '' ) . '; img-src data: ' . $part . ( $show_images ? ' https: http:' : '' ) . '; font-src ' . ( $show_images ? '*' : "'none'" ) . "; form-action 'none'; base-uri 'none'";
 	$doc  = '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="' . esc_attr( $csp ) . '"><base target="_blank"><style>body{margin:0;padding:16px;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#1d2327;word-wrap:break-word}img{max-width:100%;height:auto}</style></head><body>' . $html . '</body></html>';
-	return '<iframe class="jem-frame" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcdoc="' . esc_attr( $doc ) . '" onload="this.style.height=(this.contentDocument.documentElement.scrollHeight+20)+\'px\'"></iframe>';
+	return '<iframe class="jem-frame" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcdoc="' . htmlspecialchars( $doc, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', true ) . '" onload="this.style.height=(this.contentDocument.documentElement.scrollHeight+20)+\'px\'"></iframe>';
 }
 
 function jem_part_url( $box, $uid, $i, $inline = false ) {

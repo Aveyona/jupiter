@@ -4,13 +4,15 @@
 
 ## Doplnky
 
-| Doplnok | Stav | Na čo slúži |
+| Doplnok | Verzia | Na čo slúži |
 |---|---|---|
-| **J-Pomocník** | vo vývoji | Dokumentácia doplnkov Jupiter priamo v administrácii – prehľad, návody, vývoj. |
-| **J-Fakturácia** | vo vývoji (0.1.0) | Vydané faktúry z objednávok (číselný rad, PDF, QR PAY by square, e-mail zákazníkovi po potvrdení), ručné faktúry, dobropisy, prijaté faktúry s prílohami a splatnosťou, export pre účtovníka. |
-| **J-Emails** | vo vývoji (0.1) | E-mailová schránka obchodu v administrácii (IMAP/SMTP): doručená pošta, odoslané, kôš, odpovede, prílohy. Pripravuje sa Mailchimp pre zákazníkov. |
-| **J-Objednávky** | vo vývoji (0.1) | Prehľadný zoznam objednávok nad WooCommerce (stavy s počtami, vyhľadávanie aj podľa čísla, filtre, platba, doprava, faktúra, hromadná zmena stavu) a vlastné čísla objednávok s prefixom – náhrada doplnku My Order Numbers. |
-| **J-Sklad** | vo vývoji (0.1) | Sklad nad produktmi WooCommerce: príjemky a výdajky, kniha všetkých pohybov zásob, priemerná nákupná cena a hodnota skladu. Pripravuje sa inventúra, PDF, dodávatelia. |
+| **J-Pomocník** | 1.1.2 | Dokumentácia doplnkov Jupiter priamo v administrácii – prehľad, návody, plán vývoja – a aktualizácie doplnkov z GitHubu. |
+| **J-Fakturácia** | 0.9.4 | Faktúry, zálohové faktúry a dobropisy z objednávok (číselný rad, PDF s QR PAY by square, e-mail zákazníkovi), ručné faktúry, prijaté faktúry s prílohami a splatnosťou, pole „Nakupujem ako firma“, export pre účtovníka a do Pohody, prechod z Woo Faktura. Zatiaľ pre neplatiteľov DPH. |
+| **J-Emails** | 0.2.1 | E-mailová schránka obchodu v administrácii (IMAP): doručená pošta, odoslané, kôš, odpovede, prílohy; e-maily webu a e-shopu cez SMTP. Pripravuje sa Mailchimp pre zákazníkov. |
+| **J-Objednávky** | 0.1.3 | Prehľadný zoznam objednávok nad WooCommerce (stavy s počtami, vyhľadávanie aj podľa čísla, filtre, hromadná zmena stavu) a vlastné čísla objednávok s prefixom – náhrada doplnku My Order Numbers. |
+| **J-Sklad** | 0.2.3 | Sklad nad produktmi WooCommerce: príjemky a výdajky, kniha pohybov zásob, vážená priemerná nákupná cena a hodnota skladu, evidencia obrázkov produktov. Pripravuje sa inventúra, PDF, dodávatelia. |
+
+Všetky doplnky sú zatiaľ vo vývoji (verzie 0.x okrem J-Pomocníka).
 
 ## Požiadavky
 
@@ -28,7 +30,8 @@
 
 - Každý doplnok má vlastný priečinok v `plugins/`.
 - Pri každom commite sa automaticky kontroluje syntax PHP.
-- Nová verzia: zvýš `Version` v doplnku, uprav `updates.json` a vytvor značku `<doplnok>-v<verzia>` (napr. `j-invoices-v1.0.0`) – ZIP doplnku sa sám pripojí k vydaniu (Release) a weby ponúknu aktualizáciu.
+- Nová verzia: zvýš `Version` (hlavička) aj konštantu `*_VERSION` v doplnku a uprav `updates.json` (verzia, `package`, poznámky). Po zlúčení do vetvy `main` sa **značka `<doplnok>-v<verzia>`, vydanie (Release) aj ZIP vytvoria automaticky** a weby ponúknu aktualizáciu.
+- Kontrola pri každom commite overí, že hlavička, konštanta a `updates.json` majú rovnakú verziu (`.github/scripts/check-versions.php`). J-Pomocník prijme aktualizáciu len z vydaní tohto repozitára.
 
 ## Licencia
 

@@ -14,6 +14,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'JHELP_REPO', 'Aveyona/jupiter' );
 
 /**
+ * Bezpečnostná kontrola vydania: verzia v tvare 1.2.3 a balík len z vydaní repozitára Jupiter
+ * (https://github.com/Aveyona/jupiter/releases/download/<doplnok>-v<verzia>/<doplnok>-v<verzia>.zip).
+ * Iná adresa (aj keby ju niekto zapísal do updates.json) sa ignoruje.
+ */
+function jhelp_valid_release( $slug, $version, $package ) {
+	if ( ! preg_match( '/^j-[a-z0-9-]+$/', (string) $slug ) || ! preg_match( '/^\d+(?:\.\d+){0,3}$/', (string) $version ) ) {
+		return false;
+	}
+	$tag = $slug . '-v' . $version;
+	return 'https://github.com/' . JHELP_REPO . '/releases/download/' . $tag . '/' . $tag . '.zip' === (string) $package;
+}
+
+/**
  * Najnovšie verzie doplnkov: slug => [version, package, url, notes, published]. Uloženie na 6 hodín.
  * Zdroj: súbor updates.json v repozitári (raw.githubusercontent.com – bez limitu GitHub API,
  * ktorý zdieľané hostingy často vyčerpajú). Ako záloha sa použije GitHub API (zoznam vydaní).
@@ -30,10 +43,10 @@ function jhelp_remote_versions( $force = false ) {
 	if ( ! is_wp_error( $res ) && 200 === (int) wp_remote_retrieve_response_code( $res ) ) {
 		$json = json_decode( wp_remote_retrieve_body( $res ), true );
 		foreach ( (array) ( isset( $json['plugins'] ) ? $json['plugins'] : array() ) as $slug => $p ) {
-			if ( 0 === strpos( (string) $slug, 'j-' ) && ! empty( $p['version'] ) && ! empty( $p['package'] ) ) {
+			if ( ! empty( $p['version'] ) && ! empty( $p['package'] ) && jhelp_valid_release( $slug, $p['version'], $p['package'] ) ) {
 				$out[ $slug ] = array(
 					'version'   => (string) $p['version'],
-					'package'   => esc_url_raw( $p['package'] ),
+					'package'   => (string) $p['package'],
 					'url'       => isset( $p['url'] ) ? esc_url_raw( $p['url'] ) : 'https://github.com/' . JHELP_REPO . '/releases',
 					'notes'     => isset( $p['notes'] ) ? (string) $p['notes'] : '',
 					'published' => isset( $p['published'] ) ? (string) $p['published'] : '',
@@ -56,7 +69,7 @@ function jhelp_remote_versions( $force = false ) {
 						$zip = $a['browser_download_url'];
 					}
 				}
-				if ( $zip && ( ! isset( $out[ $m[1] ] ) || version_compare( $m[2], $out[ $m[1] ]['version'], '>' ) ) ) {
+				if ( $zip && jhelp_valid_release( $m[1], $m[2], $zip ) && ( ! isset( $out[ $m[1] ] ) || version_compare( $m[2], $out[ $m[1] ]['version'], '>' ) ) ) {
 					$out[ $m[1] ] = array( 'version' => $m[2], 'package' => $zip, 'url' => $rel['html_url'], 'notes' => (string) $rel['body'], 'published' => (string) $rel['published_at'] );
 				}
 			}

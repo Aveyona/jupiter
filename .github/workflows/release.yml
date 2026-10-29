@@ -1,23 +1,62 @@
 name: Vydanie – ZIP doplnku
-# Značka v tvare <doplnok>-v<verzia>, napr. j-invoices-v1.0.0
+# Vydanie vznikne samo:
+#  - po zlúčení do vetvy main: pre každý doplnok, ktorého verzia (hlavička Version:) ešte nemá značku
+#    <doplnok>-v<verzia>, sa vytvorí značka, vydanie a ZIP;
+#  - alebo ručne značkou v tvare <doplnok>-v<verzia>, napr. j-invoices-v1.0.0.
 on:
   push:
+    branches: [main]
     tags: ['j-*-v*']
 permissions:
   contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
 jobs:
-  zip:
+  release:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
-      - name: Zostavenie ZIP
-        id: b
-        run: |
-          tag="${GITHUB_REF_NAME}"
-          plugin="${tag%-v*}"
-          test -d "plugins/$plugin"
-          (cd plugins && zip -r "../$tag.zip" "$plugin" -x '*.git*')
-          echo "zip=$tag.zip" >> "$GITHUB_OUTPUT"
-      - uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.b.outputs.zip }}
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: Kontrola verzií
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            php .github/scripts/check-versions.php "${GITHUB_REF_NAME}"
+          else
+            php .github/scripts/check-versions.php
+          fi
+      - name: Vydania
+        run: |
+          set -e
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            tags="${GITHUB_REF_NAME}"
+          else
+            tags=""
+            for dir in plugins/j-*/; do
+              plugin=$(basename "$dir")
+              ver=$(grep -m1 -E '^\s*\*\s*Version:' "$dir/$plugin.php" | awk '{print $NF}')
+              tag="$plugin-v$ver"
+              # Vydať, ak chýba značka, vydanie alebo jeho ZIP (aj po neúspešnom predchádzajúcom behu).
+              if ! gh release view "$tag" --json assets -q '.assets[].name' 2>/dev/null | grep -qx "$tag.zip"; then tags="$tags $tag"; fi
+            done
+          fi
+          for tag in $tags; do
+            plugin="${tag%-v*}"
+            test -d "plugins/$plugin"
+            rm -f "$tag.zip"
+            (cd plugins && zip -qr "../$tag.zip" "$plugin" -x '*.git*')
+            notes=$(php -r '$j=json_decode(file_get_contents("updates.json"),true); echo $j["plugins"][$argv[1]]["notes"] ?? "";' "$plugin")
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release upload "$tag" "$tag.zip" --clobber
+            else
+              gh release create "$tag" "$tag.zip" --target "${GITHUB_SHA}" --title "$tag" --notes "${notes:-Vydanie $tag}"
+            fi
+            echo "Vydané: $tag"
+          done
+          [ -n "$tags" ] || echo "Žiadna nová verzia na vydanie."

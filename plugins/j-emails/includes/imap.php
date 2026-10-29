@@ -47,7 +47,15 @@ class JEM_Imap {
 				return false;
 			}
 		}
-		$r = $this->cmd( 'LOGIN ' . self::q( $user ) . ' ' . self::q( $pass ) );
+		$lits = array();
+		$arg  = function ( $v ) use ( &$lits ) {
+			if ( self::needs_literal( $v ) ) {
+				$lits[] = (string) $v;
+				return "\x01";
+			}
+			return self::q( $v );
+		};
+		$r = $this->cmd( 'LOGIN ' . $arg( $user ) . ' ' . $arg( $pass ), $lits );
 		if ( ! $r['ok'] ) {
 			$this->error = 'Prihlásenie do schránky zlyhalo: ' . $r['text'];
 			$this->close();
@@ -65,6 +73,11 @@ class JEM_Imap {
 		$this->fp = null;
 	}
 
+	/** Treba reťazec poslať ako literál {n}? (diakritika a iné znaky mimo ASCII, koniec riadka) */
+	public static function needs_literal( $s ) {
+		return (bool) preg_match( '/[\x00\r\n\x80-\xff]/', (string) $s );
+	}
+
 	/** Reťazec v úvodzovkách podľa IMAP. */
 	public static function q( $s ) {
 		return '"' . str_replace( array( '\\', '"' ), array( '\\\\', '\\"' ), (string) $s ) . '"';
@@ -75,14 +88,40 @@ class JEM_Imap {
 	 *
 	 * @return array{ok:bool,text:string,untagged:array<int,array{line:string,lits:array}>}
 	 */
-	public function cmd( $command ) {
+	public function cmd( $command, array $lits = array() ) {
 		$out = array( 'ok' => false, 'text' => '', 'untagged' => array() );
 		if ( ! $this->fp ) {
 			$out['text'] = 'Nie je pripojenie.';
 			return $out;
 		}
 		$tag = 'J' . ( ++$this->n );
-		fwrite( $this->fp, $tag . ' ' . $command . "\r\n" );
+		// Literály: v príkaze značka \x01, server po {n} potvrdí „+“ a až potom príjme údaje.
+		$parts = explode( "\x01", $tag . ' ' . $command );
+		foreach ( $parts as $i => $part ) {
+			if ( $i >= count( $parts ) - 1 ) {
+				fwrite( $this->fp, $part . "\r\n" );
+				break;
+			}
+			$lit = (string) ( $lits[ $i ] ?? '' );
+			fwrite( $this->fp, $part . '{' . strlen( $lit ) . "}\r\n" );
+			// Čakanie na „+“; nevyžiadané riadky „* …“ sa uložia, záverečná odpoveď príkazu sa prečíta celá.
+			while ( true ) {
+				$resp = $this->read_response();
+				if ( null === $resp ) {
+					$out['text'] = 'Spojenie so serverom sa prerušilo.';
+					return $out;
+				}
+				if ( 0 === strpos( $resp['line'], '+' ) ) {
+					break;
+				}
+				if ( 0 === strpos( $resp['line'], $tag . ' ' ) ) {
+					$out['text'] = trim( preg_replace( '/^(OK|NO|BAD)\s*(\[[^\]]*\]\s*)?/i', '', substr( $resp['line'], strlen( $tag ) + 1 ) ) );
+					return $out;
+				}
+				$out['untagged'][] = $resp;
+			}
+			fwrite( $this->fp, $lit );
+		}
 		while ( true ) {
 			$resp = $this->read_response();
 			if ( null === $resp ) {
@@ -207,8 +246,8 @@ class JEM_Imap {
 	}
 
 	/** UID všetkých správ (alebo podľa kritéria) od najnovšej. */
-	public function uids( $criteria = 'ALL' ) {
-		$r    = $this->cmd( 'UID SEARCH ' . $criteria );
+	public function uids( $criteria = 'ALL', array $lits = array() ) {
+		$r    = $this->cmd( 'UID SEARCH ' . $criteria, $lits );
 		$uids = array();
 		foreach ( $r['untagged'] as $u ) {
 			if ( 0 === stripos( $u['line'], '* SEARCH' ) ) {
@@ -291,7 +330,13 @@ class JEM_Imap {
 			return false;
 		}
 		$this->flag( $uid, '\\Deleted', true );
-		$this->cmd( $this->has( 'UIDPLUS' ) ? 'UID EXPUNGE ' . $uid : 'EXPUNGE' );
+		if ( $this->has( 'UIDPLUS' ) ) {
+			$this->cmd( 'UID EXPUNGE ' . $uid );
+		} elseif ( array( $uid ) === $this->uids( 'DELETED' ) ) {
+			// Bez UIDPLUS len vtedy, keď je na zmazanie označená iba táto správa – inak by EXPUNGE
+			// natrvalo vymazal aj správy, ktoré iný poštový program len označil.
+			$this->cmd( 'EXPUNGE' );
+		}
 		return true;
 	}
 

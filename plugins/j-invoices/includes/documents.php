@@ -135,6 +135,25 @@ function jinv_creditnote_items( WC_Order $o, $refund, $invoice ) {
 	return $items;
 }
 
+/** Suma faktúry, ktorú ešte možno dobropisovať (faktúra mínus platné dobropisy k objednávke). */
+function jinv_credit_remaining( $order_id, $invoice = null ) {
+	global $wpdb;
+	$invoice = $invoice ? $invoice : jinv_by_order( $order_id, 'issued' );
+	if ( ! $invoice ) {
+		return 0.0;
+	}
+	$credited = 0.0;
+	$rows     = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT total, data FROM ' . jinv_table() . " WHERE order_id = %d AND kind = 'creditnote' AND status <> 'cancelled'", $order_id ), ARRAY_A ); // phpcs:ignore
+	foreach ( $rows as $r ) {
+		$d = json_decode( (string) $r['data'], true );
+		// Rátajú sa dobropisy k tejto faktúre (aj staršie bez čísla faktúry, napr. prevzaté z Woo Faktura).
+		if ( empty( $d['invoice'] ) || (string) $d['invoice'] === (string) $invoice['number'] ) {
+			$credited += abs( (float) $r['total'] );
+		}
+	}
+	return max( 0.0, round( abs( (float) $invoice['total'] ) - $credited, 2 ) );
+}
+
 /** Najnovšie vrátenie peňazí objednávky, ku ktorému ešte nie je dobropis (alebo null). */
 function jinv_uncredited_refund( WC_Order $o ) {
 	global $wpdb;
@@ -178,6 +197,9 @@ function jinv_create_doc( $order, $kind = 'issued', $opts = array() ) {
 	// Zámok na objednávku – dve súbežné požiadavky (napr. platobná brána a klik v administrácii) nevystavia dva doklady.
 	$lock   = 'jinv_doc_' . $o->get_id();
 	$locked = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 15)', $lock ) );
+	if ( ! $locked ) {
+		return new WP_Error( 'jinv_locked', 'K objednávke sa práve vystavuje iný doklad. Skúste to znova o chvíľu.' );
+	}
 	try {
 		return jinv_create_doc_locked( $o, $kind, $opts );
 	} finally {
@@ -210,6 +232,10 @@ function jinv_create_doc_locked( WC_Order $o, $kind, $opts ) {
 	if ( 'creditnote' === $kind && ! $refund ) {
 		$refund = jinv_uncredited_refund( $o );
 	}
+	$remaining = 'creditnote' === $kind ? jinv_credit_remaining( $o->get_id(), $invoice ) : 0.0;
+	if ( 'creditnote' === $kind && $remaining < 0.01 ) {
+		return new WP_Error( 'jinv_fully_credited', 'Faktúra ' . $invoice['number'] . ' je už celá dobropisovaná – ďalší dobropis sa nevystaví.' );
+	}
 	$data    = array(
 		'supplier' => jinv_supplier_snapshot(),
 		'customer' => jinv_customer_from_order( $o ),
@@ -233,6 +259,15 @@ function jinv_create_doc_locked( WC_Order $o, $kind, $opts ) {
 		$status = $paid ? 'paid' : 'issued';
 		$supply = $o->get_date_created() ? $o->get_date_created()->date_i18n( 'Y-m-d' ) : $today; // na zálohovej faktúre „Objednávka zo dňa“
 	} else {
+		$sum = abs( round( array_sum( wp_list_pluck( $data['items'], 'total' ) ), 2 ) );
+		if ( $refund instanceof WC_Order_Refund ) {
+			if ( $sum > $remaining + 0.005 ) {
+				return new WP_Error( 'jinv_credit_over', sprintf( 'Dobropis na %s by prekročil zostávajúcu sumu faktúry %s (%s). Skontrolujte vystavené dobropisy.', wc_format_decimal( $sum, 2 ), $invoice['number'], wc_format_decimal( $remaining, 2 ) ) );
+			}
+		} elseif ( $sum > $remaining + 0.005 ) {
+			// Časť faktúry je už dobropisovaná – dobropis len na zostatok, nie znova na celú faktúru.
+			$data['items'] = array( array( 'name' => 'Dobropis – zostávajúca suma faktúry ' . $invoice['number'], 'sku' => '', 'qty' => -1, 'unit' => '', 'price' => $remaining, 'total' => -1 * $remaining ) );
+		}
 		$data['invoice'] = $invoice['number'];
 		$data['reason']  = $refund instanceof WC_Order_Refund ? (string) $refund->get_reason() : '';
 		$total           = round( array_sum( wp_list_pluck( $data['items'], 'total' ) ), 2 );
@@ -313,13 +348,18 @@ add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to
 	try {
 		$transfer = jinv_is_transfer_order( $order );
 		// Zálohová faktúra pri prevode: objednávka čaká na platbu.
+		$note = function ( $r, $what ) use ( $order ) {
+			if ( is_wp_error( $r ) ) {
+				$order->add_order_note( 'J-Fakturácia: ' . $what . ' sa nevystavila – ' . $r->get_error_message() . ' Vystavte ju tlačidlom v boxe Faktúry.' );
+			}
+		};
 		if ( $transfer && jinv_auto_on( 'auto_proforma' ) && 'on-hold' === $to && ! $order->is_paid() ) {
-			jinv_create_doc( $order, 'proforma' );
+			$note( jinv_create_doc( $order, 'proforma' ), 'zálohová faktúra' );
 		}
 		if ( jinv_auto_on( 'auto' ) ) {
 			$paid_now = in_array( $to, array( 'processing', 'completed' ), true ) && $order->is_paid();
 			if ( ( $transfer && ( $paid_now || 'completed' === $to ) ) || ( ! $transfer && 'completed' === $to ) ) {
-				jinv_create_doc( $order, 'issued' );
+				$note( jinv_create_doc( $order, 'issued' ), 'faktúra' );
 			}
 		}
 		// Objednávka zrušená: zálohová faktúra sa stornuje (faktúru rieši dobropis).
@@ -353,7 +393,10 @@ add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to
 add_action( 'woocommerce_order_refunded', function ( $order_id, $refund_id ) {
 	if ( jinv_auto_on( 'auto_creditnote' ) && jinv_by_order( $order_id, 'issued' ) ) {
 		try {
-			jinv_create_doc( $order_id, 'creditnote', array( 'refund_id' => $refund_id ) );
+			$r = jinv_create_doc( $order_id, 'creditnote', array( 'refund_id' => $refund_id ) );
+			if ( is_wp_error( $r ) && ( $o = wc_get_order( $order_id ) ) ) {
+				$o->add_order_note( 'J-Fakturácia: dobropis k vráteniu sa nevystavil – ' . $r->get_error_message() );
+			}
 		} catch ( \Throwable $e ) {
 			jinv_log_error( wc_get_order( $order_id ), $e, 'dobropis pri vrátení' );
 		}

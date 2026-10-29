@@ -33,9 +33,15 @@ function jord_search_ids( $term ) {
 	if ( $id ) {
 		$ids[] = $id;
 	}
-	// WC_Data_Store odovzdáva volania cez __call – method_exists by vrátilo false, preto priamo s ochranou.
 	try {
-		$ids = array_merge( $ids, array_map( 'absint', (array) WC_Data_Store::load( 'order' )->search_orders( $term ) ) );
+		if ( function_exists( 'jord_hpos' ) && jord_hpos() ) {
+			// HPOS: vyhľadávanie WooCommerce v tabuľkách objednávok (meno, e-mail, telefón, adresa, položky).
+			$found = wc_get_orders( array( 's' => $term, 'type' => 'shop_order', 'return' => 'ids', 'limit' => 500, 'status' => array_keys( wc_get_order_statuses() ) ) );
+		} else {
+			// WC_Data_Store odovzdáva volania cez __call – method_exists by vrátilo false, preto priamo s ochranou.
+			$found = WC_Data_Store::load( 'order' )->search_orders( $term );
+		}
+		$ids = array_merge( $ids, array_map( 'absint', (array) $found ) );
 	} catch ( Throwable $e ) {
 		unset( $e );
 	}
@@ -175,7 +181,7 @@ add_action( 'admin_post_jord_bulk_status', function () {
 	if ( isset( wc_get_order_statuses()[ $to ] ) ) {
 		foreach ( $ids as $id ) {
 			$o = wc_get_order( $id );
-			if ( $o && $o->get_status() !== preg_replace( '/^wc-/', '', $to ) ) {
+			if ( $o && 'shop_order' === $o->get_type() && current_user_can( 'edit_shop_order', $id ) && $o->get_status() !== preg_replace( '/^wc-/', '', $to ) ) {
 				$o->update_status( preg_replace( '/^wc-/', '', $to ), 'J-Objednávky: hromadná zmena stavu.', true );
 				$n++;
 			}
