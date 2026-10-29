@@ -1,7 +1,7 @@
 <?php
 /**
  * Menu administrácie: všetky doplnky Jupiter (slug začína „j-“) sú spolu hneď pod položkou
- * WooCommerce „Marketing“ – v pevnom poradí (sklad → objednávky → faktúry → e-maily), ďalšie doplnky podľa abecedy,
+ * WooCommerce „Marketing“ – v pevnom poradí (pošta → sklad → objednávky → faktúry → účtovníctvo), ďalšie doplnky podľa abecedy,
  * J-Pomocník vždy posledný.
  */
 if ( ! defined( 'ABSPATH' ) ) {
@@ -26,7 +26,7 @@ function jhelp_menu_order() {
 		'j-orders'   => 20,
 		'j-invoices' => 30,
 		'j-uctovnictvo' => 35,
-		'j-emails'   => 40,
+		'j-emails'   => 5, // J-Pošta – prvá v skupine Jupiter
 		'j-notes'    => 45,
 		'j-help'     => 1000,
 	) );

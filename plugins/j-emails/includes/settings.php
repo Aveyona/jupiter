@@ -235,7 +235,7 @@ add_action( 'admin_post_jem_test_mail', function () {
 	};
 	add_action( 'wp_mail_failed', $cb );
 	$GLOBALS['jem_no_fallback'] = true; // test má ukázať skutočný výsledok SMTP, nie náhradné odoslanie
-	$ok = wp_mail( $to, 'Skúšobný e-mail z webu ' . wp_parse_url( home_url(), PHP_URL_HOST ), "Tento e-mail poslal web cez J-Emails, rovnako ako e-maily objednávok.\n\nOdoslané: " . wp_date( 'j. n. Y H:i' ), $headers );
+	$ok = wp_mail( $to, 'Skúšobný e-mail z webu ' . wp_parse_url( home_url(), PHP_URL_HOST ), "Tento e-mail poslal web cez J-Pošta, rovnako ako e-maily objednávok.\n\nOdoslané: " . wp_date( 'j. n. Y H:i' ), $headers );
 	remove_action( 'wp_mail_failed', $cb );
 	$GLOBALS['jem_no_fallback'] = false;
 	if ( $ok ) {

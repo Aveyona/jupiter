@@ -1,5 +1,5 @@
 <?php
-/** Návody J-Emails (Jupiter Email) v J-Pomocník. Funkcie, ktoré ešte nie sú hotové, sú označené „(pripravuje sa)“. */
+/** Návody J-Pošta (Jupiter Pošta) v J-Pomocník. Funkcie, ktoré ešte nie sú hotové, sú označené „(pripravuje sa)“. */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -8,19 +8,19 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 	$guides[] = array(
 		'Nastavenie schránky',
 		array(
-			'J-Emails → Nastavenia: e-mailová adresa (napr. info@hedlajner.sk), meno odosielateľa a heslo schránky.',
+			'J-Pošta → Nastavenia: e-mailová adresa (napr. info@hedlajner.sk), meno odosielateľa a heslo schránky.',
 			'Aliasy: adresy, ktoré chodia do tej istej schránky (napr. eshop@, redakcia@) – pri písaní si vyberiete, z ktorej adresy správa odíde.',
 			'Pre WebSupport sú servery predvyplnené: prijímanie imap.websupport.sk, port 993, SSL; odosielanie smtp.websupport.sk, port 465, SSL.',
 			'Heslo sa ukladá zašifrované kľúčom webu; každý web má vlastné nastavenia aj schránku.',
 			'Tlačidlo Otestovať pripojenie overí prijímanie aj odosielanie a nájde priečinky Odoslané a Kôš. Archív, Spam a Odložené sa nájdu alebo vytvoria pri prvom použití.',
 			'Poštu vidí len administrátor webu.',
 		),
-		'J-Emails',
+		'J-Pošta',
 	);
 	$guides[] = array(
-		'Jupiter Email – práca s poštou',
+		'Jupiter Pošta – práca s poštou',
 		array(
-			'J-Emails → Pošta otvorí Jupiter Email: vľavo priečinky, hore hľadanie, v strede zoznam konverzácií.',
+			'J-Pošta → Pošta otvorí Jupiter Pošta: vľavo priečinky, hore hľadanie, v strede zoznam konverzácií.',
 			'Konverzácia: odpovede aj vaše odoslané správy sú spolu; staršie správy sú zbalené, kliknutím ich rozbalíte.',
 			'Pri prejdení myšou nad konverzáciou: Archivovať, Odstrániť, Označiť ako prečítané/neprečítané, Odložiť.',
 			'Zaškrtnutím vyberiete viac konverzácií a použijete akcie hore; konverzácie sa dajú aj potiahnuť myšou do priečinka vľavo.',
@@ -33,7 +33,18 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'Klávesové skratky: c napísať, / hľadať, j/k ďalšia/predošlá, e archivovať, # odstrániť, s hviezdička, r odpovedať, a všetkým, f preposlať, ? zoznam skratiek.',
 			'Šablóny odpovedí a Mailchimp pre zákazníkov (pripravuje sa).',
 		),
-		'J-Emails',
+		'J-Pošta',
+	);
+	$guides[] = array(
+		'Faktúry z e-mailu (Gmail)',
+		array(
+			'J-Pošta → Faktúry z e-mailu: externý účet Google (Gmail), na ktorý chodia faktúry (Telekom, predplatné…). Program má prístup len na čítanie a len po vašom povolení v Google.',
+			'Jednorazovo: v Google Cloud vytvoriť projekt, zapnúť Gmail API, nastaviť prihlasovanie (OAuth) a klienta typu Webová aplikácia s adresou presmerovania zo stránky; ID klienta a tajný kľúč zadať do J-Pošty.',
+			'Pripojiť účet Google → vybrať štítky s faktúrami (napr. T-COM) a ku každému dodávateľa a kategóriu nákladu.',
+			'Načítať faktúry: správy so štítkom a PDF prílohou; suma, variabilný symbol, obdobie a splatnosť sa vyčítajú zo správy. Prevziať vybrané → prijatá faktúra v J-Fakturácii s PDF; platba v banke s rovnakým VS a sumou sa spáruje a zaúčtuje.',
+			'Prevzatá faktúra sa druhýkrát neprevezme. Účet sa dá kedykoľvek odpojiť – prístup v Google sa tým zruší.',
+		),
+		'J-Pošta',
 	);
 	return $guides;
 } );

@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.1.4",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.1.4/j-help-v1.1.4.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.1.4",
+      "version": "1.1.5",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.1.5/j-help-v1.1.5.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.1.5",
       "published": "2026-10-29",
-      "notes": "Poradie v menu: J-Účtovníctvo hneď za J-Fakturáciou."
+      "notes": "J-Pošta prvá v menu Jupiter. Poradie v menu: J-Účtovníctvo hneď za J-Fakturáciou."
     },
     "j-invoices": {
       "version": "0.10.0",
@@ -16,11 +16,11 @@
       "notes": "Banka (Fio API, automatické párovanie úhrad podľa VS), dodávatelia (adresár, načítanie z registra podľa IČO, detail s faktúrami a príjemkami), prijaté faktúry s našepkávačom dodávateľa, filtrami a prepojením na príjemku J-Skladu, úhrady dokladov vrátane čiastočných platieb."
     },
     "j-emails": {
-      "version": "0.3.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-emails-v0.3.0/j-emails-v0.3.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-emails-v0.3.0",
+      "version": "0.5.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-emails-v0.5.0/j-emails-v0.5.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-emails-v0.5.0",
       "published": "2026-10-29",
-      "notes": "Jupiter Email: nové rozhranie v štýle Gmailu – konverzácie, hviezdičky, Dôležité, Archív, Odložené, rýchle a hromadné akcie, okno Napísať, koncepty, aliasy odosielateľa."
+      "notes": "J-Pošta: faktúry z externého účtu Google (Gmail API) priamo do J-Fakturácie, nový názov a prvé miesto v menu Jupiter. Jupiter Email: nové rozhranie v štýle Gmailu – konverzácie, hviezdičky, Dôležité, Archív, Odložené, rýchle a hromadné akcie, okno Napísať, koncepty, aliasy odosielateľa."
     },
     "j-orders": {
       "version": "0.2.0",
