@@ -10,8 +10,11 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		array(
 			'J-Objednávky → Objednávky: hore stavy s počtom objednávok (Spracováva sa, Pozastavené, Vybavené…), klik zobrazí len daný stav.',
 			'Vyhľadávanie podľa čísla objednávky (aj vlastného, napr. 220260244), mena, e-mailu alebo telefónu; filter spôsobu platby a obdobia od – do.',
-			'Stĺpce: číslo (ikona bubliny = poznámka zákazníka), dátum, stav, zákazník, platba (aj dátum zaplatenia), doprava, suma a faktúra z J-Fakturácie.',
-			'Hromadná zmena stavu: označ objednávky, vyber nový stav a Použiť. Do objednávky sa zapíše poznámka; zákazníkom odídu e-maily podľa nastavení WooCommerce (napr. Vybavená).',
+			'Stĺpce: číslo (ikona bubliny = poznámka zákazníka), dátum, stav, zákazník, platba (aj dátum zaplatenia), doprava, suma a Doklady.',
+			'Doklady: ZF = zálohová faktúra (proforma), F = faktúra, D = dobropis – s číslom, stavom (vystavená, uhradená, po splatnosti) a odkazom na PDF. Faktúra z Woo Faktury, ktorá ešte nie je prevzatá, je sivá.',
+			'Pri objednávke bez faktúry je tlačidlo Vystaviť faktúru; pri objednávke s faktúrou Pregenerovať (faktúra sa vytvorí znova z aktuálnej objednávky podľa nastavení J-Fakturácie). Kým beží Woo Faktura, tlačidlá sa nezobrazujú.',
+			'Na fakturáciu (pri stavoch): vybavené objednávky za posledných 90 dní, ktoré ešte nemajú faktúru – nič sa tak neprehliadne. Ktorý stav je „vybavená“, sa nastavuje v J-Fakturácia → Nastavenia → Postup fakturácie.',
+			'Hromadná akcia: zmena stavu, Vybaviť a vystaviť faktúry (zmení stav na vybavená a hneď vystaví faktúry) alebo Len vystaviť faktúry. Faktúry sa hromadne vystavia bez e-mailu zákazníkom; v hlásení je počet vystavených faktúr. Zmena stavu zapíše poznámku a zákazníkom odídu e-maily podľa nastavení WooCommerce.',
 			'Klik na číslo otvorí bežný detail objednávky WooCommerce; pôvodný zoznam WooCommerce ostáva dostupný.',
 		),
 		'J-Objednávky',
