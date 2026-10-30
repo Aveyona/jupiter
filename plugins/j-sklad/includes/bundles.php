@@ -148,29 +148,103 @@ add_action( 'manage_product_posts_custom_column', function ( $col, $id ) {
 
 /* ---------- Košík ---------- */
 
-// Po pridaní balíčka pridá súčasti (aj pri opakovanom pridaní – počty sa navýšia).
-add_action( 'woocommerce_add_to_cart', function ( $key, $product_id, $qty, $variation_id, $variation, $data ) {
-	static $busy = false;
-	if ( $busy || ! empty( $data['jsk_bundle_parent'] ) ) {
-		return;
+/**
+ * Súčasť balíčka, ktorá sa dá vložiť do košíka: pri variabilnom produkte (napr. Členstvo Mesačne/Ročne)
+ * sa použije predvolená variácia, inak prvá dostupná.
+ */
+function jsk_bundle_cart_product_id( $id ) {
+	$p = wc_get_product( $id );
+	if ( ! $p || ! $p->is_type( 'variable' ) ) {
+		return (int) $id;
 	}
-	$items = jsk_bundle_items( $variation_id ? $variation_id : $product_id );
-	if ( ! $items ) {
-		return;
+	$def = array();
+	foreach ( $p->get_default_attributes() as $att => $val ) {
+		$def[ 'attribute_' . $att ] = $val;
 	}
-	$busy     = true;
-	$children = (array) ( WC()->cart->cart_contents[ $key ]['jsk_bundle_children'] ?? array() );
-	foreach ( $items as $r ) {
-		$ck = WC()->cart->add_to_cart( $r['id'], $qty * $r['qty'], 0, array(), array( 'jsk_bundle_parent' => $key, 'jsk_bundle_qty' => $r['qty'], 'jsk_bundle_price' => $r['price'] ) );
-		if ( $ck && ! in_array( $ck, $children, true ) ) {
-			$children[] = $ck;
+	if ( $def ) {
+		$vid = WC_Data_Store::load( 'product' )->find_matching_product_variation( $p, $def );
+		$v   = $vid ? wc_get_product( $vid ) : null;
+		if ( $v && $v->is_purchasable() ) {
+			return (int) $vid;
 		}
 	}
-	if ( isset( WC()->cart->cart_contents[ $key ] ) ) {
-		WC()->cart->cart_contents[ $key ]['jsk_bundle_children'] = $children;
+	foreach ( $p->get_children() as $vid ) {
+		$v = wc_get_product( $vid );
+		if ( $v && $v->is_purchasable() ) {
+			return (int) $vid;
+		}
+	}
+	$kids = $p->get_children();
+	return $kids ? (int) $kids[0] : (int) $id;
+}
+
+/** Doplní do košíka chýbajúce súčasti balíčka (pri pridaní aj pri starom košíku z relácie). */
+function jsk_bundle_sync_children( $key ) {
+	static $busy = false;
+	$cart = WC()->cart;
+	if ( $busy || ! $cart || empty( $cart->cart_contents[ $key ] ) ) {
+		return true;
+	}
+	$item  = $cart->cart_contents[ $key ];
+	$items = jsk_bundle_items( ! empty( $item['variation_id'] ) ? $item['variation_id'] : $item['product_id'] );
+	if ( ! $items || ! empty( $item['jsk_bundle_parent'] ) ) {
+		return true;
+	}
+	$busy     = true;
+	$ok       = true;
+	$children = array();
+	$have     = array();
+	foreach ( (array) ( $item['jsk_bundle_children'] ?? array() ) as $ck ) {
+		if ( isset( $cart->cart_contents[ $ck ] ) ) {
+			$c = $cart->cart_contents[ $ck ];
+			$have[ (int) ( $c['variation_id'] ? $c['variation_id'] : $c['product_id'] ) ] = $ck;
+		}
+	}
+	foreach ( $items as $r ) {
+		$pid = jsk_bundle_cart_product_id( $r['id'] );
+		$qty = $item['quantity'] * $r['qty'];
+		if ( isset( $have[ $pid ] ) ) {
+			$children[] = $have[ $pid ];
+			unset( $have[ $pid ] );
+			continue;
+		}
+		$ck = $cart->add_to_cart( $pid, $qty, 0, array(), array( 'jsk_bundle_parent' => $key, 'jsk_bundle_qty' => $r['qty'], 'jsk_bundle_price' => $r['price'] ) );
+		if ( $ck ) {
+			$children[] = $ck;
+		} else {
+			$ok = false;
+		}
+	}
+	// Súčasti, ktoré už v balíčku nie sú (zmenené nastavenie balíčka), sa odoberú.
+	foreach ( $have as $ck ) {
+		unset( $cart->cart_contents[ $ck ] );
+	}
+	if ( isset( $cart->cart_contents[ $key ] ) ) {
+		$cart->cart_contents[ $key ]['jsk_bundle_children'] = array_values( array_unique( $children ) );
 	}
 	$busy = false;
+	return $ok;
+}
+
+// Po pridaní balíčka pridá súčasti. Ak sa niektorá pridať nedá, balíček sa z košíka odoberie celý.
+add_action( 'woocommerce_add_to_cart', function ( $key, $product_id, $qty, $variation_id, $variation, $data ) {
+	if ( ! empty( $data['jsk_bundle_parent'] ) ) {
+		return;
+	}
+	if ( ! jsk_bundle_sync_children( $key ) ) {
+		WC()->cart->remove_cart_item( $key );
+		wc_add_notice( 'Balíček sa teraz nedá pridať do košíka – niektorá jeho súčasť nie je dostupná. Skúste to prosím neskôr alebo nám napíšte.', 'error' );
+	}
 }, 20, 6 );
+
+// Starý košík z relácie (napr. po zmene nastavenia balíčka) – doplní chýbajúce súčasti.
+add_action( 'woocommerce_cart_loaded_from_session', function ( $cart ) {
+	foreach ( array_keys( $cart->cart_contents ) as $k ) {
+		if ( empty( $cart->cart_contents[ $k ]['jsk_bundle_parent'] ) ) {
+			jsk_bundle_sync_children( $k );
+		}
+	}
+}, 20 );
 
 // Údaje balíčka prežijú uloženie košíka v relácii.
 add_filter( 'woocommerce_get_cart_item_from_session', function ( $item, $values ) {
