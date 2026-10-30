@@ -12,7 +12,7 @@
 | **J-Notes** | 0.1.0 | Poznámky k projektom: plány s úlohami a stavom (☐ ◐ ☑), dokumentácia v Markdowne, prehľad „Teraz robím“, denník zmien, súbory .md (nahratie aj cez FTP). Rovnaký kód používa My Notes. |
 | **J-Pošta** (j-emails) | 0.5.0 | **Jupiter Pošta** – pošta obchodu v administrácii v štýle Gmailu: konverzácie, hviezdičky, Dôležité, Archív, Odložené, rýchle a hromadné akcie, okno Napísať, aliasy odosielateľa; e-maily webu a e-shopu cez SMTP; šablóny e-mailov; faktúry z externého účtu Google (Gmail API) priamo do J-Fakturácie. |
 | **J-Objednávky** | 0.2.0 | Prehľadný zoznam objednávok nad WooCommerce (stavy s počtami, vyhľadávanie aj podľa čísla, filtre, hromadná zmena stavu) a vlastné čísla objednávok s prefixom – náhrada doplnku My Order Numbers. |
-| **J-Doprava** | 0.1.0 | Doprava: Packeta – výdajné miesta a Z-BOXy s mapou v košíku, doručenie na adresu, podanie zásielok cez API, štítky PDF, sledovanie stavu. |
+| **J-Doprava** | 0.2.0 | Doprava: Packeta – výdajné miesta a Z-BOXy s mapou v košíku, doručenie na adresu, podanie zásielok cez API, štítky PDF, sledovanie stavu, e-mail zákazníkovi „Objednávka odoslaná“. |
 | **J-Sklad** | 0.3.1 | Sklad nad produktmi WooCommerce: príjemky a výdajky, inventúra, kniha pohybov zásob, vážená priemerná nákupná cena a hodnota skladu, evidencia obrázkov produktov. Prepojený s dodávateľmi a prijatými faktúrami J-Fakturácie. Pripravuje sa PDF, návrh objednávky tovaru. |
 
 Všetky doplnky sú zatiaľ vo vývoji (verzie 0.x okrem J-Pomocníka).

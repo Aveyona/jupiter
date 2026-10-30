@@ -207,9 +207,12 @@ function jdp_customer_box( $order, $plain = false ) {
 	echo '</section>';
 }
 
-add_action( 'woocommerce_email_after_order_table', function ( $order, $sent_to_admin, $plain ) {
+add_action( 'woocommerce_email_after_order_table', function ( $order, $sent_to_admin, $plain, $email = null ) {
+	if ( $email && 'jdp_shipped' === $email->id ) {
+		return; // e-mail „Objednávka odoslaná“ má sledovanie a miesto vyššie
+	}
 	jdp_customer_box( $order, $plain );
-}, 15, 3 );
+}, 15, 4 );
 add_action( 'woocommerce_order_details_after_order_table', function ( $order ) {
 	jdp_customer_box( $order );
 } );
