@@ -75,8 +75,8 @@ add_action( 'woocommerce_product_data_panels', function () {
 	$product = wc_get_product( $post->ID );
 	$rows    = $product ? jsk_bundle_items( $product ) : array();
 	$all     = wc_get_products( array( 'limit' => 300, 'status' => array( 'publish', 'private', 'draft' ), 'orderby' => 'title', 'order' => 'ASC', 'exclude' => array( $post->ID ), 'type' => array( 'simple', 'variation', 'variable' ) ) );
-	for ( $i = count( $rows ); $i < count( $rows ) + 3; $i++ ) {
-		$rows[] = array( 'id' => 0, 'qty' => 1, 'price' => '' );
+	for ( $i = 0; $i < 3; $i++ ) {
+		$rows[] = array( 'id' => 0, 'qty' => 1, 'price' => '' ); // 3 prázdne riadky na nové súčasti
 	}
 	wp_nonce_field( 'jsk_bundle_save', 'jsk_bundle_nonce' );
 	?>
