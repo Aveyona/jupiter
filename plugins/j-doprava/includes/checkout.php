@@ -21,7 +21,8 @@ function jdp_point_label( $p ) {
 	}
 	$addr = trim( implode( ', ', array_filter( array( $p['street'] ?? '', trim( ( $p['zip'] ?? '' ) . ' ' . ( $p['city'] ?? '' ) ) ) ) ) );
 	$name = trim( (string) ( $p['place'] ?? '' ) ) ? $p['place'] : ( $p['name'] ?? '' );
-	return trim( ( 'zbox' === ( $p['group'] ?? '' ) ? 'Z-BOX ' : '' ) . $name . ( $addr && false === strpos( (string) $name, (string) ( $p['street'] ?? '###' ) ) ? ' – ' . $addr : '' ) );
+	$pre  = 'zbox' === ( $p['group'] ?? '' ) && 0 !== stripos( (string) $name, 'Z-BOX' ) ? 'Z-BOX ' : '';
+	return trim( $pre . $name . ( $addr && false === strpos( (string) $name, (string) ( $p['street'] ?? '###' ) ) ? ' – ' . $addr : '' ) );
 }
 
 add_action( 'wp_enqueue_scripts', function () {
