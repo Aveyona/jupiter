@@ -295,7 +295,7 @@ add_action( 'woocommerce_single_product_summary', function () {
 
 // Karty produktov: „balíček spolu …“ pod cenou.
 add_filter( 'woocommerce_get_price_html', function ( $html, $product ) {
-	if ( is_admin() && ! wp_doing_ajax() || ! $product || ! jsk_bundle_items( $product ) || ( function_exists( 'is_product' ) && is_product() && did_action( 'woocommerce_before_single_product_summary' ) && ! did_action( 'woocommerce_after_single_product_summary' ) ) ) {
+	if ( is_admin() && ! wp_doing_ajax() || ! $product || ! jsk_bundle_items( $product ) || ( function_exists( 'is_product' ) && is_product() && get_queried_object_id() === $product->get_id() ) ) {
 		return $html;
 	}
 	return $html . '<span class="jsk-bundle-price"> · balíček spolu ' . wp_kses_post( wc_price( jsk_bundle_total( $product ) ) ) . '</span>';
