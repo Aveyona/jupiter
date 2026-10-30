@@ -6,6 +6,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_filter( 'jupiter_guides', function ( $guides ) {
 	$guides[] = array(
+		'Balíčky (zostavy)',
+		array(
+			'Úprava produktu → záložka Balíček: vyberte produkty, ktoré sa pridajú do košíka spolu s ním, a ich počet (napr. IT poradenstvo × 8). Cena v balíčku prázdna = bežná cena súčasti.',
+			'Zákazník vidí na stránke produktu rámček „V balíčku dostanete“ s cenou spolu; v košíku sú súčasti ako samostatné riadky označené „Súčasť balíčka“. Počet sa mení len pri balíčku, odobratie odoberie celý balíček.',
+			'Súčasti sú bežné riadky objednávky a faktúry – sklad sa odpisuje, členstvo sa zapne ako pri samostatnom nákupe. Prehľad: J-Sklad → Balíčky.',
+		),
+		'J-Sklad',
+	);
+	$guides[] = array(
 		'Ako funguje J-Sklad',
 		array(
 			'Zásoba ostáva v produktoch WooCommerce (Zásoby → Spravovať zásoby, Množstvo na sklade). J-Sklad k nej pridáva doklady a úplnú históriu pohybov.',

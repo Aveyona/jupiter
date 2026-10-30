@@ -4,7 +4,7 @@ Tags: woocommerce, stock, inventory, warehouse, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPLv2 or later
 
 Sklad pre WooCommerce: príjemky, výdajky, kniha pohybov zásob a hodnota skladu. Súčasť rodiny Jupiter.
@@ -25,6 +25,9 @@ Zásoba ostáva v produktoch WooCommerce (Spravovať zásoby, Množstvo na sklad
 Pripravuje sa: PDF dokladov, import príjemky z CSV, návrh objednávky tovaru, viac skladov.
 
 == Changelog ==
+
+= 0.5.0 =
+* Balíčky (zostavy): záložka Balíček v úprave produktu, súčasti sa pridajú do košíka automaticky (počet podľa balíčka, bežná alebo vlastná cena), nedajú sa odobrať samostatne; prehľad J-Sklad → Balíčky; cena balíčka na stránke produktu a v kartách.
 
 = 0.4.0 =
 * Akcie a novinky (J-Sklad → Akcie a novinky): zoznam produktov s filtrom (v akcii, novinky, bez akcie), hromadne nastaviť alebo zrušiť zľavu – percentom, sumou alebo novou cenou, s dátumom začiatku a konca akcie, názvom akcie a zaokrúhlením (centy, 10 centov, celé €, ,90, ,99). Zľava je akciová cena WooCommerce, pri variabilnom produkte pre všetky varianty.
