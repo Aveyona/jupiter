@@ -60,7 +60,17 @@ function jsk_bundle_qty_label( $qty, $product ) {
 	if ( '' === $unit ) {
 		$unit = $product && preg_match( '/poraden|hodin|konzult/iu', $product->get_name() ) ? 'h' : 'ks';
 	}
+	if ( 'ks' === $unit && 1.0 === (float) $qty ) {
+		return ''; // „1 ks“ je zbytočné – pri jednom kuse sa množstvo neuvádza.
+	}
 	return wc_format_localized_decimal( rtrim( rtrim( number_format( (float) $qty, 2, '.', '' ), '0' ), '.' ) ) . ' ' . $unit;
+}
+
+/** Názov súčasti balíčka s množstvom („IT poradenstvo – 8 h“, pri 1 ks len názov). */
+function jsk_bundle_item_label( $qty, $product ) {
+	$name = $product ? wp_strip_all_tags( $product->get_name() ) : '';
+	$q    = jsk_bundle_qty_label( $qty, $product );
+	return '' === $q ? $name : $name . ' – ' . $q;
 }
 
 /* ---------- Administrácia: záložka „Balíček“ v úprave produktu ---------- */
@@ -254,7 +264,7 @@ add_filter( 'woocommerce_get_item_data', function ( $data, $item ) {
 		$names = array();
 		foreach ( jsk_bundle_items( $item['variation_id'] ? $item['variation_id'] : $item['product_id'] ) as $r ) {
 			$p       = wc_get_product( $r['id'] );
-			$names[] = ( $p ? wp_strip_all_tags( $p->get_name() ) : '' ) . ' – ' . jsk_bundle_qty_label( $r['qty'], $p );
+			$names[] = jsk_bundle_item_label( $r['qty'], $p );
 		}
 		$data[] = array( 'key' => 'Balíček obsahuje', 'value' => implode( ', ', $names ) );
 	}
@@ -288,7 +298,7 @@ add_action( 'woocommerce_single_product_summary', function () {
 	echo '<li><span class="jsk-ok" aria-hidden="true">✓</span> ' . esc_html( wp_strip_all_tags( $product->get_name() ) ) . ' <span class="jsk-bp">' . wp_kses_post( wc_price( $product->get_price() ) ) . '</span></li>';
 	foreach ( $items as $r ) {
 		$p = wc_get_product( $r['id'] );
-		echo '<li><span class="jsk-ok" aria-hidden="true">✓</span> ' . esc_html( wp_strip_all_tags( $p->get_name() ) ) . ' – ' . esc_html( jsk_bundle_qty_label( $r['qty'], $p ) ) . ' <span class="jsk-bp">' . wp_kses_post( wc_price( $r['qty'] * jsk_bundle_item_price( $r ) ) ) . '</span></li>';
+		echo '<li><span class="jsk-ok" aria-hidden="true">✓</span> ' . esc_html( jsk_bundle_item_label( $r['qty'], $p ) ) . ' <span class="jsk-bp">' . wp_kses_post( wc_price( $r['qty'] * jsk_bundle_item_price( $r ) ) ) . '</span></li>';
 	}
 	echo '</ul><p class="jsk-bundle-sum">Cena balíčka spolu <strong>' . wp_kses_post( wc_price( jsk_bundle_total( $product ) ) ) . '</strong></p></div>';
 }, 25 );
@@ -329,7 +339,7 @@ function jsk_render_bundles() {
 		$c = array();
 		foreach ( jsk_bundle_items( $p ) as $r ) {
 			$cp  = wc_get_product( $r['id'] );
-			$c[] = esc_html( wp_strip_all_tags( $cp->get_name() ) ) . ' – ' . esc_html( jsk_bundle_qty_label( $r['qty'], $cp ) ) . ( '' !== $r['price'] ? ' <small>(v balíčku ' . wp_kses_post( wc_price( $r['price'] ) ) . '/ks)</small>' : '' );
+			$c[] = esc_html( jsk_bundle_item_label( $r['qty'], $cp ) ) . ( '' !== $r['price'] ? ' <small>(v balíčku ' . wp_kses_post( wc_price( $r['price'] ) ) . '/ks)</small>' : '' );
 		}
 		echo '<tr><td><a href="' . esc_url( get_edit_post_link( $id ) ) . '"><strong>' . esc_html( wp_strip_all_tags( $p->get_name() ) ) . '</strong></a></td><td>' . implode( '<br>', $c ) . '</td><td class="num">' . wp_kses_post( wc_price( $p->get_price() ) ) . '</td><td class="num"><strong>' . wp_kses_post( wc_price( jsk_bundle_total( $p ) ) ) . '</strong></td></tr>'; // phpcs:ignore
 	}
