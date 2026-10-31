@@ -129,7 +129,8 @@ function jinv_creditnote_items( WC_Order $o, $refund, $invoice ) {
 		foreach ( $refund->get_items() as $it ) {
 			$qty     = abs( (float) $it->get_quantity() );
 			$total   = (float) $it->get_total() + (float) $it->get_total_tax();
-			$items[] = array( 'name' => $it->get_name(), 'sku' => '', 'qty' => -1 * max( 1, $qty ), 'unit' => 'ks', 'price' => round( abs( $total ) / max( 1, $qty ), 2 ), 'total' => round( -1 * abs( $total ), 2 ) );
+			$q       = $qty > 0 ? $qty : 1;
+			$items[] = array( 'name' => $it->get_name(), 'sku' => '', 'qty' => -1 * $q, 'unit' => 'ks', 'price' => round( abs( $total ) / $q, 2 ), 'total' => round( -1 * abs( $total ), 2 ) );
 		}
 		foreach ( array_merge( $refund->get_shipping_methods(), $refund->get_fees() ) as $it ) {
 			$total = (float) $it->get_total() + (float) $it->get_total_tax();
@@ -140,7 +141,8 @@ function jinv_creditnote_items( WC_Order $o, $refund, $invoice ) {
 		$sum  = array_sum( wp_list_pluck( $items, 'total' ) );
 		$diff = round( -1 * abs( (float) $refund->get_amount() ) - $sum, 2 );
 		if ( abs( $diff ) >= 0.01 ) { // vrátenie len sumou (bez položiek) alebo rozdiel
-			$items[] = array( 'name' => 'Vrátenie platby' . ( $refund->get_reason() ? ' – ' . $refund->get_reason() : '' ), 'sku' => '', 'qty' => -1, 'unit' => '', 'price' => abs( $diff ), 'total' => $diff );
+			// Znamienko množstva podľa rozdielu (vrátená suma menšia ako položky → kladný vyrovnávací riadok).
+			$items[] = array( 'name' => 'Vrátenie platby' . ( $refund->get_reason() ? ' – ' . $refund->get_reason() : '' ), 'sku' => '', 'qty' => $diff < 0 ? -1 : 1, 'unit' => '', 'price' => abs( $diff ), 'total' => $diff );
 		}
 		return $items;
 	}
@@ -216,8 +218,10 @@ function jinv_create_doc( $order, $kind = 'issued', $opts = array() ) {
 	}
 	// Zámok na objednávku – dve súbežné požiadavky (napr. platobná brána a klik v administrácii) nevystavia dva doklady.
 	$lock   = 'jinv_doc_' . $o->get_id();
-	$locked = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 15)', $lock ) );
-	if ( ! $locked ) {
+	$got    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 15)', $lock ) );
+	$locked = 1 === (int) $got;
+	// NULL = databáza zámky nepodporuje – pokračuje sa bez zámku (dvojitý doklad zastaví unikátny kľúč čísla).
+	if ( ! $locked && null !== $got ) {
 		return new WP_Error( 'jinv_locked', 'K objednávke sa práve vystavuje iný doklad. Skúste to znova o chvíľu.' );
 	}
 	try {
@@ -243,11 +247,13 @@ function jinv_create_doc_locked( WC_Order $o, $kind, $opts ) {
 		return new WP_Error( 'jinv_no_invoice', 'Dobropis sa vystavuje k faktúre – objednávka zatiaľ faktúru nemá.' );
 	}
 	$s       = jinv_settings();
-	$today   = current_time( 'Y-m-d' );
-	$year    = (int) current_time( 'Y' );
+	// Pregenerovanie s pôvodným dátumom: číslo z radu roka pôvodného dokladu (rad ostane v poradí dátumov).
+	$today   = ! empty( $opts['issue_date'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $opts['issue_date'] ) ? $opts['issue_date'] : current_time( 'Y-m-d' );
+	$year    = (int) substr( $today, 0, 4 );
 	$cod     = jinv_is_cod_order( $o );
 	// Dobierka: vybavená (odoslaná) objednávka ešte nie je zaplatená – faktúra je neuhradená, platí sa pri prevzatí.
-	$paid    = $cod ? false : ( $o->is_paid() || jinv_is_fulfilled( $o ) );
+	// Prevod odoslaný pred zaplatením (Čaká na platbu → Vybavená): faktúra je neuhradená, kým nepríde platba.
+	$paid    = $cod || jinv_shipped_unpaid( $o ) ? false : ( $o->is_paid() || jinv_is_fulfilled( $o ) );
 	$refund  = ! empty( $opts['refund_id'] ) ? wc_get_order( (int) $opts['refund_id'] ) : null;
 	if ( 'creditnote' === $kind && ! $refund ) {
 		$refund = jinv_uncredited_refund( $o );
@@ -377,7 +383,7 @@ function jinv_regenerate_doc( $id ) {
 				$o->delete_meta_data( $meta );
 				$o->save();
 			}
-			$new = jinv_create_doc_locked( $o, $kind, array( 'send' => false ) );
+			$new = jinv_create_doc_locked( $o, $kind, array( 'send' => false ) + ( 'keep' === jinv_opt( 'regen_date' ) ? array( 'issue_date' => $inv['issue_date'] ) : array() ) );
 			if ( is_wp_error( $new ) ) {
 				jinv_update( $inv['id'], array( 'status' => $inv['status'] ) ); // vrátiť späť
 				$o->update_meta_data( $meta, $inv['number'] );
@@ -389,6 +395,11 @@ function jinv_regenerate_doc( $id ) {
 				$due = gmdate( 'Y-m-d', strtotime( $inv['issue_date'] . ' +' . (int) jinv_opt( 'due_days' ) . ' days' ) );
 				jinv_update( $new, array( 'issue_date' => $inv['issue_date'], 'due_date' => $due ) );
 			}
+			// Úhrady (banka, karta, ručné) sa presunú na nový doklad – stornovaný doklad ich nemá a pohyb v banke ostane spárovaný správne.
+			$wpdb->update( jinv_table( 'payments' ), array( 'doc_id' => (int) $new ), array( 'doc_id' => (int) $inv['id'] ) );
+			$wpdb->update( jinv_table( 'banktx' ), array( 'doc_id' => (int) $new ), array( 'doc_id' => (int) $inv['id'] ) );
+			jinv_sync_paid( (int) $new );
+			$doc = jinv_get( $new );
 			if ( 'paid' === $inv['status'] && $doc && 'paid' !== $doc['status'] ) {
 				jinv_update( $new, array( 'status' => 'paid', 'paid_at' => $inv['paid_at'] ? $inv['paid_at'] : current_time( 'mysql' ) ) );
 			}
@@ -460,6 +471,33 @@ function jinv_log_error( $order, \Throwable $e, $what ) {
 	}
 }
 
+/** Prevod odoslaný pred zaplatením (Pozastavené / Čaká na platbu → vybavená) a bez zaznamenanej platby? */
+function jinv_shipped_unpaid( WC_Order $o ) {
+	return jinv_is_transfer_order( $o ) && $o->get_meta( '_jinv_shipped_unpaid' ) && ! $o->get_meta( '_jinv_paid_later' );
+}
+
+// Prevod: vybavenie priamo z „čaká na platbu“ (bez platby) – poznačiť, aby faktúra nebola „uhradená“.
+add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to, $order ) {
+	if ( ! $order instanceof WC_Order || ! jinv_is_transfer_order( $order ) ) {
+		return;
+	}
+	$fulfilled = in_array( $to, array_unique( array( 'completed', jinv_fulfil_status() ) ), true );
+	if ( $fulfilled && in_array( $from, array( 'on-hold', 'pending' ), true ) ) {
+		$order->update_meta_data( '_jinv_shipped_unpaid', current_time( 'mysql' ) );
+		$order->save_meta_data();
+		$order->add_order_note( 'J-Fakturácia: objednávka s prevodom vybavená pred zaplatením – faktúra bude neuhradená, kým nepríde platba.' );
+	}
+}, 5, 4 );
+
+// Platba neskôr (banka, karta) – faktúra sa môže uhradiť.
+add_action( 'jinv_payment_added', function ( $pay_id, $doc_id ) {
+	$d = jinv_get( (int) $doc_id );
+	if ( $d && (int) $d['order_id'] && ( $o = wc_get_order( (int) $d['order_id'] ) ) && $o->get_meta( '_jinv_shipped_unpaid' ) ) {
+		$o->update_meta_data( '_jinv_paid_later', current_time( 'mysql' ) );
+		$o->save_meta_data();
+	}
+}, 10, 2 );
+
 add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to, $order ) {
 	if ( ! $order instanceof WC_Order || 'shop_order' !== $order->get_type() || jinv_woo_faktura_active() ) {
 		return; // režim prechodu: doklady aj ich stavy rieši Woo Faktura
@@ -472,7 +510,7 @@ add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to
 				$order->add_order_note( 'J-Fakturácia: ' . $what . ' sa nevystavila – ' . $r->get_error_message() . ' Vystavte ju tlačidlom v boxe Faktúry.' );
 			}
 		};
-		if ( $transfer && jinv_auto_on( 'auto_proforma' ) && 'on-hold' === $to && ! $order->is_paid() ) {
+		if ( $transfer && jinv_auto_on( 'auto_proforma' ) && 'on-hold' === $to && ! $order->is_paid() && ! jinv_by_order( $order_id, 'issued' ) ) {
 			$note( jinv_create_doc( $order, 'proforma' ), 'zálohová faktúra' );
 		}
 		if ( jinv_auto_on( 'auto' ) ) {
@@ -500,6 +538,9 @@ add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to
 add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to, $order ) {
 	if ( ! $order instanceof WC_Order || jinv_woo_faktura_active() || ! ( in_array( $to, array_unique( array( 'completed', jinv_fulfil_status() ) ), true ) || ( 'processing' === $to && $order->is_paid() ) ) ) {
 		return;
+	}
+	if ( jinv_shipped_unpaid( $order ) ) {
+		return; // prevod odoslaný pred zaplatením – doklady sa uhradia až platbou (banka, ručne)
 	}
 	foreach ( array( 'issued', 'proforma' ) as $kind ) {
 		$d = jinv_by_order( $order_id, $kind );
@@ -567,3 +608,62 @@ add_action( 'admin_notices', function () {
 		}
 	}
 } );
+
+/* ---------------------------------------------------------------- Dobierka, zrušená objednávka, vrátenie pred faktúrou */
+
+// Dobierka: Packeta doručila zásielku → zákazník zaplatil pri prevzatí → faktúra uhradená.
+add_action( 'jdp_status_changed', function ( $order, $code ) {
+	if ( 7 !== (int) $code || ! jinv_opt( 'cod_paid_delivered' ) || ! $order instanceof WC_Order || ! jinv_is_cod_order( $order ) ) {
+		return;
+	}
+	$inv = jinv_by_order( $order->get_id(), 'issued' );
+	if ( $inv && 'issued' === $inv['status'] ) {
+		$r = jinv_pay_full( (int) $inv['id'], array( 'date' => current_time( 'Y-m-d' ), 'method' => 'cash', 'source' => 'cod', 'ref' => 'packeta:' . $order->get_meta( '_jdp_packet_id' ), 'note' => 'Dobierka – Packeta doručila zásielku' ) );
+		if ( ! is_wp_error( $r ) ) {
+			$order->add_order_note( sprintf( 'J-Fakturácia: faktúra č. %s uhradená dobierkou (Packeta doručila zásielku).', $inv['number'] ) );
+		}
+	}
+}, 20, 2 );
+
+// Zrušená / vrátená objednávka s platnou faktúrou: dobropis (pri zapnutom automatickom dobropise), inak upozornenie.
+add_action( 'woocommerce_order_status_changed', function ( $order_id, $from, $to, $order ) {
+	if ( ! $order instanceof WC_Order || ! in_array( $to, array( 'cancelled', 'refunded' ), true ) || jinv_woo_faktura_active() ) {
+		return;
+	}
+	$inv = jinv_by_order( $order_id, 'issued' );
+	if ( ! $inv || 'cancelled' === $inv['status'] ) {
+		return;
+	}
+	if ( 'refunded' === $to && jinv_auto_on( 'auto_creditnote' ) ) {
+		return; // vrátenie peňazí rieši dobropis z vrátenia (woocommerce_order_refunded)
+	}
+	$rest = jinv_credit_remaining( $order_id, $inv );
+	if ( $rest < 0.01 ) {
+		return;
+	}
+	if ( 'cancelled' === $to && jinv_auto_on( 'auto_creditnote' ) ) {
+		$r = jinv_create_doc( $order, 'creditnote', array( 'note' => 'Objednávka zrušená.' ) );
+		if ( ! is_wp_error( $r ) ) {
+			return;
+		}
+	}
+	$order->update_meta_data( '_jinv_needs_credit', current_time( 'mysql' ) );
+	$order->save_meta_data();
+	$order->add_order_note( sprintf( 'J-Fakturácia: POZOR – objednávka je %s, ale faktúra č. %s ostáva platná. Vystavte dobropis (box Doklady).', 'cancelled' === $to ? 'zrušená' : 'vrátená', $inv['number'] ) );
+}, 40, 4 );
+
+// Vrátenie peňazí pred vystavením faktúry: po vystavení faktúry sa doplní dobropis (alebo upozornenie).
+add_action( 'jinv_document_created', function ( $id, $kind, $order ) {
+	if ( 'issued' !== $kind || ! $order instanceof WC_Order || ! jinv_uncredited_refund( $order ) ) {
+		return;
+	}
+	if ( jinv_auto_on( 'auto_creditnote' ) ) {
+		$r = jinv_create_doc( $order, 'creditnote', array( 'send' => false ) );
+		if ( ! is_wp_error( $r ) ) {
+			return;
+		}
+	}
+	$order->update_meta_data( '_jinv_needs_credit', current_time( 'mysql' ) );
+	$order->save_meta_data();
+	$order->add_order_note( 'J-Fakturácia: objednávka má vrátenie peňazí bez dobropisu – vystavte dobropis (box Doklady).' );
+}, 30, 3 );

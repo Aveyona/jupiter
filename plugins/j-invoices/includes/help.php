@@ -143,7 +143,19 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'Na spárovanie: pohyby, ktoré sa nepodarilo priradiť. Klikni na navrhnutý doklad, alebo zadaj číslo faktúry / objednávky a Spárovať. Poplatky a prevody medzi účtami označ Ignorovať. Spárovanie sa dá zrušiť (úhrada z dokladu zmizne).',
 			'Fio vydá cez API pohyby za posledných 90 dní; staršie len keď v internetbankingu (Nastavenia → API) odblokuješ históriu – platí 10 minút. Nový token začne fungovať asi 5 minút po autorizácii.',
 			'Bankové poplatky, transakčná daň a úroky sa automaticky označia ako ignorované. Tlačidlo Skúsiť znova spárovať automaticky prejde nespárované pohyby po pridaní faktúr.',
-			'14 dní pred vypršaním tokenu sa pri účte zobrazí upozornenie – vytvor nový token a vlož ho do účtu.',
+			'14 dní pred vypršaním tokenu, pri zlyhanom načítaní alebo keď sa pohyby dlho nenačítali, sa v administrácii zobrazí upozornenie; voliteľne príde raz denne e-mail (aj o platbách na spárovanie).',
+			'Platba k už zaplatenej, zrušenej alebo vrátenej objednávke sa nespáruje automaticky – ostane Na spárovanie s poznámkou „dvojitá platba?“, aby ste mohli peniaze vrátiť.',
+		),
+		'J-Fakturácia',
+	);
+	$guides[] = array(
+		'Upomienky, dobierka a zrušené objednávky',
+		array(
+			'Vydané faktúry → stav Po splatnosti: neuhradené faktúry po dátume splatnosti (bez dobierky). V detaile faktúry tlačidlo Poslať upomienku – zákazník dostane e-mail s PDF, zostávajúcou sumou a platobnými údajmi.',
+			'Dobierka: keď Packeta (J-Doprava) ohlási doručenie, faktúra na dobierku sa sama označí ako uhradená (Nastavenia → Doklady → Dobierka uhradená po doručení).',
+			'Zrušená alebo vrátená objednávka s faktúrou: pri zapnutom automatickom dobropise sa vystaví dobropis, inak sa v boxe Doklady zobrazí červené upozornenie „Faktúra ostáva platná“.',
+			'Prevod odoslaný pred zaplatením (Čaká na platbu → Vybavená): faktúra je neuhradená a uhradí ju až platba z banky alebo tlačidlo Označiť ako uhradený.',
+			'Čiastočná úhrada: PDF, e-mail aj QR kód obsahujú len zostávajúcu sumu.',
 		),
 		'J-Fakturácia',
 	);

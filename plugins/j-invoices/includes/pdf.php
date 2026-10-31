@@ -46,12 +46,18 @@ function jinv_doc_paybysquare( array $inv ) {
 	if ( 'creditnote' === $inv['kind'] || jinv_doc_is_cod( $inv ) || in_array( $inv['status'], array( 'paid', 'cancelled' ), true ) || empty( $sup['iban'] ) || (float) $inv['total'] <= 0 || 'EUR' !== $inv['currency'] ) {
 		return '';
 	}
+	// Po čiastočnej úhrade len zostávajúca suma; doklad po splatnosti – dátum úhrady dnes (banky odmietajú dátum v minulosti).
+	$amount = ! empty( $inv['id'] ) ? jinv_remaining( $inv ) : (float) $inv['total'];
+	if ( $amount < 0.01 ) {
+		return '';
+	}
+	$today = current_time( 'Y-m-d' );
 	return jinv_paybysquare( array(
 		'iban'     => $sup['iban'],
 		'bic'      => $sup['swift'] ?? '',
-		'amount'   => $inv['total'],
+		'amount'   => $amount,
 		'currency' => $inv['currency'],
-		'due'      => $inv['due_date'],
+		'due'      => $inv['due_date'] < $today ? $today : $inv['due_date'],
 		'vs'       => $inv['vs'],
 		'note'     => jinv_kind_label( $inv['kind'] ) . ' ' . $inv['number'],
 		'name'     => $sup['company'] ?? '',
@@ -205,4 +211,26 @@ function jinv_pdf_temp_cleanup( $path ) {
 		wp_delete_file( $path );
 		@rmdir( dirname( $path ) ); // phpcs:ignore
 	}
+}
+
+/**
+ * Text o úhrade dokladu pre PDF a náhľad: „Uhradené na základe zálohovej faktúry …“ (len ak je faktúra aj zálohová uhradená),
+ * pri čiastočnej úhrade „Uhradené … · zostáva uhradiť …“. Vráti pole riadkov.
+ */
+function jinv_doc_pay_lines( array $inv ) {
+	$out = array();
+	$d   = (array) ( $inv['data'] ?? array() );
+	if ( 'issued' === $inv['kind'] && ! empty( $d['proforma'] ) && 'paid' === $inv['status'] && (int) $inv['order_id'] ) {
+		$pf = jinv_by_order( (int) $inv['order_id'], 'proforma' );
+		if ( $pf && 'paid' === $pf['status'] ) {
+			$out[] = 'Uhradené na základe zálohovej faktúry č. ' . $d['proforma'] . '.';
+		}
+	}
+	if ( ! empty( $inv['id'] ) && in_array( $inv['kind'], array( 'issued', 'proforma' ), true ) && 'issued' === $inv['status'] ) {
+		$paid = jinv_paid_sum( $inv );
+		if ( $paid >= 0.01 ) {
+			$out[] = 'Uhradené ' . jinv_money( $paid, $inv['currency'] ) . ' · zostáva uhradiť ' . jinv_money( jinv_remaining( $inv ), $inv['currency'] ) . '.';
+		}
+	}
+	return $out;
 }

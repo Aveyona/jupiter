@@ -152,7 +152,10 @@ function jinv_list( $args = array() ) {
 	if ( $a['year'] ) {
 		$where[] = $wpdb->prepare( 'year = %d', $a['year'] );
 	}
-	if ( $a['status'] ) {
+	if ( 'overdue' === $a['status'] ) {
+		// Po splatnosti: neuhradené, splatnosť uplynula, bez dobierky (tá sa platí pri prevzatí).
+		$where[] = $wpdb->prepare( "status = 'issued' AND kind <> 'creditnote' AND due_date < %s AND data NOT LIKE %s AND data NOT LIKE %s", current_time( 'Y-m-d' ), '%"pay_code":"cod"%', '%"pay_code":"jetpack_custom_gateway"%' );
+	} elseif ( $a['status'] ) {
 		$where[] = $wpdb->prepare( 'status = %s', $a['status'] );
 	}
 	if ( '' !== $a['s'] ) {

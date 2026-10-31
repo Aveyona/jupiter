@@ -61,7 +61,7 @@ function jinv_partner_save( array $in, $id = 0 ) {
 	$row = array(
 		'type'     => isset( jinv_partner_types()[ $in['type'] ?? '' ] ) ? $in['type'] : 'supplier',
 		'name'     => mb_substr( $name, 0, 200 ),
-		'ico'      => preg_replace( '/\s+/', '', sanitize_text_field( $in['ico'] ?? '' ) ),
+		'ico'      => jinv_ico_norm( sanitize_text_field( $in['ico'] ?? '' ) ),
 		'dic'      => preg_replace( '/\s+/', '', sanitize_text_field( $in['dic'] ?? '' ) ),
 		'icdph'    => strtoupper( preg_replace( '/\s+/', '', sanitize_text_field( $in['icdph'] ?? '' ) ) ),
 		'street'   => sanitize_text_field( $in['street'] ?? '' ),
@@ -94,12 +94,18 @@ function jinv_partner_save( array $in, $id = 0 ) {
 }
 
 /** Nájde partnera podľa IČO, inak podľa presného názvu. */
+/** IČO bez medzier; číselné IČO kratšie ako 8 číslic sa doplní nulami zľava (123456 → 00123456, ako v registri). */
+function jinv_ico_norm( $ico ) {
+	$ico = preg_replace( '/\s+/', '', (string) $ico );
+	return ctype_digit( $ico ) && strlen( $ico ) < 8 ? str_pad( $ico, 8, '0', STR_PAD_LEFT ) : $ico;
+}
+
 function jinv_partner_match( $name, $ico = '' ) {
 	global $wpdb;
 	$t   = jinv_table( 'partners' );
-	$ico = preg_replace( '/\s+/', '', (string) $ico );
+	$ico = jinv_ico_norm( $ico );
 	if ( $ico ) {
-		$id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $t WHERE ico = %s LIMIT 1", $ico ) ); // phpcs:ignore
+		$id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $t WHERE ico = %s OR ico = %s LIMIT 1", $ico, ltrim( $ico, '0' ) ) ); // phpcs:ignore
 		if ( $id ) {
 			return $id;
 		}

@@ -4,7 +4,7 @@ Tags: woocommerce, faktúry, faktúra, slovensko, jupiter
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.10.2
+Stable tag: 0.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,15 @@ Faktúry pre slovenské e-shopy na WooCommerce. Súčasť rodiny doplnkov Jupite
 Pripravuje sa: PDF s QR kódom PAY by square, odoslanie zákazníkovi e-mailom po potvrdení, ručné faktúry, dobropisy, prijaté faktúry, export pre účtovníka.
 
 == Changelog ==
+
+= 0.11.0 =
+* Bezpečnosť: prílohy prijatých faktúr len PDF a obrázky (kontrola obsahu, nie len prípony), ukladajú sa s príponou .jinv a otvárajú len cez administráciu; iný súbor sa nikdy nezobrazí v prehliadači.
+* Banka: jeden pohyb sa nedá spárovať dvakrát; platba k už zaplatenej, zrušenej alebo vrátenej objednávke ostane Na spárovanie s upozornením; párovanie porovnáva menu; ručné spárovanie textom bez čísla nenájde náhodný doklad; zmazanie úhrady, prijatej faktúry alebo storno dokladu uvoľní pohyb na spárovanie; pregenerovanie s novým číslom presunie úhrady na nový doklad.
+* Banka: upozornenie v administrácii a voliteľný denný e-mail – zlyhané načítanie, dlho nenačítané pohyby, token vyprší / vypršal, nenačítané obdobie (90 dní Fio), platby na spárovanie.
+* Číslovanie: počiatočné číslo („pokračovať od“) sa už neuplatní znova v novom roku pri uložení nastavení; pregenerovanie s pôvodným dátumom berie číslo z radu pôvodného roka.
+* Zálohová faktúra sa nevystaví, ak objednávka už má faktúru. Prevod odoslaný pred zaplatením = neuhradená faktúra.
+* Nové: stav Po splatnosti v zozname a upomienka e-mailom; dobierka uhradená po doručení Packetou; zrušená / vrátená objednávka s faktúrou → dobropis alebo upozornenie; vrátenie peňazí pred vystavením faktúry → dobropis; zostávajúca suma po čiastočnej úhrade v PDF, e-maile a QR kóde (dátum splatnosti v QR nie v minulosti).
+* Pohoda XML bez centových rozdielov pri zľavách; desatinné množstvá a jednotka z J-Skladu (h, kg) na faktúre; dobropis s kladným vyrovnávacím riadkom; IČO doplnené nulami (123456 = 00123456); suma „1.234,50“ sa načíta správne; zákazník nesťahuje prevzatý doklad bez originálneho PDF.
 
 = 0.10.2 =
 * Kategória prijatej faktúry „Majetok“ (J-Účtovníctvo ju účtuje na 042 – obstaranie dlhodobého majetku).

@@ -86,11 +86,23 @@ function jinv_insert_payment( $doc_id, $amount, array $a ) {
 	return (int) $wpdb->insert_id;
 }
 
+/** Suma zo vstupu: „1 234,50“, „1.234,50“, „1234.5“ → 1234.5. */
+function jinv_parse_amount( $v ) {
+	$v = preg_replace( '/[\s\x{00A0}€]/u', '', (string) $v );
+	if ( false !== strpos( $v, ',' ) ) {
+		$v = str_replace( array( '.', ',' ), array( '', '.' ), $v ); // bodka = oddeľovač tisícov
+	}
+	return (float) $v;
+}
+
 function jinv_delete_payment( $payment_id ) {
 	global $wpdb;
 	$doc_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT doc_id FROM ' . jinv_table( 'payments' ) . ' WHERE id = %d', $payment_id ) ); // phpcs:ignore
 	if ( $doc_id ) {
 		$wpdb->delete( jinv_table( 'payments' ), array( 'id' => (int) $payment_id ) );
+		// Pohyb v banke, z ktorého úhrada vznikla, sa znova ponúkne na spárovanie.
+		$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'new', 'doc_id' => 0, 'payment_id' => 0, 'matched_by' => '' ), array( 'payment_id' => (int) $payment_id ) );
+		wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
 		jinv_sync_paid( $doc_id );
 		do_action( 'jinv_payment_deleted', $payment_id, $doc_id );
 	}
@@ -197,7 +209,7 @@ add_action( 'admin_post_jinv_pay_add', function () {
 	$id = (int) ( $_POST['id'] ?? 0 );
 	check_admin_referer( 'jinv_pay_add_' . $id );
 	$in = wp_unslash( $_POST );
-	$r  = jinv_add_payment( $id, (float) str_replace( array( ' ', ',' ), array( '', '.' ), (string) ( $in['amount'] ?? '0' ) ), array(
+	$r  = jinv_add_payment( $id, jinv_parse_amount( $in['amount'] ?? '0' ), array(
 		'date'   => sanitize_text_field( $in['date'] ?? '' ),
 		'method' => sanitize_key( $in['method'] ?? 'bank' ),
 		'note'   => (string) ( $in['note'] ?? '' ),

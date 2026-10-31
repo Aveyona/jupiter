@@ -204,7 +204,9 @@ function jinv_fio_sync( $account_id ) {
 		sleep( 31 ); // Fio: jeden dopyt za 30 s
 		$st = jinv_fio_get( $account_id, 'periods/{token}/' . $min . '/' . $today . '/transactions.json' );
 		if ( ! is_wp_error( $st ) ) {
-			set_transient( 'jinv_bank_note_' . $account_id, 'Načítané pohyby od ' . jinv_date( $min ) . ' (Fio vydá cez API len 90 dní). ' . $old_err->get_error_message(), HOUR_IN_SECONDS );
+			$gap = 'Pohyby od ' . jinv_date( $from ) . ' do ' . jinv_date( $min ) . ' sa nenačítali – Fio vydá cez API len 90 dní. Odblokujte históriu v internetbankingu (Nastavenia → API) a načítajte znova, alebo tieto platby spárujte ručne.';
+			set_transient( 'jinv_bank_note_' . $account_id, $gap . ' ' . $old_err->get_error_message(), HOUR_IN_SECONDS );
+			jinv_bank_update_account( $account_id, array( 'gap' => $gap ) ); // trvalá poznámka na stránke Banka
 		}
 	}
 	if ( is_wp_error( $st ) ) {
@@ -240,6 +242,9 @@ function jinv_fio_sync( $account_id ) {
 		$opening                                = (array) ( $acc['opening'] ?? array() );
 		$opening[ substr( $info['dateStart'], 0, 10 ) ] = (float) $info['openingBalance'];
 		ksort( $opening );
+		// Uchová sa najstarší zostatok a zostatky k 1. 1. (pre počiatočné stavy) – nie každý deň načítania.
+		$first   = array_key_first( $opening );
+		$opening = array_filter( $opening, fn( $k ) => $k === $first || '-01-01' === substr( $k, 4 ), ARRAY_FILTER_USE_KEY );
 		$upd['opening'] = $opening;
 	}
 	if ( isset( $info['closingBalance'] ) ) {
@@ -267,7 +272,7 @@ function jinv_bank_candidates( array $tx, $limit = 5 ) {
 	$amt   = abs( (float) $tx['amount'] );
 	$kinds = (float) $tx['amount'] > 0 ? "('issued','proforma')" : "('received')";
 	$rest  = "(i.total - COALESCE((SELECT SUM(amount) FROM $p WHERE doc_id = i.id), 0))";
-	$where = array( "i.kind IN $kinds", "i.status = 'issued'" );
+	$where = array( "i.kind IN $kinds", "i.status = 'issued'", $wpdb->prepare( 'i.currency = %s', ! empty( $tx['currency'] ) ? $tx['currency'] : 'EUR' ) );
 	$or    = array();
 	if ( '' !== $tx['vs'] ) {
 		$or[] = $wpdb->prepare( "TRIM(LEADING '0' FROM i.vs) = %s", $tx['vs'] );
@@ -334,8 +339,13 @@ function jinv_bank_auto_match( $tx_id ) {
 	// Príjem bez dokladu: objednávka s číslom = VS.
 	if ( (float) $tx['amount'] > 0 && '' !== $tx['vs'] ) {
 		$o = jinv_bank_order_by_number( $tx['vs'] );
-		if ( $o && abs( (float) $o->get_total() - $amt ) < 0.005 ) {
-			return ! is_wp_error( jinv_bank_pair_order( $tx_id, $o->get_id(), 'auto' ) );
+		if ( $o && abs( (float) $o->get_total() - $amt ) < 0.005 && $o->get_currency() === ( $tx['currency'] ? $tx['currency'] : 'EUR' ) ) {
+			if ( ! $o->is_paid() && $o->has_status( array( 'pending', 'on-hold' ) ) ) {
+				return ! is_wp_error( jinv_bank_pair_order( $tx_id, $o->get_id(), 'auto' ) );
+			}
+			// Objednávka je už zaplatená, zrušená alebo vrátená – platba ostane Na spárovanie (možno treba vrátiť peniaze).
+			global $wpdb;
+			$wpdb->update( jinv_table( 'banktx' ), array( 'note' => 'Pozor: objednávka #' . $o->get_order_number() . ' je ' . mb_strtolower( wc_get_order_status_name( $o->get_status() ) ) . ( $o->is_paid() ? ' a už zaplatená' : '' ) . ' – dvojitá platba? Skontrolujte a prípadne vráťte peniaze.' ), array( 'id' => $tx_id ) );
 		}
 	}
 	return false;
@@ -352,6 +362,13 @@ function jinv_bank_pair( $tx_id, $doc_id, $how = 'manual' ) {
 	if ( ( (float) $tx['amount'] > 0 ) !== in_array( $doc['kind'], array( 'issued', 'proforma' ), true ) ) {
 		return new WP_Error( 'jinv_bank', (float) $tx['amount'] > 0 ? 'Príjem sa páruje s vydanou alebo zálohovou faktúrou.' : 'Výdaj sa páruje s prijatou faktúrou.' );
 	}
+	if ( (string) $doc['currency'] !== (string) ( $tx['currency'] ? $tx['currency'] : 'EUR' ) ) {
+		return new WP_Error( 'jinv_bank', 'Mena pohybu (' . $tx['currency'] . ') nesedí s menou dokladu (' . $doc['currency'] . ').' );
+	}
+	// Pohyb sa „zamkne“ ešte pred zápisom úhrady – ten istý pohyb sa nedá spárovať dvakrát (dve okná, dvojklik).
+	if ( ! jinv_bank_claim( $tx_id ) ) {
+		return new WP_Error( 'jinv_bank', 'Pohyb už je spárovaný alebo sa práve páruje.' );
+	}
 	$pay = jinv_add_payment( $doc_id, abs( (float) $tx['amount'] ), array(
 		'date'   => $tx['tx_date'],
 		'method' => 'bank',
@@ -360,6 +377,7 @@ function jinv_bank_pair( $tx_id, $doc_id, $how = 'manual' ) {
 		'note'   => trim( $tx['counter_name'] . ( $tx['message'] ? ' – ' . $tx['message'] : '' ) ),
 	) );
 	if ( is_wp_error( $pay ) ) {
+		$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'new' ), array( 'id' => $tx_id, 'status' => 'pairing' ) );
 		return $pay;
 	}
 	$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'matched', 'doc_id' => $doc_id, 'payment_id' => (int) $pay, 'matched_by' => $how ), array( 'id' => $tx_id ) );
@@ -372,6 +390,12 @@ function jinv_bank_pair( $tx_id, $doc_id, $how = 'manual' ) {
 	return (int) $pay;
 }
 
+/** Atómové „zamknutie“ nespárovaného pohybu (new → pairing). Vráti true, ak sa podarilo. */
+function jinv_bank_claim( $tx_id ) {
+	global $wpdb;
+	return 1 === (int) $wpdb->query( $wpdb->prepare( 'UPDATE ' . jinv_table( 'banktx' ) . " SET status = 'pairing' WHERE id = %d AND status = 'new'", $tx_id ) ); // phpcs:ignore
+}
+
 /** Spárovanie príjmu s objednávkou bez dokladu. */
 function jinv_bank_pair_order( $tx_id, $order_id, $how = 'manual' ) {
 	global $wpdb;
@@ -379,6 +403,9 @@ function jinv_bank_pair_order( $tx_id, $order_id, $how = 'manual' ) {
 	$o  = wc_get_order( $order_id );
 	if ( ! $tx || ! $o ) {
 		return new WP_Error( 'jinv_bank', 'Pohyb alebo objednávka neexistuje.' );
+	}
+	if ( ! jinv_bank_claim( $tx_id ) ) {
+		return new WP_Error( 'jinv_bank', 'Pohyb už je spárovaný alebo sa práve páruje.' );
 	}
 	$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'matched', 'order_id' => (int) $order_id, 'matched_by' => $how ), array( 'id' => $tx_id ) );
 	wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
@@ -394,7 +421,7 @@ function jinv_bank_order_paid( $order_id, array $tx ) {
 		return;
 	}
 	$o->add_order_note( sprintf( 'Platba prijatá na účet: %s, %s (VS %s, %s).', jinv_money( $tx['amount'], $tx['currency'] ), jinv_date( $tx['tx_date'] ), $tx['vs'] ? $tx['vs'] : '—', $tx['counter_name'] ? $tx['counter_name'] : 'J-Fakturácia banka' ) );
-	if ( jinv_opt( 'bank_order_paid' ) && ! $o->is_paid() && $o->has_status( array( 'on-hold', 'pending' ) ) && abs( (float) $o->get_total() - (float) $tx['amount'] ) < 0.005 ) {
+	if ( jinv_opt( 'bank_order_paid' ) && ! $o->is_paid() && $o->has_status( array( 'on-hold', 'pending' ) ) && abs( (float) $o->get_total() - (float) $tx['amount'] ) < 0.005 && $o->get_currency() === ( $tx['currency'] ? $tx['currency'] : 'EUR' ) ) {
 		$o->payment_complete( 'bank:' . $tx['account_id'] . ':' . $tx['ext_id'] );
 	}
 	$o->save();
@@ -409,6 +436,9 @@ function jinv_bank_unpair( $tx_id ) {
 	}
 	if ( (int) $tx['payment_id'] ) {
 		jinv_delete_payment( (int) $tx['payment_id'] );
+	}
+	if ( (int) $tx['order_id'] && ( $o = wc_get_order( (int) $tx['order_id'] ) ) ) {
+		$o->add_order_note( 'J-Fakturácia: spárovanie platby z banky (' . jinv_money( $tx['amount'], $tx['currency'] ) . ') bolo zrušené. Stav objednávky sa nezmenil – ak nebola zaplatená, zmeňte ho ručne.' );
 	}
 	$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'new', 'doc_id' => 0, 'order_id' => 0, 'payment_id' => 0, 'matched_by' => '' ), array( 'id' => $tx_id ) );
 	wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
@@ -478,12 +508,13 @@ add_action( 'admin_post_jinv_bank_account', function () {
 		$all[ $id ]['token_set']   = current_time( 'Y-m-d' );
 		$all[ $id ]['token_until'] = gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' +180 days' ) );
 		$all[ $id ]['last_error']  = '';
+		$all[ $id ]['gap']         = '';
 	}
 	if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $in['token_until'] ?? '' ) ) ) {
 		$all[ $id ]['token_until'] = $in['token_until'];
 	}
 	jinv_bank_save_accounts( $all );
-	jinv_settings_update( array( 'bank_order_paid' => ! empty( $in['order_paid'] ) ? 1 : 0 ) );
+	jinv_settings_update( array( 'bank_order_paid' => ! empty( $in['order_paid'] ) ? 1 : 0, 'bank_mail' => ! empty( $in['bank_mail'] ) ? 1 : 0 ) );
 	$msg = 'bsaved';
 	if ( '' !== $tok || ! empty( $in['sync'] ) ) {
 		$r   = jinv_fio_sync( $id );
@@ -549,7 +580,11 @@ add_action( 'admin_post_jinv_bank_tx', function () {
 			global $wpdb;
 			$tx   = jinv_bank_tx( $id );
 			$kind = $tx && (float) $tx['amount'] > 0 ? "kind IN ('issued','proforma')" : "kind = 'received'";
-			$doc  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . jinv_table() . " WHERE $kind AND status <> 'cancelled' AND (number = %s OR vs = %s) ORDER BY id DESC LIMIT 1", trim( $in['number'] ), preg_replace( '/\D/', '', $in['number'] ) ) ); // phpcs:ignore
+			$num  = trim( sanitize_text_field( $in['number'] ) );
+			$dig  = ltrim( preg_replace( '/\D/', '', $num ), '0' );
+			// Podľa VS len ak zadanie obsahuje číslice (inak by text bez čísla našiel doklad s prázdnym VS).
+			$vsq  = '' !== $dig ? $wpdb->prepare( " OR TRIM(LEADING '0' FROM vs) = %s", $dig ) : '';
+			$doc  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . jinv_table() . " WHERE $kind AND status <> 'cancelled' AND (number = %s$vsq) ORDER BY id DESC LIMIT 1", $num ) ); // phpcs:ignore
 			if ( ! $doc && $tx && (float) $tx['amount'] > 0 ) {
 				$o = jinv_bank_order_by_number( trim( $in['number'] ) );
 				$r = $o ? jinv_bank_pair_order( $id, $o->get_id() ) : new WP_Error( 'jinv_bank', 'Doklad ani objednávka „' . sanitize_text_field( $in['number'] ) . '“ sa nenašli.' );
@@ -598,7 +633,7 @@ function jinv_render_bank() {
 				<span><?php echo esc_html( $a['name'] ?? 'Účet' ); ?><?php echo ! empty( $a['iban'] ) ? ' · ' . esc_html( jinv_iban_format( $a['iban'] ) ) : ''; ?></span>
 				<strong><?php echo isset( $a['balance'] ) ? esc_html( jinv_money( $a['balance'], $a['currency'] ?? 'EUR' ) ) : '—'; ?></strong>
 				<?php if ( ! empty( $a['opening'] ) ) : $od = array_key_first( (array) $a['opening'] ); ?><small>zostatok k <?php echo esc_html( jinv_date( $od ) ); ?>: <?php echo esc_html( jinv_money( $a['opening'][ $od ], $a['currency'] ?? 'EUR' ) ); ?></small><?php endif; ?>
-				<small><?php echo ! empty( $a['last_sync'] ) ? 'načítané ' . esc_html( date_i18n( 'j. n. Y H:i', strtotime( $a['last_sync'] ) ) ) : 'zatiaľ nenačítané'; ?><?php echo ! empty( $a['last_error'] ) ? ' · <span class="jinv-warn-t">' . esc_html( $a['last_error'] ) . '</span>' : ''; ?><?php echo jinv_bank_token_warning( $a ); // phpcs:ignore ?></small>
+				<small><?php echo ! empty( $a['last_sync'] ) ? 'načítané ' . esc_html( date_i18n( 'j. n. Y H:i', strtotime( $a['last_sync'] ) ) ) : 'zatiaľ nenačítané'; ?><?php echo ! empty( $a['last_error'] ) ? ' · <span class="jinv-warn-t">' . esc_html( $a['last_error'] ) . '</span>' : ''; ?><?php echo jinv_bank_token_warning( $a ); // phpcs:ignore ?><?php echo ! empty( $a['gap'] ) ? '<br><span class="jinv-warn-t">' . esc_html( $a['gap'] ) . '</span>' : ''; ?></small>
 			</div>
 		<?php endforeach; ?>
 		<?php if ( array_filter( $accs, fn( $a ) => ! empty( $a['token'] ) ) ) : ?>
@@ -697,6 +732,13 @@ function jinv_bank_row_action( array $t, $back ) {
 		echo '<span class="jinv-st jinv-st-cancelled">Ignorované</span>' . ( $t['note'] ? ' <small>' . esc_html( $t['note'] ) . '</small>' : '' ) . ' · <a href="' . esc_url( $url( 'unignore' ) ) . '">vrátiť</a>';
 		return;
 	}
+	if ( 'pairing' === $t['status'] ) {
+		echo '<span class="jinv-st">Páruje sa…</span> · <a href="' . esc_url( $url( 'unpair' ) ) . '">uvoľniť</a>';
+		return;
+	}
+	if ( '' !== (string) $t['note'] ) {
+		echo '<p class="jinv-warn-t" style="margin:0 0 4px">' . esc_html( $t['note'] ) . '</p>'; // napr. platba k už zaplatenej objednávke
+	}
 	foreach ( jinv_bank_candidates( $t, 3 ) as $c ) {
 		$who = 'received' === $c['kind'] ? $c['customer_name'] : $c['customer_name'];
 		echo '<a class="button button-small jinv-cand" href="' . esc_url( $url( 'pair', array( 'doc' => $c['id'] ) ) ) . '" title="' . esc_attr( 'Zostáva ' . jinv_money( $c['rest'], $c['currency'] ) . ( $c['vsok'] ? ' · VS sedí' : '' ) ) . '">' . esc_html( $c['number'] . ' · ' . $who . ' · ' . jinv_money( $c['rest'], $c['currency'] ) ) . '</a> ';
@@ -738,6 +780,7 @@ function jinv_render_bank_accounts() {
 				<tr><th><label for="ba-since-<?php echo esc_attr( $id ); ?>">Načítať pohyby od</label></th><td><input id="ba-since-<?php echo esc_attr( $id ); ?>" type="date" name="since" value="<?php echo esc_attr( $a['since'] ?? gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' -30 days' ) ) ); ?>"> <span class="description">prvé načítanie; ďalej sa načítavajú len nové pohyby. Fio vydá cez API 90 dní dozadu – staršie len po odblokovaní histórie v internetbankingu (Nastavenia → API).</span></td></tr>
 				<tr><th><label for="ba-mf-<?php echo esc_attr( $id ); ?>">Párovať úhrady od</label></th><td><input id="ba-mf-<?php echo esc_attr( $id ); ?>" type="date" name="match_from" value="<?php echo esc_attr( $a['match_from'] ?? '' ); ?>"> <span class="description">staršie pohyby sa uložia len ako archív (história účtu) – nepárujú sa a nečakajú na spárovanie</span></td></tr>
 				<tr><th>Automaticky</th><td><label><input type="checkbox" name="auto" value="1" <?php checked( $id ? ! empty( $a['auto'] ) : true ); ?>> načítať pohyby a párovať úhrady každých 30 minút</label></td></tr>
+				<tr><th>Upozornenia</th><td><label><input type="checkbox" name="bank_mail" value="1" <?php checked( (bool) jinv_opt( 'bank_mail' ) ); ?>> raz denne poslať e-mail na <?php echo esc_html( get_option( 'admin_email' ) ); ?>, keď načítanie zlyhá, token vyprší alebo čakajú platby na spárovanie</label><p class="description">Problémy s bankou sa zobrazia aj ako upozornenie v administrácii.</p></td></tr>
 				<tr><th>Objednávky</th><td><label><input type="checkbox" name="order_paid" value="1" <?php checked( (bool) jinv_opt( 'bank_order_paid' ) ); ?>> keď príde platba za objednávku (VS = číslo objednávky alebo zálohovej faktúry, presná suma), označiť objednávku ako zaplatenú</label><p class="description">Objednávka „Čaká na platbu“ prejde na „Spracováva sa“ a v automatickom režime sa vystaví faktúra. Bez tejto voľby sa do objednávky len zapíše poznámka o platbe.</p></td></tr>
 			</table>
 			<p>
@@ -751,3 +794,72 @@ function jinv_render_bank_accounts() {
 	<p class="description">Pripravuje sa: import výpisu z ľubovoľnej banky (XML camt.053 / CSV) a čítanie e-mailových notifikácií banky cez Jupiter Email.</p>
 	<?php
 }
+
+/* ---------------------------------------------------------------- Upozornenia na banku */
+
+/**
+ * Problémy s bankou: [ text, … ] – zlyhané načítanie, dlho nenačítané (automatické účty), token vyprší / vypršal,
+ * nenačítané obdobie (90 dní Fio).
+ */
+function jinv_bank_problems() {
+	$out = array();
+	foreach ( jinv_bank_accounts() as $a ) {
+		if ( 'fio' !== ( $a['type'] ?? '' ) || empty( $a['token'] ) ) {
+			continue;
+		}
+		$name = (string) ( $a['name'] ?? 'Fio účet' );
+		if ( ! empty( $a['last_error'] ) ) {
+			$out[] = $name . ': načítanie pohybov zlyhalo – ' . $a['last_error'];
+		} elseif ( ! empty( $a['auto'] ) && ! empty( $a['last_sync'] ) && strtotime( $a['last_sync'] ) < strtotime( current_time( 'mysql' ) ) - 6 * HOUR_IN_SECONDS ) {
+			$out[] = $name . ': pohyby sa nenačítali od ' . mysql2date( 'j. n. H:i', $a['last_sync'] ) . ' (automatické načítanie beží pri návštevách webu – skontrolujte WP-Cron).';
+		}
+		if ( ! empty( $a['token_until'] ) ) {
+			$days = (int) floor( ( strtotime( $a['token_until'] ) - strtotime( current_time( 'Y-m-d' ) ) ) / DAY_IN_SECONDS );
+			if ( $days < 0 ) {
+				$out[] = $name . ': token Fio vypršal ' . jinv_date( $a['token_until'] ) . ' – vytvorte nový v internetbankingu (Nastavenia → API).';
+			} elseif ( $days <= 14 ) {
+				$out[] = $name . ': token Fio vyprší o ' . $days . ' dní (' . jinv_date( $a['token_until'] ) . ') – pripravte nový.';
+			}
+		}
+		if ( ! empty( $a['gap'] ) ) {
+			$out[] = $name . ': ' . $a['gap'];
+		}
+	}
+	return $out;
+}
+
+add_action( 'admin_notices', function () {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		return;
+	}
+	$p = jinv_bank_problems();
+	if ( $p ) {
+		echo '<div class="notice notice-warning"><p><strong>J-Fakturácia – banka:</strong></p><ul style="list-style:disc;margin-left:20px">';
+		foreach ( $p as $t ) {
+			echo '<li>' . esc_html( $t ) . '</li>';
+		}
+		echo '</ul><p><a href="' . esc_url( jinv_admin_url( array( 'tab' => 'bank', 'view' => 'accounts' ) ) ) . '">Bankové účty</a></p></div>';
+	}
+} );
+
+// Denný e-mail správcovi: problémy s bankou a platby čakajúce na spárovanie (najviac raz za deň).
+add_action( 'jinv_bank_cron', function () {
+	if ( ! jinv_opt( 'bank_mail' ) || current_time( 'Y-m-d' ) === get_option( 'jinv_bank_mail_day' ) ) {
+		return;
+	}
+	$p = jinv_bank_problems();
+	$n = (int) jinv_bank_unmatched_count();
+	if ( ! $p && ! $n ) {
+		return;
+	}
+	update_option( 'jinv_bank_mail_day', current_time( 'Y-m-d' ), false );
+	$body = 'Dobrý deň,' . "\n\n" . 'J-Fakturácia hlási k banke na webe ' . home_url() . ':' . "\n\n";
+	foreach ( $p as $t ) {
+		$body .= '• ' . $t . "\n";
+	}
+	if ( $n ) {
+		$body .= '• Na spárovanie čaká ' . $n . ' ' . ( 1 === $n ? 'pohyb' : ( $n < 5 ? 'pohyby' : 'pohybov' ) ) . ' v banke.' . "\n";
+	}
+	$body .= "\n" . 'Banka: ' . jinv_admin_url( array( 'tab' => 'bank' ) ) . "\n";
+	wp_mail( get_option( 'admin_email' ), 'J-Fakturácia: banka – ' . ( $p ? 'treba skontrolovať' : $n . ' platieb na spárovanie' ), $body );
+}, 20 );

@@ -78,14 +78,14 @@ function jinv_is_cod_fee_name( $name ) {
 function jinv_items_from_order( WC_Order $o ) {
 	$items = array();
 	foreach ( $o->get_items() as $it ) {
-		$qty     = max( 1, (float) $it->get_quantity() );
+		$qty     = (float) $it->get_quantity() > 0 ? (float) $it->get_quantity() : 1; // aj desatinné (0,5 kg, 1,5 h)
 		$total   = (float) $it->get_total() + (float) $it->get_total_tax();
 		$product = $it->get_product();
 		$items[] = array(
 			'name'  => $it->get_name(),
 			'sku'   => $product ? $product->get_sku() : '',
 			'qty'   => $qty,
-			'unit'  => 'ks',
+			'unit'  => $product && function_exists( 'jsk_unit' ) ? jsk_unit( $product ) : 'ks', // jednotka z J-Skladu (h, kg…)
 			'price' => round( $total / $qty, 2 ),
 			'total' => round( $total, 2 ),
 			'type'  => $product && $product->is_virtual() ? 'service' : 'product', // služba (virtuálny produkt) / tovar

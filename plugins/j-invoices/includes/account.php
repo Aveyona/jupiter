@@ -60,7 +60,9 @@ add_action( 'template_redirect', function () {
 	$inv = jinv_get( (int) $_GET['jinv_doc'] ); // phpcs:ignore
 	$key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore
 	$o   = $inv && $inv['order_id'] ? wc_get_order( $inv['order_id'] ) : null;
-	$ok  = $o && 'cancelled' !== $inv['status'] && (
+	// Rovnaké doklady ako v zozname (prevzatý doklad Woo Faktury bez PDF sa zákazníkovi neponúka – nie je to originál).
+	$listed = $o && in_array( (int) $inv['id'], array_map( 'intval', wp_list_pluck( jinv_customer_docs( $o ), 'id' ) ), true );
+	$ok  = $o && 'cancelled' !== $inv['status'] && ( $listed || current_user_can( 'manage_woocommerce' ) ) && (
 		( $key && hash_equals( (string) $o->get_order_key(), (string) $key ) )
 		|| ( is_user_logged_in() && (int) $o->get_customer_id() === get_current_user_id() )
 		|| current_user_can( 'manage_woocommerce' )

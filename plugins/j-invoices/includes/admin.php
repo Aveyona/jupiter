@@ -64,6 +64,12 @@ add_action( 'admin_post_jinv_action', function () {
 		if ( is_wp_error( $r ) ) {
 			set_transient( 'jinv_err_' . get_current_user_id(), $r->get_error_message(), 60 );
 		}
+	} elseif ( 'remind' === $do ) {
+		$r   = jinv_send_doc( $id, '', true );
+		$msg = is_wp_error( $r ) ? 'senderr' : 'reminded';
+		if ( is_wp_error( $r ) ) {
+			set_transient( 'jinv_err_' . get_current_user_id(), $r->get_error_message(), 60 );
+		}
 	} elseif ( 'paid' === $do ) {
 		jinv_pay_full( $id );
 		$msg = 'paid';
@@ -72,6 +78,12 @@ add_action( 'admin_post_jinv_action', function () {
 		$msg = 'unpaid';
 	} elseif ( 'cancel' === $do ) {
 		$inv = jinv_get( $id );
+		// Úhrady z banky stornovaného dokladu sa uvoľnia – pohyb sa znova ponúkne na spárovanie (napr. s novou faktúrou).
+		foreach ( jinv_payments( $id ) as $pay ) {
+			if ( 'bank' === $pay['source'] ) {
+				jinv_delete_payment( (int) $pay['id'] );
+			}
+		}
 		jinv_update( $id, array( 'status' => 'cancelled' ) );
 		if ( $inv && $inv['order_id'] && ( $o = wc_get_order( $inv['order_id'] ) ) ) {
 			$meta = jinv_kinds()[ $inv['kind'] ][1] ?? '';
@@ -111,6 +123,7 @@ function jinv_render_admin( $tab = 'issued' ) {
 		'created'   => 'Doklad je vystavený.',
 		'regenerated' => 'Doklad je pregenerovaný podľa aktuálnej objednávky.',
 		'paid'      => 'Doklad je označený ako uhradený.',
+		'reminded'  => 'Upomienka je odoslaná zákazníkovi.',
 		'unpaid'    => 'Doklad je znova neuhradený.',
 		'cancelled' => 'Doklad je stornovaný.',
 		'sent'      => 'Doklad je odoslaný zákazníkovi e-mailom.',
@@ -179,7 +192,7 @@ function jinv_render_list() {
 		<?php if ( true ) : ?><select name="doc"><?php foreach ( $kinds as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $kind, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select><?php endif; ?>
 		<input type="search" name="s" value="<?php echo esc_attr( $q ); ?>" placeholder="Číslo, odberateľ, e-mail">
 		<select name="year"><option value="0">Všetky roky</option><?php for ( $y = (int) current_time( 'Y' ); $y >= (int) current_time( 'Y' ) - 5; $y-- ) : ?><option value="<?php echo (int) $y; ?>" <?php selected( $year, $y ); ?>><?php echo (int) $y; ?></option><?php endfor; ?></select>
-		<select name="st"><option value="">Všetky stavy</option><?php foreach ( array( 'issued' => 'Vystavená', 'paid' => 'Uhradená', 'cancelled' => 'Stornovaná' ) as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $st, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
+		<select name="st"><option value="">Všetky stavy</option><?php foreach ( array( 'issued' => 'Vystavená', 'overdue' => 'Po splatnosti', 'paid' => 'Uhradená', 'cancelled' => 'Stornovaná' ) as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $st, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
 		<button class="button">Filtrovať</button>
 	</form>
 	<table class="widefat striped jinv-table">
@@ -236,6 +249,7 @@ function jinv_render_view( $id ) {
 		<?php if ( 'cancelled' !== $inv['status'] && $o && in_array( $inv['kind'], array( 'issued', 'proforma' ), true ) ) : ?>
 			<a class="button" href="<?php echo esc_url( jinv_action_url( 'regen', $id, '' ) ); ?>" onclick="return confirm('<?php echo esc_js( jinv_regen_confirm( $inv ) ); ?>');" title="Vytvorí doklad znova z aktuálnej objednávky">Pregenerovať</a>
 		<?php endif; ?>
+		<?php if ( 'overdue' === jinv_display_status( $inv ) && $inv['customer_email'] ) : ?><a class="button" href="<?php echo esc_url( jinv_action_url( 'remind', $id, $back ) ); ?>" onclick="return confirm('Poslať upomienku k dokladu <?php echo esc_js( $inv['number'] ); ?> na <?php echo esc_js( $inv['customer_email'] ); ?>?');"><?php echo ! empty( $inv['data']['reminded'] ) ? 'Poslať upomienku znova' : 'Poslať upomienku'; ?></a><?php endif; ?>
 		<?php if ( 'issued' === $inv['status'] ) : ?><a class="button" href="<?php echo esc_url( jinv_action_url( 'paid', $id, $back ) ); ?>">Označiť ako uhradený</a><?php endif; ?>
 		<?php if ( 'paid' === $inv['status'] ) : ?><a class="button" href="<?php echo esc_url( jinv_action_url( 'unpaid', $id, $back ) ); ?>">Zrušiť úhradu</a><?php endif; ?>
 		<?php if ( 'cancelled' !== $inv['status'] ) : ?><a class="button jinv-danger" href="<?php echo esc_url( jinv_action_url( 'cancel', $id, $back ) ); ?>" onclick="return confirm('Stornovať doklad <?php echo esc_js( $inv['number'] ); ?>? Číslo ostane obsadené.');">Stornovať</a><?php endif; ?>

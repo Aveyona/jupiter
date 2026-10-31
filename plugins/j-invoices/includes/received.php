@@ -21,6 +21,43 @@ function jinv_received_dir() {
 	return $dir;
 }
 
+/** Povolené prílohy prijatých faktúr: prípona => typ. */
+function jinv_received_types() {
+	return array( 'pdf' => 'application/pdf', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp' );
+}
+
+/**
+ * Overenie obsahu prílohy (nie len prípony): PDF alebo obrázok. Vráti príponu alebo ''.
+ * Chráni pred súborom HTML/SVG/PHP vydávaným za faktúru (napr. z e-mailu).
+ */
+function jinv_received_sniff( $data, $name ) {
+	$ext = strtolower( pathinfo( (string) $name, PATHINFO_EXTENSION ) );
+	if ( ! isset( jinv_received_types()[ $ext ] ) ) {
+		return '';
+	}
+	$head = substr( (string) $data, 0, 16 );
+	$ok   = array(
+		'pdf'  => 0 === strpos( $head, '%PDF' ),
+		'jpg'  => 0 === strpos( $head, "\xFF\xD8\xFF" ),
+		'jpeg' => 0 === strpos( $head, "\xFF\xD8\xFF" ),
+		'png'  => 0 === strpos( $head, "\x89PNG" ),
+		'webp' => 'RIFF' === substr( $head, 0, 4 ) && 'WEBP' === substr( $head, 8, 4 ),
+	);
+	return ! empty( $ok[ $ext ] ) ? $ext : '';
+}
+
+/** Uloží prílohu do chráneného priečinka (prípona .jinv – webový server súbor nevykoná ani nezobrazí). Vráti relatívnu cestu alebo ''. */
+function jinv_received_store( $data, $name, $year ) {
+	$sub = preg_replace( '/\D/', '', (string) $year );
+	$dir = jinv_received_dir() . '/' . $sub;
+	wp_mkdir_p( $dir );
+	if ( ! file_exists( $dir . '/index.php' ) ) {
+		@file_put_contents( $dir . '/index.php', "<?php // Silence.\n" ); // phpcs:ignore
+	}
+	$file = wp_generate_password( 12, false ) . '-' . sanitize_file_name( $name ) . '.jinv';
+	return false !== file_put_contents( $dir . '/' . $file, $data ) ? $sub . '/' . $file : ''; // phpcs:ignore
+}
+
 function jinv_received_status_label( array $r ) {
 	if ( 'paid' === $r['status'] ) {
 		return array( 'paid', 'Uhradená' );
@@ -91,19 +128,16 @@ add_action( 'admin_post_jinv_received_save', function () {
 
 	// Príloha.
 	if ( ! empty( $_FILES['file']['name'] ) && UPLOAD_ERR_OK === (int) $_FILES['file']['error'] ) {
-		$ok_types = array( 'pdf' => 'application/pdf', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp' );
-		$ft       = wp_check_filetype_and_ext( $_FILES['file']['tmp_name'], $_FILES['file']['name'], $ok_types );
-		if ( $ft['ext'] && (int) $_FILES['file']['size'] <= 15 * MB_IN_BYTES ) {
-			$sub  = substr( $issue, 0, 4 );
-			$dir  = jinv_received_dir() . '/' . $sub;
-			wp_mkdir_p( $dir );
-			$name = wp_generate_password( 8, false ) . '-' . sanitize_file_name( $_FILES['file']['name'] );
-			if ( move_uploaded_file( $_FILES['file']['tmp_name'], $dir . '/' . $name ) ) {
+		$fname = sanitize_file_name( $_FILES['file']['name'] );
+		$raw   = (int) $_FILES['file']['size'] <= 15 * MB_IN_BYTES ? (string) file_get_contents( $_FILES['file']['tmp_name'] ) : ''; // phpcs:ignore
+		if ( '' !== $raw && jinv_received_sniff( $raw, $fname ) ) {
+			$path = jinv_received_store( $raw, $fname, substr( $issue, 0, 4 ) );
+			if ( $path ) {
 				if ( ! empty( $data['file'] ) ) {
 					@unlink( jinv_received_dir() . '/' . $data['file'] ); // phpcs:ignore
 				}
-				$data['file']      = $sub . '/' . $name;
-				$data['file_name'] = sanitize_file_name( $_FILES['file']['name'] );
+				$data['file']      = $path;
+				$data['file_name'] = $fname;
 			}
 		}
 	}
@@ -118,7 +152,7 @@ add_action( 'admin_post_jinv_received_save', function () {
 		'due_date'      => $date( 'due_date', $issue ),
 		'vs'            => preg_replace( '/\D/', '', (string) ( $in['vs'] ?? '' ) ),
 		'currency'      => preg_match( '/^[A-Z]{3}$/', (string) ( $in['currency'] ?? '' ) ) ? $in['currency'] : 'EUR',
-		'total'         => round( (float) str_replace( array( ' ', ',' ), array( '', '.' ), (string) ( $in['total'] ?? '0' ) ), 2 ),
+		'total'         => round( jinv_parse_amount( $in['total'] ?? '0' ), 2 ),
 		'customer_name' => $data['supplier']['name'], // pri prijatých = dodávateľ (kvôli hľadaniu)
 		'partner_id'    => $pid,
 		'data'          => wp_json_encode( $data, JSON_UNESCAPED_UNICODE ),
@@ -208,14 +242,14 @@ function jinv_received_create( array $a ) {
 		$data['ref'] = $ref;
 	}
 	if ( ! empty( $a['file_data'] ) ) {
-		$sub  = substr( $issue, 0, 4 );
-		$dir  = jinv_received_dir() . '/' . $sub;
-		wp_mkdir_p( $dir );
-		$fn   = sanitize_file_name( (string) ( $a['file_name'] ?? 'faktura.pdf' ) );
-		$name = wp_generate_password( 8, false ) . '-' . $fn;
-		if ( false !== file_put_contents( $dir . '/' . $name, $a['file_data'] ) ) { // phpcs:ignore
-			$data['file']      = $sub . '/' . $name;
-			$data['file_name'] = $fn;
+		// Príloha z iného doplnku (napr. z e-mailu) – len skutočné PDF alebo obrázok.
+		$fn = sanitize_file_name( (string) ( $a['file_name'] ?? 'faktura.pdf' ) );
+		if ( jinv_received_sniff( $a['file_data'], $fn ) && strlen( (string) $a['file_data'] ) <= 15 * MB_IN_BYTES ) {
+			$path = jinv_received_store( $a['file_data'], $fn, substr( $issue, 0, 4 ) );
+			if ( $path ) {
+				$data['file']      = $path;
+				$data['file_name'] = $fn;
+			}
 		}
 	}
 	$year = (int) substr( $issue, 0, 4 );
@@ -315,7 +349,11 @@ add_action( 'admin_post_jinv_received_action', function () {
 			if ( ! empty( $r['data']['file'] ) ) {
 				@unlink( jinv_received_dir() . '/' . $r['data']['file'] ); // phpcs:ignore
 			}
-			$wpdb->delete( jinv_table( 'payments' ), array( 'doc_id' => $id ) );
+			// Úhrady cez jinv_delete_payment – pohyb v banke sa uvoľní na spárovanie, ostatné doplnky dostanú hák.
+			foreach ( jinv_payments( $id ) as $pay ) {
+				jinv_delete_payment( (int) $pay['id'] );
+			}
+			$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'new', 'doc_id' => 0, 'payment_id' => 0, 'matched_by' => '' ), array( 'doc_id' => $id ) );
 			$wpdb->delete( jinv_table(), array( 'id' => $id ) );
 			if ( function_exists( 'jsk_t' ) ) {
 				$wpdb->update( jsk_t( 'docs' ), array( 'invoice_id' => 0 ), array( 'invoice_id' => $id ) );
@@ -339,10 +377,16 @@ add_action( 'admin_post_jinv_received_file', function () {
 	if ( ! $path || ! is_file( $path ) || 0 !== strpos( realpath( $path ), realpath( jinv_received_dir() ) ) ) {
 		wp_die( 'Príloha neexistuje.' );
 	}
-	$ft = wp_check_filetype( $path );
+	$fname = (string) ( $r['data']['file_name'] ? $r['data']['file_name'] : basename( $path ) );
+	$ext   = jinv_received_sniff( (string) file_get_contents( $path, false, null, 0, 16 ), $fname ); // phpcs:ignore
 	nocache_headers();
-	header( 'Content-Type: ' . ( $ft['type'] ? $ft['type'] : 'application/octet-stream' ) );
-	header( 'Content-Disposition: inline; filename="' . rawurlencode( $r['data']['file_name'] ? $r['data']['file_name'] : basename( $path ) ) . '"' );
+	header( 'X-Content-Type-Options: nosniff' );
+	// PDF a obrázky sa otvoria v prehliadači, čokoľvek iné sa len stiahne (nikdy sa nevykoná v administrácii).
+	header( 'Content-Type: ' . ( $ext ? jinv_received_types()[ $ext ] : 'application/octet-stream' ) );
+	header( 'Content-Disposition: ' . ( $ext ? 'inline' : 'attachment' ) . "; filename*=UTF-8''" . rawurlencode( $fname ) );
+	if ( $ext && 'pdf' !== $ext ) {
+		header( "Content-Security-Policy: default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox" ); // pri PDF by sandbox vypol prehliadač PDF
+	}
 	header( 'Content-Length: ' . filesize( $path ) );
 	readfile( $path ); // phpcs:ignore
 	exit;

@@ -36,6 +36,10 @@ function jinv_order_box( $post_or_order ) {
 	$has = function ( $kind ) use ( $o ) {
 		return (bool) jinv_by_order( $o->get_id(), $kind );
 	};
+	// Upozornenie: zrušená / vrátená objednávka alebo vrátenie peňazí bez dobropisu.
+	if ( $has( 'issued' ) && jinv_credit_remaining( $o->get_id() ) >= 0.01 && ( $o->has_status( array( 'cancelled', 'refunded' ) ) || jinv_uncredited_refund( $o ) ) ) {
+		echo '<p class="jinv-warn" style="color:#b32d2e"><strong>Faktúra ostáva platná</strong> – objednávka je ' . ( $o->has_status( array( 'cancelled', 'refunded' ) ) ? 'zrušená alebo vrátená' : 'čiastočne vrátená' ) . '. Vystavte dobropis.</p>';
+	}
 	echo '<p class="jinv-box-actions">';
 	if ( ! $has( 'issued' ) ) {
 		echo '<a class="button button-primary" href="' . esc_url( jinv_action_url( 'create', $o->get_id(), $back ) ) . '">Vystaviť faktúru</a> ';

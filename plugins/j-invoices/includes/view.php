@@ -82,7 +82,7 @@ function jinv_render_invoice_html( array $inv ) {
 		</table>
 		<section class="jinv-sum">
 			<?php if ( empty( $sup['vat_payer'] ) ) : ?><p class="jinv-vat"><?php echo $e( $sup, 'vat_note' ); ?></p><?php endif; ?>
-			<?php if ( ! empty( $d['proforma'] ) && 'issued' === $inv['kind'] ) : ?><p class="jinv-vat">Uhradené na základe zálohovej faktúry č. <?php echo $e( $d, 'proforma' ); ?>.</p><?php endif; ?>
+			<?php foreach ( jinv_doc_pay_lines( $inv ) as $line ) : ?><p class="jinv-vat"><?php echo esc_html( $line ); ?></p><?php endforeach; ?>
 			<p class="jinv-total"><span><?php echo 'creditnote' === $inv['kind'] ? 'Celkom na vrátenie' : 'Celkom na úhradu'; ?></span><strong><?php echo esc_html( jinv_money( $inv['total'], $cur ) ); ?></strong></p>
 			<?php if ( 'paid' === $inv['status'] ) : ?><p class="jinv-paid"><?php echo 'creditnote' === $inv['kind'] ? 'Vrátené' : 'Uhradené'; ?><?php echo $inv['paid_at'] ? ' ' . esc_html( jinv_date( substr( $inv['paid_at'], 0, 10 ) ) ) : ''; ?><?php echo 'creditnote' === $inv['kind'] ? '' : ' – neuhrádzajte'; ?>.</p><?php endif; ?>
 			<?php if ( 'cancelled' === $inv['status'] ) : ?><p class="jinv-paid jinv-cancel">Stornovaný doklad</p><?php endif; ?>
