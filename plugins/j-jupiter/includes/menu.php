@@ -7,14 +7,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Ikona planéty (biela, WordPress ju prefarbí podľa farebnej schémy). */
+/** Ikona planéty (biela, súbor assets/planet.svg). V menu ju kreslí CSS ako masku, takže má farbu menu (aj pri prejdení myšou). */
 function jju_menu_icon() {
-	$svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.6" fill="black"/><ellipse cx="10" cy="10" rx="9.2" ry="3.1" fill="none" stroke="black" stroke-width="1.5" transform="rotate(-22 10 10)"/></svg>';
-	return 'data:image/svg+xml;base64,' . base64_encode( $svg ); // phpcs:ignore
+	return JJU_URL . 'assets/planet.svg';
 }
 
 add_action( 'admin_menu', function () {
-	add_menu_page( 'Jupiter', 'Jupiter', JJU_CAP, JJU_SLUG, 'jju_render_dashboard', jju_menu_icon(), 58 );
+	add_menu_page( 'Jupiter', 'Jupiter', JJU_CAP, JJU_SLUG, 'jju_render_dashboard', 'none', 58 );
 	add_submenu_page( JJU_SLUG, 'Jupiter – Prehľad', 'Prehľad', JJU_CAP, JJU_SLUG, 'jju_render_dashboard' );
 	add_submenu_page( JJU_SLUG, 'Jupiter – Nastavenia', 'Nastavenia', JJU_CAP, 'j-jupiter-settings', 'jju_render_settings' );
 }, 5 );

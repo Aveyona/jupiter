@@ -4,9 +4,9 @@
 .jju-head h1 { margin: 0; padding: 0; font-size: 26px; font-weight: 700; }
 .jju-head p { margin: 4px 0 0; color: #50575e; }
 .jju-head .button .dashicons { vertical-align: text-bottom; font-size: 16px; width: 16px; height: 16px; }
-.jju-logo { padding: 10px; border-radius: 14px; background: linear-gradient(135deg, #3b82f6, #1e3a8a); box-shadow: 0 6px 16px rgba(29,78,216,.3); filter: none; }
+.jju-logo { padding: 10px; border-radius: 14px; background: linear-gradient(135deg, #3b82f6, #1e3a8a); box-shadow: 0 6px 16px rgba(29,78,216,.3); }
 .jju-head .jju-logo { width: 40px; height: 40px; }
-.jju-head .jju-logo { content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='5.6' fill='white'/%3E%3Cellipse cx='10' cy='10' rx='9.2' ry='3.1' fill='none' stroke='white' stroke-width='1.5' transform='rotate(-22 10 10)'/%3E%3C/svg%3E"); }
+.jju-head .jju-logo { }
 .jju-h { display: flex; align-items: center; gap: 6px; margin: 26px 0 0; font-size: 15px; }
 .jju-h .dashicons { color: #2271b1; }
 .jju-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; margin-top: 14px; }
@@ -38,7 +38,7 @@
 /* Navigácia na stránke doplnku */
 .jju-crumb { --app: #2271b1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 10px 20px 0 2px; padding: 8px 14px; background: #fff; border: 1px solid #dcdcde; border-left: 4px solid var(--app); border-radius: 10px; }
 .jju-crumb > a { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-weight: 600; }
-.jju-crumb > a img { padding: 3px; border-radius: 6px; background: #1d4ed8; content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='5.6' fill='white'/%3E%3Cellipse cx='10' cy='10' rx='9.2' ry='3.1' fill='none' stroke='white' stroke-width='1.5' transform='rotate(-22 10 10)'/%3E%3C/svg%3E"); }
+.jju-crumb > a img { padding: 3px; border-radius: 6px; background: #1d4ed8; }
 .jju-crumb .sep { color: #8c8f94; }
 .jju-crumb strong { color: color-mix(in srgb, var(--app) 70%, #1d2327); }
 .jju-crumb nav { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
@@ -69,3 +69,6 @@
 #adminmenu li.jju-open > .jju-tog::before { top: 6px; transform: rotate(45deg); }
 #adminmenu .jju-tog:hover, #adminmenu .jju-tog:focus-visible { opacity: 1; background: rgba(255,255,255,.08); }
 #adminmenu .wp-submenu li.jju-app .awaiting-mod { margin-left: 4px; }
+/* Ikona Jupiter v ľavom menu: planéta ako maska vo farbe menu */
+#adminmenu #toplevel_page_j-jupiter div.wp-menu-image::before { content: ""; display: block; width: 20px; height: 20px; margin: 7px auto 0; padding: 0; background-color: currentColor; -webkit-mask: url(planet.svg) center / 20px 20px no-repeat; mask: url(planet.svg) center / 20px 20px no-repeat; }
+#adminmenu #toplevel_page_j-jupiter div.wp-menu-image br { display: none; }
