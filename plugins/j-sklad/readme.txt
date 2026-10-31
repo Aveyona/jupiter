@@ -4,7 +4,7 @@ Tags: woocommerce, stock, inventory, warehouse, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.5.0
+Stable tag: 0.6.0
 License: GPLv2 or later
 
 Sklad pre WooCommerce: príjemky, výdajky, kniha pohybov zásob a hodnota skladu. Súčasť rodiny Jupiter.
@@ -20,11 +20,16 @@ Zásoba ostáva v produktoch WooCommerce (Spravovať zásoby, Množstvo na sklad
 * Vyhľadanie produktov podľa názvu a čísla produktu, aj čítačkou čiarových kódov.
 * Inventúra: súpis na tlač, zadávanie spočítaných množstiev (aj čítačkou), priebežné ukladanie, manko a prebytok v nákupných cenách, zaúčtovanie a protokol (IN2026001), storno.
 
+* Merné jednotky (ks, h, kg, mesiac…) pri produkte, vlastné jednotky, voliteľne jednotka pri cene v obchode.
+
 * Akcie a novinky: hromadné zľavy (%, € z ceny, nová cena) s dátumom od – do a názvom akcie, označenie novinky ručne alebo automaticky podľa dátumu pridania, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky], filter obchodu ?jsk=akcie / ?jsk=novinky.
 
 Pripravuje sa: PDF dokladov, import príjemky z CSV, návrh objednávky tovaru, viac skladov.
 
 == Changelog ==
+
+= 0.6.0 =
+* Merné jednotky: pole Jednotka v úprave produktu (Zásoby) – kus, hodina, minúta, deň, týždeň, mesiac, rok, kg, g, l, ml, m, m², m³, balenie, sada, pár, licencia, osoba, strana; vlastné jednotky v Nastaveniach. Jednotka sa zobrazuje pri zásobe, v dokladoch, v pohyboch a v balíčkoch („IT poradenstvo – 8 h“); voliteľne aj pri cene v obchode („· za hodinu“).
 
 = 0.5.0 =
 * Balíčky (zostavy): záložka Balíček v úprave produktu, súčasti sa pridajú do košíka automaticky (počet podľa balíčka, bežná alebo vlastná cena), nedajú sa odobrať samostatne; prehľad J-Sklad → Balíčky; cena balíčka na stránke produktu a v kartách.

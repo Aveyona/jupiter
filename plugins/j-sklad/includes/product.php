@@ -24,7 +24,7 @@ function jsk_product_box( $post ) {
 	}
 	if ( $p->managing_stock() ) {
 		$cost = jsk_cost( $p->get_id() );
-		echo '<p>Na sklade: <strong>' . esc_html( jsk_qty( $p->get_stock_quantity() ) ) . '</strong><br>Priemerná nákupná cena: <strong>' . esc_html( jsk_money( $cost ) ) . '</strong></p>';
+		echo '<p>Na sklade: <strong>' . esc_html( jsk_qty_unit( $p->get_stock_quantity(), $p, true ) ) . '</strong><br>Priemerná nákupná cena: <strong>' . esc_html( jsk_money( $cost ) ) . '</strong></p>';
 	}
 	$in   = implode( ',', array_map( 'intval', $ids ) );
 	$rows = $wpdb->get_results( 'SELECT * FROM ' . jsk_t( 'moves' ) . " WHERE product_id IN ($in) ORDER BY id DESC LIMIT 10", ARRAY_A ); // phpcs:ignore
@@ -33,7 +33,7 @@ function jsk_product_box( $post ) {
 	} else {
 		echo '<table class="jsk-mini"><tbody>';
 		foreach ( $rows as $r ) {
-			echo '<tr><td>' . esc_html( date_i18n( 'j. n. y', strtotime( $r['created_at'] ) ) ) . '</td><td>' . esc_html( jsk_move_sources()[ $r['source'] ] ?? $r['source'] ) . ( (int) $r['product_id'] !== $p->get_id() ? '<br><small>' . esc_html( jsk_var_label( (int) $r['product_id'] ) ) . '</small>' : '' ) . '</td><td class="n ' . ( (float) $r['qty'] < 0 ? 'jsk-neg' : 'jsk-pos' ) . '">' . esc_html( ( (float) $r['qty'] > 0 ? '+' : '' ) . jsk_qty( $r['qty'] ) ) . '</td></tr>';
+			echo '<tr><td>' . esc_html( date_i18n( 'j. n. y', strtotime( $r['created_at'] ) ) ) . '</td><td>' . esc_html( jsk_move_sources()[ $r['source'] ] ?? $r['source'] ) . ( (int) $r['product_id'] !== $p->get_id() ? '<br><small>' . esc_html( jsk_var_label( (int) $r['product_id'] ) ) . '</small>' : '' ) . '</td><td class="n ' . ( (float) $r['qty'] < 0 ? 'jsk-neg' : 'jsk-pos' ) . '">' . esc_html( ( (float) $r['qty'] > 0 ? '+' : '' ) . jsk_qty_unit( $r['qty'], (int) $r['product_id'] ) ) . '</td></tr>';
 		}
 		echo '</tbody></table>';
 	}

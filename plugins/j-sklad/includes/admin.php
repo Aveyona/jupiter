@@ -186,7 +186,7 @@ function jsk_render_overview() {
 				<td class="jsk-img-col"><a href="<?php echo esc_url( $edit ); ?>" tabindex="-1"><?php echo jsk_thumb( $p, 56 ); // phpcs:ignore ?></a></td>
 				<td class="jsk-pname"><a href="<?php echo esc_url( $edit ); ?>"><?php echo esc_html( $p->get_name() ); ?></a></td>
 				<td><?php echo esc_html( $p->get_sku() ); ?></td>
-				<td class="n jsk-stock"><?php echo $trk ? esc_html( jsk_qty( $st ) ) . ( $shared ? '<br><small class="jsk-muted" title="Zásobu vedie hlavný produkt – spoločná pre všetky jeho varianty.">spoločná</small>' : '' ) : '<small class="jsk-muted" title="Zásoby sa pri tomto produkte nesledujú (Zásoby → Spravovať zásoby).">' . ( $p->is_virtual() ? 'služba' : 'nesleduje sa' ) . '</small>'; ?></td>
+				<td class="n jsk-stock"><?php echo $trk ? esc_html( jsk_qty_unit( $st, $p ) ) . ( $shared ? '<br><small class="jsk-muted" title="Zásobu vedie hlavný produkt – spoločná pre všetky jeho varianty.">spoločná</small>' : '' ) : '<small class="jsk-muted" title="Zásoby sa pri tomto produkte nesledujú (Zásoby → Spravovať zásoby).">' . ( $p->is_virtual() ? 'služba' : 'nesleduje sa' ) . '</small>'; ?></td>
 				<td class="n jsk-price"><input type="number" class="jsk-sell" data-id="<?php echo (int) $pid; ?>" value="<?php echo esc_attr( (string) $p->get_regular_price() ); ?>" min="0" step="0.01" placeholder="cena" aria-label="Predajná cena"><?php if ( $p->is_on_sale() && '' !== (string) $p->get_sale_price() ) : ?><br><small class="jsk-sale">v akcii <?php echo esc_html( jsk_money( $p->get_sale_price() ) ); ?></small><?php endif; ?></td>
 				<td class="n"><?php if ( $trk ) : ?><input type="number" class="jsk-cost" data-id="<?php echo (int) $pid; ?>"<?php echo $shared ? ' data-shared="1"' : ''; ?> data-qty="<?php echo esc_attr( max( 0, $st ) ); ?>" value="<?php echo null === $cost ? '' : esc_attr( round( $cost, 4 ) ); ?>" min="0" step="0.01" placeholder="zadať" aria-label="Nákupná cena"><?php else : ?><span class="jsk-muted">—</span><?php endif; ?></td>
 				<td class="n jsk-val"><?php echo null === $cost || ! $trk ? '—' : ( $shared ? '<span title="Hodnota spoločnej zásoby sa ráta pri hlavnom produkte.">—</span>' : '' ) . ( $shared ? '' : esc_html( jsk_money( max( 0, $st ) * $cost ) ) ); ?></td>
@@ -333,7 +333,7 @@ function jsk_render_doc_form() {
 			<ul id="jsk-results" hidden></ul>
 		</div>
 		<table class="widefat jsk-table jsk-items">
-			<thead><tr><th>Produkt</th><th>Číslo produktu</th><th class="n">Na sklade</th><th class="n">Množstvo</th><?php if ( $rec ) : ?><th class="n">Nákupná cena / ks</th><?php endif; ?><th></th></tr></thead>
+			<thead><tr><th>Produkt</th><th>Číslo produktu</th><th class="n">Na sklade</th><th class="n">Množstvo</th><?php if ( $rec ) : ?><th class="n">Nákupná cena / jedn.</th><?php endif; ?><th></th></tr></thead>
 			<tbody id="jsk-rows">
 				<?php foreach ( $items as $it ) : ?>
 					<?php $p = wc_get_product( $it['product_id'] ); ?>
@@ -413,11 +413,11 @@ function jsk_render_doc_view( $id ) {
 		</p>
 		<?php if ( $d['note'] ) : ?><p><?php echo esc_html( $d['note'] ); ?></p><?php endif; ?>
 		<table class="widefat striped jsk-table">
-			<thead><tr><th>Produkt</th><th>Číslo produktu</th><th class="n">Množstvo</th><th class="n">Nákupná cena / ks</th><th class="n">Spolu</th></tr></thead>
+			<thead><tr><th>Produkt</th><th>Číslo produktu</th><th class="n">Množstvo</th><th class="n">Nákupná cena / jedn.</th><th class="n">Spolu</th></tr></thead>
 			<tbody>
 			<?php foreach ( $d['items'] as $it ) : ?>
 				<?php $line = null === $it['price'] ? null : (float) $it['qty'] * (float) $it['price']; $sum += (float) $line; ?>
-				<tr><td><?php echo esc_html( $it['name'] ); ?></td><td><?php echo esc_html( $it['sku'] ); ?></td><td class="n"><?php echo esc_html( jsk_qty( $it['qty'] ) ); ?></td><td class="n"><?php echo esc_html( jsk_money( $it['price'] ) ); ?></td><td class="n"><?php echo esc_html( jsk_money( $line ) ); ?></td></tr>
+				<tr><td><?php echo esc_html( $it['name'] ); ?></td><td><?php echo esc_html( $it['sku'] ); ?></td><td class="n"><?php echo esc_html( jsk_qty_unit( $it['qty'], (int) $it['product_id'] ) ); ?></td><td class="n"><?php echo esc_html( jsk_money( $it['price'] ) ); ?></td><td class="n"><?php echo esc_html( jsk_money( $line ) ); ?></td></tr>
 			<?php endforeach; ?>
 			</tbody>
 			<tfoot><tr><th colspan="4">Spolu</th><th class="n"><?php echo esc_html( jsk_money( $sum ) ); ?></th></tr></tfoot>
@@ -704,8 +704,8 @@ function jsk_render_moves() {
 				<td><?php echo esc_html( date_i18n( 'j. n. Y H:i', strtotime( $r['created_at'] ) ) ); ?></td>
 				<td><?php echo $p ? '<a href="' . esc_url( jsk_url( 'j-sklad-moves', array( 'product' => $r['product_id'] ) ) ) . '">' . esc_html( $p->get_name() ) . '</a>' : '#' . (int) $r['product_id']; ?></td>
 				<td><?php echo esc_html( jsk_move_sources()[ $r['source'] ] ?? $r['source'] ); ?></td>
-				<td class="n <?php echo (float) $r['qty'] < 0 ? 'jsk-neg' : 'jsk-pos'; ?>"><?php echo esc_html( ( (float) $r['qty'] > 0 ? '+' : '' ) . jsk_qty( $r['qty'] ) ); ?></td>
-				<td class="n"><?php echo null === $r['stock_after'] ? '—' : esc_html( jsk_qty( $r['stock_after'] ) ); ?></td>
+				<td class="n <?php echo (float) $r['qty'] < 0 ? 'jsk-neg' : 'jsk-pos'; ?>"><?php echo esc_html( ( (float) $r['qty'] > 0 ? '+' : '' ) . jsk_qty_unit( $r['qty'], (int) $r['product_id'] ) ); ?></td>
+				<td class="n"><?php echo null === $r['stock_after'] ? '—' : esc_html( jsk_qty_unit( $r['stock_after'], (int) $r['product_id'] ) ); ?></td>
 				<td><?php echo $ref ? $ref : '—'; // phpcs:ignore ?></td>
 				<td><?php echo esc_html( $r['note'] ); ?></td>
 				<td><?php echo esc_html( $u ? $u->display_name : ( 'order' === $r['source'] || 'restore' === $r['source'] ? 'zákazník / systém' : 'systém' ) ); ?></td>
@@ -741,6 +741,8 @@ function jsk_render_settings() {
 			<tr><th>Formát čísla inventúry</th><td><input type="text" name="format_inventory" value="<?php echo esc_attr( $s['format_inventory'] ); ?>"></td></tr>
 			<tr><th>Hranica „dochádza“</th><td><input type="number" name="low_stock" min="0" step="any" value="<?php echo esc_attr( $s['low_stock'] ); ?>" class="small-text"> ks</td></tr>
 			<tr><th>Obrázky produktov</th><td><label><input type="checkbox" name="media" value="1" <?php checked( ! empty( $s['media'] ) ); ?>> Obrázky produktov spravuje J-Sklad</label><p class="description">Hlavné obrázky a galérie produktov sa spravujú v J-Sklad → Obrázky a Knižnica multimédií ich nezobrazuje (ostanú v nej len obrázky webu). Súbory sa nepresúvajú – po vypnutí je Knižnica opäť kompletná.</p></td></tr>
+			<tr><th>Vlastné jednotky</th><td><textarea name="units_custom" rows="3" class="large-text code" placeholder="porc. | porcia | za porciu"><?php echo esc_textarea( $s['units_custom'] ); ?></textarea><p class="description">K zabudovaným jednotkám (<?php echo esc_html( implode( ', ', array_keys( jsk_units() ) ) ); ?>) môžete pridať vlastné – jedna na riadok: <code>skratka | názov | za …</code>. Jednotka sa vyberá v úprave produktu → Zásoby → Jednotka.</p></td></tr>
+			<tr><th>Jednotka pri cene</th><td><label><input type="checkbox" name="unit_price" value="1" <?php checked( ! empty( $s['unit_price'] ) ); ?>> V obchode pri cene zobraziť jednotku</label><p class="description">Za cenu sa pridá napríklad „· za hodinu“ alebo „· za kg“. Pri kusoch sa nič nepridá.</p></td></tr>
 			<tr><th>Dôvody výdaja</th><td><input type="text" name="reasons" value="<?php echo esc_attr( $s['reasons'] ); ?>" class="large-text"><p class="description">Oddelené čiarkou.</p></td></tr>
 		</table>
 		<?php submit_button( 'Uložiť nastavenia' ); ?>
@@ -763,6 +765,8 @@ add_action( 'admin_post_jsk_settings', function () {
 	$out['low_stock'] = max( 0, (float) ( $in['low_stock'] ?? 0 ) );
 	$out['reasons']   = sanitize_text_field( $in['reasons'] ?? '' );
 	$out['media']     = empty( $in['media'] ) ? 0 : 1;
+	$out['unit_price'] = empty( $in['unit_price'] ) ? 0 : 1;
+	$out['units_custom'] = implode( "\n", array_filter( array_map( 'sanitize_text_field', preg_split( '/\r?\n/', (string) ( $in['units_custom'] ?? '' ) ) ) ) );
 	update_option( 'jsk_settings', $out, false );
 	wp_safe_redirect( jsk_url( 'j-sklad-settings', array( 'jsk_msg' => 'settings' ) ) );
 	exit;

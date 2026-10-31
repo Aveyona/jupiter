@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" width="1200" height="620" font-family="Arial, Helvetica, sans-serif">
+  <title>J-Sklad – schéma: nákup, doklady, zásoba vo WooCommerce, predaj, kniha pohybov, inventúra a účtovníctvo</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f7fc"/><stop offset="1" stop-color="#e8eef8"/></linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+    <marker id="arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
+    <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#15803d"/></marker>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b45309"/></marker>
+  </defs>
+  <rect width="1200" height="620" fill="url(#bg)"/>
+
+  <!-- Nákup -->
+  <rect x="40" y="60" width="270" height="270" rx="18" fill="#fff" stroke="#cbd5e1"/>
+  <text x="175" y="94" text-anchor="middle" font-size="13" font-weight="700" fill="#64748b" letter-spacing="1.5">NÁKUP TOVARU</text>
+  <text x="175" y="122" text-anchor="middle" font-size="20" font-weight="800" fill="#0f172a">Dodávateľ</text>
+  <text x="175" y="146" text-anchor="middle" font-size="13" fill="#475569">tovar + dodací list / faktúra</text>
+  <rect x="62" y="166" width="226" height="56" rx="12" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="175" y="190" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">J-Fakturácia</text>
+  <text x="175" y="210" text-anchor="middle" font-size="12" fill="#475569">adresár dodávateľov</text>
+  <rect x="62" y="234" width="226" height="56" rx="12" fill="#fff7ed" stroke="#fed7aa"/>
+  <text x="175" y="258" text-anchor="middle" font-size="14" font-weight="700" fill="#9a3412">Prijatá faktúra</text>
+  <text x="175" y="278" text-anchor="middle" font-size="12" fill="#475569">prepojená s príjemkou</text>
+
+  <!-- Jadro -->
+  <rect x="400" y="40" width="400" height="320" rx="22" fill="url(#core)"/>
+  <text x="600" y="82" text-anchor="middle" font-size="13" font-weight="700" fill="#bfdbfe" letter-spacing="1.5">ADMINISTRÁCIA WORDPRESSU</text>
+  <text x="600" y="118" text-anchor="middle" font-size="30" font-weight="800" fill="#fff">J-Sklad</text>
+  <g font-size="14" fill="#e0e7ff">
+    <rect x="428" y="140" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="511" y="164" text-anchor="middle">Príjemka (PR)</text>
+    <rect x="606" y="140" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="689" y="164" text-anchor="middle">Výdajka (VY)</text>
+    <rect x="428" y="188" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="511" y="212" text-anchor="middle">Inventúra (IN)</text>
+    <rect x="606" y="188" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="689" y="212" text-anchor="middle">Kniha pohybov</text>
+    <rect x="428" y="236" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="511" y="260" text-anchor="middle">Akcie a novinky</text>
+    <rect x="606" y="236" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="689" y="260" text-anchor="middle">Balíčky</text>
+  </g>
+  <text x="600" y="310" text-anchor="middle" font-size="13" fill="#bfdbfe">priemerná nákupná cena · hodnota skladu</text>
+  <text x="600" y="332" text-anchor="middle" font-size="13" fill="#bfdbfe">jednotky · obrázky produktov</text>
+
+  <!-- WooCommerce -->
+  <rect x="890" y="60" width="270" height="270" rx="18" fill="#fff" stroke="#cbd5e1"/>
+  <text x="1025" y="94" text-anchor="middle" font-size="13" font-weight="700" fill="#64748b" letter-spacing="1.5">WOOCOMMERCE</text>
+  <text x="1025" y="122" text-anchor="middle" font-size="20" font-weight="800" fill="#0f172a">Produkty a obchod</text>
+  <text x="1025" y="146" text-anchor="middle" font-size="13" fill="#475569">zásoba ostáva v produkte</text>
+  <rect x="912" y="166" width="226" height="56" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="1025" y="190" text-anchor="middle" font-size="14" font-weight="700" fill="#166534">Množstvo na sklade</text>
+  <text x="1025" y="210" text-anchor="middle" font-size="12" fill="#475569">+ nákupná cena, jednotka</text>
+  <rect x="912" y="234" width="226" height="56" rx="12" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="1025" y="258" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">Objednávky</text>
+  <text x="1025" y="278" text-anchor="middle" font-size="12" fill="#475569">predaj, zrušenie, refundácia</text>
+
+  <!-- Šípky hore -->
+  <path d="M312 194 H396" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arb)"/>
+  <text x="354" y="184" text-anchor="middle" font-size="12" fill="#1e3a8a" font-weight="700">príjem</text>
+  <path d="M802 180 H886" stroke="#15803d" stroke-width="3" fill="none" marker-end="url(#arg)"/>
+  <text x="844" y="170" text-anchor="middle" font-size="12" fill="#166534" font-weight="700">zásoba ±</text>
+  <path d="M886 270 H802" stroke="#475569" stroke-width="3" fill="none" marker-end="url(#ar)"/>
+  <text x="844" y="292" text-anchor="middle" font-size="12" fill="#334155" font-weight="700">každá zmena</text>
+  <path d="M290 262 C350 262 360 300 398 300" stroke="#b45309" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- Účtovníctvo -->
+  <rect x="400" y="400" width="400" height="80" rx="16" fill="#fff" stroke="#cbd5e1"/>
+  <text x="600" y="430" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">J-Účtovníctvo</text>
+  <text x="600" y="454" text-anchor="middle" font-size="13" fill="#475569">príjem 131/132 · výdaj · predaj 504 · manko 549 · prebytok 648</text>
+  <path d="M600 362 V396" stroke="#475569" stroke-width="3" fill="none" marker-end="url(#ar)"/>
+
+  <!-- Tok tovaru -->
+  <text x="600" y="522" text-anchor="middle" font-size="13" font-weight="700" fill="#64748b" letter-spacing="1.5">AKO TOVAR PRECHÁDZA SKLADOM</text>
+  <g font-size="14" font-weight="700" text-anchor="middle">
+    <rect x="40" y="540" width="160" height="44" rx="22" fill="#fff" stroke="#cbd5e1"/><text x="120" y="567" fill="#0f172a">Nákup</text>
+    <rect x="240" y="540" width="160" height="44" rx="22" fill="#eff6ff" stroke="#bfdbfe"/><text x="320" y="567" fill="#1e3a8a">Príjemka</text>
+    <rect x="440" y="540" width="160" height="44" rx="22" fill="#f0fdf4" stroke="#bbf7d0"/><text x="520" y="567" fill="#166534">Zásoba</text>
+    <rect x="640" y="540" width="160" height="44" rx="22" fill="#eff6ff" stroke="#bfdbfe"/><text x="720" y="567" fill="#1e3a8a">Predaj / výdajka</text>
+    <rect x="840" y="540" width="160" height="44" rx="22" fill="#fff" stroke="#cbd5e1"/><text x="920" y="567" fill="#0f172a">Kniha pohybov</text>
+    <rect x="1040" y="540" width="120" height="44" rx="22" fill="#fff7ed" stroke="#fed7aa"/><text x="1100" y="567" fill="#9a3412">Inventúra</text>
+  </g>
+  <g stroke="#475569" stroke-width="2" fill="none">
+    <path d="M202 562 H236" marker-end="url(#ar)"/><path d="M402 562 H436" marker-end="url(#ar)"/><path d="M602 562 H636" marker-end="url(#ar)"/><path d="M802 562 H836" marker-end="url(#ar)"/><path d="M1002 562 H1036" marker-end="url(#ar)"/>
+  </g>
+</svg>

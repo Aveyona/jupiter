@@ -3,7 +3,7 @@
  * Plugin Name:       J-Sklad
  * Plugin URI:        https://github.com/Aveyona/jupiter
  * Description:       Sklad pre WooCommerce: príjemky, výdajky a inventúra, kniha všetkých pohybov zásob (predaj, vrátenie, ručné zmeny), priemerná nákupná cena a hodnota skladu. Zásoba ostáva v produktoch WooCommerce. Súčasť rodiny Jupiter.
- * Version:           0.5.0
+ * Version:           0.6.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JSK_VERSION', '0.5.0' );
+define( 'JSK_VERSION', '0.6.0' );
 define( 'JSK_DB_VERSION', 4 );
 define( 'JSK_FILE', __FILE__ );
 define( 'JSK_DIR', plugin_dir_path( __FILE__ ) );
@@ -25,6 +25,7 @@ define( 'JSK_URL', plugin_dir_url( __FILE__ ) );
 
 require_once JSK_DIR . 'includes/db.php';
 require_once JSK_DIR . 'includes/settings.php';
+require_once JSK_DIR . 'includes/units.php';
 require_once JSK_DIR . 'includes/stock.php';
 require_once JSK_DIR . 'includes/docs.php';
 require_once JSK_DIR . 'includes/admin.php';
@@ -54,7 +55,7 @@ add_filter( 'jupiter_plugins', function ( $plugins ) {
 	$plugins['j-sklad'] = array(
 		'name'   => 'J-Sklad',
 		'icon'   => 'dashicons-archive',
-		'what'   => 'Sklad nad produktmi WooCommerce: príjemky, výdajky a inventúra, kniha všetkých pohybov zásob (predaj, vrátenie, ručné zmeny), priemerná nákupná cena a hodnota skladu, voliteľne aj evidencia obrázkov produktov. Inventúra so súpisom na tlač, čítačkou čiarových kódov a protokolom. Akcie a novinky: hromadné zľavy s dátumom od – do, štítky v obchode. Pripravuje sa PDF dokladov, dodávatelia a prepojenie s J-Fakturáciou.',
+		'what'   => 'Sklad nad produktmi WooCommerce: príjemky, výdajky a inventúra, kniha všetkých pohybov zásob (predaj, vrátenie, ručné zmeny), priemerná nákupná cena a hodnota skladu, voliteľne aj evidencia obrázkov produktov. Inventúra so súpisom na tlač, čítačkou čiarových kódov a protokolom. Akcie a novinky: hromadné zľavy s dátumom od – do, štítky v obchode. Balíčky (zostavy) a merné jednotky (kus, hodina, kg, mesiac…). Dodávatelia a prijaté faktúry z J-Fakturácie. Pripravuje sa PDF dokladov.',
 		'status' => 'dev',
 	);
 	return $plugins;
