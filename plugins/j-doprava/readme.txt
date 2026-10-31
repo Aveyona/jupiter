@@ -2,9 +2,9 @@
 Contributors: aveyona
 Tags: woocommerce, shipping, packeta, zasilkovna, jupiter
 Requires at least: 6.5
-Tested up to: 6.9
+Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 
 Doprava pre WooCommerce: Packeta – výdajné miesta a Z-BOXy, doručenie na adresu, podanie zásielok, štítky a sledovanie. Súčasť rodiny Jupiter.
@@ -25,6 +25,9 @@ Doprava pre WooCommerce: Packeta – výdajné miesta a Z-BOXy, doručenie na ad
 Pripravuje sa: výplaty dobierok a ich párovanie s bankou, ďalší prepravcovia.
 
 == Changelog ==
+
+= 0.3.1 =
+* Dobierka pre J-Fakturáciu podľa nastavenia J-Dopravy (jedna definícia). Odinštalovanie zmaže nastavenia s kľúčom Packety.
 
 = 0.3.0 =
 * Oprava: dobierka sa posiela do Packety aj pri objednávke v stave Spracováva sa (WooCommerce ju považuje za zaplatenú) – predtým by zásielka odišla bez dobierky.

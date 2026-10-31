@@ -126,23 +126,33 @@ function jinv_supplier_snapshot() {
 function jinv_creditnote_items( WC_Order $o, $refund, $invoice ) {
 	$items = array();
 	if ( $refund instanceof WC_Order_Refund ) {
+		// Druh položky (tovar / služba) sa prevezme z faktúry – J-Účtovníctvo podľa neho volí účet tržieb.
+		$types = array();
+		foreach ( (array) ( $invoice['data']['items'] ?? array() ) as $ii ) {
+			if ( ! empty( $ii['type'] ) && ! empty( $ii['name'] ) ) {
+				$types[ (string) $ii['name'] ] = $ii['type'];
+			}
+		}
 		foreach ( $refund->get_items() as $it ) {
 			$qty     = abs( (float) $it->get_quantity() );
 			$total   = (float) $it->get_total() + (float) $it->get_total_tax();
 			$q       = $qty > 0 ? $qty : 1;
-			$items[] = array( 'name' => $it->get_name(), 'sku' => '', 'qty' => -1 * $q, 'unit' => 'ks', 'price' => round( abs( $total ) / $q, 2 ), 'total' => round( -1 * abs( $total ), 2 ) );
+			$prod    = method_exists( $it, 'get_product' ) ? $it->get_product() : null;
+			$type    = $types[ $it->get_name() ] ?? ( $prod && $prod->is_virtual() ? 'virtual' : 'product' );
+			$items[] = array( 'name' => $it->get_name(), 'sku' => '', 'qty' => -1 * $q, 'unit' => 'ks', 'price' => round( abs( $total ) / $q, 2 ), 'total' => round( -1 * abs( $total ), 2 ), 'type' => $type );
 		}
 		foreach ( array_merge( $refund->get_shipping_methods(), $refund->get_fees() ) as $it ) {
 			$total = (float) $it->get_total() + (float) $it->get_total_tax();
 			if ( abs( $total ) > 0 ) {
-				$items[] = array( 'name' => ( $it instanceof WC_Order_Item_Shipping ? 'Doprava: ' : '' ) . $it->get_name(), 'sku' => '', 'qty' => -1, 'unit' => '', 'price' => round( abs( $total ), 2 ), 'total' => round( -1 * abs( $total ), 2 ) );
+				$name    = ( $it instanceof WC_Order_Item_Shipping ? 'Doprava: ' : '' ) . $it->get_name();
+				$items[] = array( 'name' => $name, 'sku' => '', 'qty' => -1, 'unit' => '', 'price' => round( abs( $total ), 2 ), 'total' => round( -1 * abs( $total ), 2 ), 'type' => $types[ $name ] ?? 'service' );
 			}
 		}
 		$sum  = array_sum( wp_list_pluck( $items, 'total' ) );
 		$diff = round( -1 * abs( (float) $refund->get_amount() ) - $sum, 2 );
 		if ( abs( $diff ) >= 0.01 ) { // vrátenie len sumou (bez položiek) alebo rozdiel
 			// Znamienko množstva podľa rozdielu (vrátená suma menšia ako položky → kladný vyrovnávací riadok).
-			$items[] = array( 'name' => 'Vrátenie platby' . ( $refund->get_reason() ? ' – ' . $refund->get_reason() : '' ), 'sku' => '', 'qty' => $diff < 0 ? -1 : 1, 'unit' => '', 'price' => abs( $diff ), 'total' => $diff );
+			$items[] = array( 'name' => 'Vrátenie platby' . ( $refund->get_reason() ? ' – ' . $refund->get_reason() : '' ), 'sku' => '', 'qty' => $diff < 0 ? -1 : 1, 'unit' => '', 'price' => abs( $diff ), 'total' => $diff, 'type' => 'product' );
 		}
 		return $items;
 	}
@@ -299,7 +309,10 @@ function jinv_create_doc_locked( WC_Order $o, $kind, $opts ) {
 		$total           = round( array_sum( wp_list_pluck( $data['items'], 'total' ) ), 2 );
 		$supply          = $today;
 		$due             = $today;
-		$status          = $refund instanceof WC_Order_Refund ? 'paid' : 'issued'; // peniaze vrátené cez WooCommerce
+		// Vrátenie cez platobnú bránu (napr. Stripe): peniaze sú vrátené → uhradený, úhrada kartou sa zapíše nižšie.
+		// Ručné vrátenie: pri napojenej banke dobropis čaká na odchádzajúcu platbu (spáruje sa s ňou), inak uhradený.
+		$gw              = $refund instanceof WC_Order_Refund && (bool) apply_filters( 'jinv_refund_via_gateway', $refund->get_refunded_payment() || 'jpl_stripe' === $o->get_payment_method(), $refund, $o );
+		$status          = $refund instanceof WC_Order_Refund && ( $gw || ! jinv_bank_has_accounts() ) ? 'paid' : 'issued';
 		if ( $refund instanceof WC_Order_Refund ) {
 			$data['refund_id'] = $refund->get_id();
 		}
@@ -336,6 +349,16 @@ function jinv_create_doc_locked( WC_Order $o, $kind, $opts ) {
 			$o->add_order_note( sprintf( 'J-Fakturácia: %s č. %s.', $notes[ $kind ], $num ) );
 			if ( 'issued' === $kind && $paid && ! empty( $proforma ) && 'issued' === $proforma['status'] ) {
 				jinv_update( $proforma['id'], array( 'status' => 'paid', 'paid_at' => current_time( 'mysql' ) ) );
+			}
+			// Nová faktúra po stornovanej: úhrady z platobnej brány a dobierky prejdú zo stornovanej faktúry na novú
+			// (inak by ich J-Platby / dobierka zapísali druhýkrát a účtovníctvo by malo platbu dvakrát).
+			if ( 'issued' === $kind ) {
+				jinv_move_auto_payments( $o->get_id(), $id );
+			}
+			// Dobropis z vrátenia cez platobnú bránu: odchod peňazí sa zapíše ako úhrada dobropisu (karta).
+			if ( 'creditnote' === $kind && ! empty( $gw ) ) {
+				jinv_insert_payment( $id, abs( (float) $total ), array( 'date' => $today, 'method' => 'card', 'source' => 'refund', 'ref' => 'refund:' . $refund->get_id(), 'note' => 'Vrátenie peňazí – ' . $o->get_payment_method_title() ) );
+				do_action( 'jinv_payment_added', (int) $wpdb->insert_id, $id, abs( (float) $total ), array( 'method' => 'card', 'source' => 'refund' ) );
 			}
 			do_action( 'jinv_document_created', $id, $kind, $o, $opts );
 			if ( 'issued' === $kind ) {
@@ -449,6 +472,28 @@ function jinv_regenerate_doc( $id ) {
 	} finally {
 		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 	}
+}
+
+/** Zdroje úhrad, ktoré vznikajú automaticky z objednávky (platobná brána, dobierka) a patria k platnej faktúre. */
+function jinv_auto_pay_sources() {
+	return (array) apply_filters( 'jinv_auto_pay_sources', array( 'stripe', 'cod', 'woo' ) );
+}
+
+/** Presunie automatické úhrady zo stornovaných faktúr objednávky na novú faktúru $new_id. */
+function jinv_move_auto_payments( $order_id, $new_id ) {
+	global $wpdb;
+	$src = jinv_auto_pay_sources();
+	$in  = implode( ',', array_fill( 0, count( $src ), '%s' ) );
+	$ids = (array) $wpdb->get_col( $wpdb->prepare( 'SELECT p.id FROM ' . jinv_table( 'payments' ) . ' p JOIN ' . jinv_table() . " d ON d.id = p.doc_id WHERE d.order_id = %d AND d.kind = 'issued' AND d.status = 'cancelled' AND d.id <> %d AND p.source IN ($in)", array_merge( array( (int) $order_id, (int) $new_id ), $src ) ) ); // phpcs:ignore
+	if ( ! $ids ) {
+		return 0;
+	}
+	foreach ( $ids as $pid ) {
+		$wpdb->update( jinv_table( 'payments' ), array( 'doc_id' => (int) $new_id ), array( 'id' => (int) $pid ) );
+		do_action( 'jinv_payment_added', (int) $pid, (int) $new_id, 0, array( 'moved' => true ) ); // účtovníctvo prepočíta úhradu
+	}
+	jinv_sync_paid( (int) $new_id, true );
+	return count( $ids );
 }
 
 /** Spätná kompatibilita: faktúra z objednávky. */
@@ -618,7 +663,7 @@ add_action( 'jdp_status_changed', function ( $order, $code ) {
 	}
 	$inv = jinv_by_order( $order->get_id(), 'issued' );
 	if ( $inv && 'issued' === $inv['status'] ) {
-		$r = jinv_pay_full( (int) $inv['id'], array( 'date' => current_time( 'Y-m-d' ), 'method' => 'cash', 'source' => 'cod', 'ref' => 'packeta:' . $order->get_meta( '_jdp_packet_id' ), 'note' => 'Dobierka – Packeta doručila zásielku' ) );
+		$r = jinv_pay_full( (int) $inv['id'], array( 'date' => current_time( 'Y-m-d' ), 'method' => 'cod', 'source' => 'cod', 'ref' => 'packeta:' . $order->get_meta( '_jdp_packet_id' ), 'note' => 'Dobierka – Packeta doručila zásielku' ) );
 		if ( ! is_wp_error( $r ) ) {
 			$order->add_order_note( sprintf( 'J-Fakturácia: faktúra č. %s uhradená dobierkou (Packeta doručila zásielku).', $inv['number'] ) );
 		}

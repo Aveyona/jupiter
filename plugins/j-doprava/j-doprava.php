@@ -3,7 +3,7 @@
  * Plugin Name:       J-Doprava
  * Plugin URI:        https://github.com/Aveyona/jupiter
  * Description:       Doprava pre WooCommerce: Packeta – výdajné miesta a Z-BOXy (výber na mape v košíku), doručenie na adresu, podanie zásielok cez API, štítky PDF, sledovanie stavu a dobierky. Funguje v blokovom aj klasickom košíku. Súčasť rodiny Jupiter.
- * Version:           0.3.0
+ * Version:           0.3.1
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JDP_VERSION', '0.3.0' );
+define( 'JDP_VERSION', '0.3.1' );
 define( 'JDP_FILE', __FILE__ );
 define( 'JDP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'JDP_URL', plugin_dir_url( __FILE__ ) );

@@ -32,6 +32,52 @@ function jinv_bank_accounts() {
 	return is_array( $a ) ? $a : array();
 }
 
+/** Je nastavený aspoň jeden bankový účet (pohyby sa párujú s dokladmi)? */
+function jinv_bank_has_accounts() {
+	return (bool) array_filter( jinv_bank_accounts(), fn( $a ) => ! empty( $a['token'] ) || ! empty( $a['last_sync'] ) );
+}
+
+/* Token Fio API je v databáze zašifrovaný (AES-256-GCM, kľúč z wp_salt) – z úniku zálohy sa nedá použiť. */
+function jinv_secret_key() {
+	return hash( 'sha256', wp_salt( 'auth' ) . 'j-invoices', true );
+}
+
+function jinv_encrypt( $plain ) {
+	if ( '' === (string) $plain || ! function_exists( 'openssl_encrypt' ) ) {
+		return (string) $plain;
+	}
+	$iv  = random_bytes( 12 );
+	$tag = '';
+	$ct  = openssl_encrypt( (string) $plain, 'aes-256-gcm', jinv_secret_key(), OPENSSL_RAW_DATA, $iv, $tag );
+	return false === $ct ? (string) $plain : 'v1:' . base64_encode( $iv . $tag . $ct );
+}
+
+function jinv_decrypt( $stored ) {
+	$stored = (string) $stored;
+	if ( 0 !== strpos( $stored, 'v1:' ) ) {
+		return $stored; // starší nezašifrovaný údaj
+	}
+	$raw = base64_decode( substr( $stored, 3 ) );
+	$pt  = openssl_decrypt( substr( $raw, 28 ), 'aes-256-gcm', jinv_secret_key(), OPENSSL_RAW_DATA, substr( $raw, 0, 12 ), substr( $raw, 12, 16 ) );
+	return false === $pt ? '' : $pt;
+}
+
+/** Zašifruje doteraz nezašifrované tokeny (raz pri aktualizácii). */
+function jinv_bank_encrypt_tokens() {
+	$all = jinv_bank_accounts();
+	$chg = false;
+	foreach ( $all as $id => $a ) {
+		if ( ! empty( $a['token'] ) && 0 !== strpos( (string) $a['token'], 'v1:' ) ) {
+			$all[ $id ]['token_tail'] = substr( (string) $a['token'], -4 );
+			$all[ $id ]['token']      = jinv_encrypt( $a['token'] );
+			$chg                      = true;
+		}
+	}
+	if ( $chg ) {
+		jinv_bank_save_accounts( $all );
+	}
+}
+
 function jinv_bank_save_accounts( array $a ) {
 	update_option( 'jinv_bank_accounts', $a, false );
 }
@@ -58,12 +104,12 @@ function jinv_bank_tx( $id ) {
 
 function jinv_bank_unmatched_count() {
 	global $wpdb;
-	$n = wp_cache_get( 'jinv_bank_unmatched', 'jinv' );
+	$n = get_transient( 'jinv_bank_unmatched' );
 	if ( false === $n ) {
 		$n = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . jinv_table( 'banktx' ) . " WHERE status = 'new'" ); // phpcs:ignore
-		wp_cache_set( 'jinv_bank_unmatched', $n, 'jinv', 60 );
+		set_transient( 'jinv_bank_unmatched', $n, 2 * MINUTE_IN_SECONDS );
 	}
-	return $n;
+	return (int) $n;
 }
 
 /** Uloženie pohybu (raz). $t: ext_id, date, amount, currency, vs, ks, ss, counter_account, counter_name, message, type. Vráti ID nového pohybu alebo 0, ak už existuje. */
@@ -89,6 +135,9 @@ function jinv_bank_store( $account_id, array $t ) {
 		'status'          => ( ( $mf = (string) ( jinv_bank_account( $account_id )['match_from'] ?? '' ) ) && $t['date'] < $mf ) ? 'old' : 'new', // pred začiatkom evidencie – len archív
 		'created_at'      => current_time( 'mysql' ),
 	) );
+	if ( $ok ) {
+		delete_transient( 'jinv_bank_unmatched' );
+	}
 	return $ok ? (int) $wpdb->insert_id : 0;
 }
 
@@ -119,8 +168,9 @@ function jinv_bank_balance_at( $account_id, $date ) {
 /** Volanie Fio API (bez tokenu v chybových hláškach). Vráti dekódované JSON alebo WP_Error. */
 function jinv_fio_get( $account_id, $path ) {
 	$acc = jinv_bank_account( $account_id );
-	if ( ! $acc || empty( $acc['token'] ) ) {
-		return new WP_Error( 'jinv_fio', 'Účet nemá zadaný token Fio API.' );
+	$token = $acc && ! empty( $acc['token'] ) ? jinv_decrypt( $acc['token'] ) : '';
+	if ( '' === $token ) {
+		return new WP_Error( 'jinv_fio', 'Účet nemá zadaný token Fio API (alebo sa nedá prečítať – zadajte ho znova).' );
 	}
 	// Fio dovoľuje 1 dopyt za 30 sekúnd na token.
 	$wait = 31 - ( time() - (int) ( $acc['last_call'] ?? 0 ) );
@@ -128,13 +178,13 @@ function jinv_fio_get( $account_id, $path ) {
 		return new WP_Error( 'jinv_fio_wait', 'Fio dovoľuje načítanie raz za 30 sekúnd – skúste to o ' . $wait . ' s.' );
 	}
 	jinv_bank_update_account( $account_id, array( 'last_call' => time() ) );
-	$res = wp_remote_get( JINV_FIO_API . str_replace( '{token}', rawurlencode( $acc['token'] ), $path ), array( 'timeout' => 120 ) );
+	$res = wp_remote_get( JINV_FIO_API . str_replace( '{token}', rawurlencode( $token ), $path ), array( 'timeout' => 120 ) );
 	if ( is_wp_error( $res ) ) {
 		// Fio pri neaktívnom alebo neplatnom tokene neodpovedá ~30 s.
 		$msg = $res->get_error_message();
 		return new WP_Error( 'jinv_fio_token', false !== stripos( $msg, 'timed out' ) || false !== stripos( $msg, 'cURL error 28' )
 			? 'Fio neodpovedá – token ešte nie je aktívny (Fio ho zapne asi 5 minút po autorizácii) alebo je neplatný. Skúste Načítať pohyby teraz o pár minút.'
-			: 'Fio API je nedostupné: ' . str_replace( $acc['token'], '…', $msg ) );
+			: 'Fio API je nedostupné: ' . str_replace( $token, '…', $msg ) );
 	}
 	$code = (int) wp_remote_retrieve_response_code( $res );
 	if ( 500 === $code && '' === trim( wp_remote_retrieve_body( $res ) ) ) {
@@ -258,7 +308,7 @@ function jinv_fio_sync( $account_id ) {
 		$upd['currency'] = (string) $info['currency'];
 	}
 	jinv_bank_update_account( $account_id, $upd );
-	wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
+	delete_transient( 'jinv_bank_unmatched' );
 	return array( $new, $matched );
 }
 
@@ -270,8 +320,9 @@ function jinv_bank_candidates( array $tx, $limit = 5 ) {
 	$t     = jinv_table();
 	$p     = jinv_table( 'payments' );
 	$amt   = abs( (float) $tx['amount'] );
-	$kinds = (float) $tx['amount'] > 0 ? "('issued','proforma')" : "('received')";
-	$rest  = "(i.total - COALESCE((SELECT SUM(amount) FROM $p WHERE doc_id = i.id), 0))";
+	// Výdaj sa páruje s prijatou faktúrou alebo s dobropisom (vrátenie peňazí zákazníkovi).
+	$kinds = (float) $tx['amount'] > 0 ? "('issued','proforma')" : "('received','creditnote')";
+	$rest  = "(ABS(i.total) - COALESCE((SELECT SUM(amount) FROM $p WHERE doc_id = i.id), 0))";
 	$where = array( "i.kind IN $kinds", "i.status = 'issued'", $wpdb->prepare( 'i.currency = %s', ! empty( $tx['currency'] ) ? $tx['currency'] : 'EUR' ) );
 	$or    = array();
 	if ( '' !== $tx['vs'] ) {
@@ -327,6 +378,7 @@ function jinv_bank_auto_match( $tx_id ) {
 	if ( preg_match( '/poplat|transak\S* da|úrok|urok/iu', $tx['tx_type'] ) ) {
 		global $wpdb;
 		$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'ignored', 'note' => 'banka: ' . $tx['tx_type'], 'matched_by' => 'auto' ), array( 'id' => $tx_id ) );
+		delete_transient( 'jinv_bank_unmatched' );
 		return false;
 	}
 	$amt  = abs( (float) $tx['amount'] );
@@ -346,6 +398,7 @@ function jinv_bank_auto_match( $tx_id ) {
 			// Objednávka je už zaplatená, zrušená alebo vrátená – platba ostane Na spárovanie (možno treba vrátiť peniaze).
 			global $wpdb;
 			$wpdb->update( jinv_table( 'banktx' ), array( 'note' => 'Pozor: objednávka #' . $o->get_order_number() . ' je ' . mb_strtolower( wc_get_order_status_name( $o->get_status() ) ) . ( $o->is_paid() ? ' a už zaplatená' : '' ) . ' – dvojitá platba? Skontrolujte a prípadne vráťte peniaze.' ), array( 'id' => $tx_id ) );
+			delete_transient( 'jinv_bank_unmatched' );
 		}
 	}
 	return false;
@@ -360,7 +413,7 @@ function jinv_bank_pair( $tx_id, $doc_id, $how = 'manual' ) {
 		return new WP_Error( 'jinv_bank', 'Pohyb alebo doklad neexistuje.' );
 	}
 	if ( ( (float) $tx['amount'] > 0 ) !== in_array( $doc['kind'], array( 'issued', 'proforma' ), true ) ) {
-		return new WP_Error( 'jinv_bank', (float) $tx['amount'] > 0 ? 'Príjem sa páruje s vydanou alebo zálohovou faktúrou.' : 'Výdaj sa páruje s prijatou faktúrou.' );
+		return new WP_Error( 'jinv_bank', (float) $tx['amount'] > 0 ? 'Príjem sa páruje s vydanou alebo zálohovou faktúrou.' : 'Výdaj sa páruje s prijatou faktúrou alebo s dobropisom.' );
 	}
 	if ( (string) $doc['currency'] !== (string) ( $tx['currency'] ? $tx['currency'] : 'EUR' ) ) {
 		return new WP_Error( 'jinv_bank', 'Mena pohybu (' . $tx['currency'] . ') nesedí s menou dokladu (' . $doc['currency'] . ').' );
@@ -378,10 +431,11 @@ function jinv_bank_pair( $tx_id, $doc_id, $how = 'manual' ) {
 	) );
 	if ( is_wp_error( $pay ) ) {
 		$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'new' ), array( 'id' => $tx_id, 'status' => 'pairing' ) );
+		delete_transient( 'jinv_bank_unmatched' );
 		return $pay;
 	}
 	$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'matched', 'doc_id' => $doc_id, 'payment_id' => (int) $pay, 'matched_by' => $how ), array( 'id' => $tx_id ) );
-	wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
+	delete_transient( 'jinv_bank_unmatched' );
 	// Úhrada zálohovej faktúry / faktúry k objednávke: poznámka a voliteľne stav objednávky.
 	if ( (int) $doc['order_id'] && (float) $tx['amount'] > 0 ) {
 		jinv_bank_order_paid( (int) $doc['order_id'], $tx );
@@ -408,7 +462,7 @@ function jinv_bank_pair_order( $tx_id, $order_id, $how = 'manual' ) {
 		return new WP_Error( 'jinv_bank', 'Pohyb už je spárovaný alebo sa práve páruje.' );
 	}
 	$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'matched', 'order_id' => (int) $order_id, 'matched_by' => $how ), array( 'id' => $tx_id ) );
-	wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
+	delete_transient( 'jinv_bank_unmatched' );
 	jinv_bank_order_paid( (int) $order_id, $tx );
 	do_action( 'jinv_bank_paired_order', $tx_id, $order_id, $how );
 	return true;
@@ -441,7 +495,7 @@ function jinv_bank_unpair( $tx_id ) {
 		$o->add_order_note( 'J-Fakturácia: spárovanie platby z banky (' . jinv_money( $tx['amount'], $tx['currency'] ) . ') bolo zrušené. Stav objednávky sa nezmenil – ak nebola zaplatená, zmeňte ho ručne.' );
 	}
 	$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'new', 'doc_id' => 0, 'order_id' => 0, 'payment_id' => 0, 'matched_by' => '' ), array( 'id' => $tx_id ) );
-	wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
+	delete_transient( 'jinv_bank_unmatched' );
 }
 
 /* ---------------------------------------------------------------- Cron */
@@ -499,12 +553,14 @@ add_action( 'admin_post_jinv_bank_account', function () {
 		global $wpdb;
 		// Už načítané pohyby pred týmto dátumom (nespárované) idú do archívu, po ňom späť na spárovanie.
 		$wpdb->query( $wpdb->prepare( 'UPDATE ' . jinv_table( 'banktx' ) . " SET status = 'old' WHERE account_id = %s AND status = 'new' AND tx_date < %s", $id, $all[ $id ]['match_from'] ) ); // phpcs:ignore
+		delete_transient( 'jinv_bank_unmatched' );
 		$wpdb->query( $wpdb->prepare( 'UPDATE ' . jinv_table( 'banktx' ) . " SET status = 'new' WHERE account_id = %s AND status = 'old' AND tx_date >= %s", $id, $all[ $id ]['match_from'] ) ); // phpcs:ignore
-		wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
+		delete_transient( 'jinv_bank_unmatched' );
 	}
 	$tok                 = preg_replace( '/\s+/', '', (string) ( $in['token'] ?? '' ) );
 	if ( '' !== $tok ) {
-		$all[ $id ]['token']       = $tok;
+		$all[ $id ]['token']       = jinv_encrypt( $tok );
+		$all[ $id ]['token_tail']  = substr( $tok, -4 );
 		$all[ $id ]['token_set']   = current_time( 'Y-m-d' );
 		$all[ $id ]['token_until'] = gmdate( 'Y-m-d', strtotime( current_time( 'Y-m-d' ) . ' +180 days' ) );
 		$all[ $id ]['last_error']  = '';
@@ -558,7 +614,7 @@ add_action( 'admin_post_jinv_bank_rematch', function () {
 	foreach ( (array) $ids as $id ) {
 		$n += jinv_bank_auto_match( (int) $id ) ? 1 : 0;
 	}
-	wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
+	delete_transient( 'jinv_bank_unmatched' );
 	$left = jinv_bank_unmatched_count();
 	set_transient( 'jinv_bank_msg_' . get_current_user_id(), sprintf( 'Spárovaných: %d. Na spárovanie ostáva: %d (poplatky a daň sa presunuli medzi ignorované).', $n, $left ), 120 );
 	wp_safe_redirect( jinv_admin_url( array( 'tab' => 'bank', 'view' => 'new', 'jinv_msg' => 'bsynced' ) ) );
@@ -579,7 +635,7 @@ add_action( 'admin_post_jinv_bank_tx', function () {
 		if ( ! $doc && ! empty( $in['number'] ) ) {
 			global $wpdb;
 			$tx   = jinv_bank_tx( $id );
-			$kind = $tx && (float) $tx['amount'] > 0 ? "kind IN ('issued','proforma')" : "kind = 'received'";
+			$kind = $tx && (float) $tx['amount'] > 0 ? "kind IN ('issued','proforma')" : "kind IN ('received','creditnote')";
 			$num  = trim( sanitize_text_field( $in['number'] ) );
 			$dig  = ltrim( preg_replace( '/\D/', '', $num ), '0' );
 			// Podľa VS len ak zadanie obsahuje číslice (inak by text bez čísla našiel doklad s prázdnym VS).
@@ -598,7 +654,7 @@ add_action( 'admin_post_jinv_bank_tx', function () {
 	} elseif ( 'ignore' === $do ) {
 		global $wpdb;
 		$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'ignored', 'note' => sanitize_text_field( $in['note'] ?? '' ) ), array( 'id' => $id, 'status' => 'new' ) );
-		wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
+		delete_transient( 'jinv_bank_unmatched' );
 	} elseif ( 'unignore' === $do || 'unpair' === $do ) {
 		jinv_bank_unpair( $id );
 	}
@@ -770,7 +826,7 @@ function jinv_render_bank_accounts() {
 			<table class="form-table" role="presentation">
 				<tr><th><label for="ba-name-<?php echo esc_attr( $id ); ?>">Názov účtu</label></th><td><input id="ba-name-<?php echo esc_attr( $id ); ?>" name="name" class="regular-text" value="<?php echo esc_attr( $a['name'] ?? 'Fio – e-shop' ); ?>"><?php echo ! empty( $a['iban'] ) ? '<p class="description">IBAN ' . esc_html( jinv_iban_format( $a['iban'] ) ) . '</p>' : ''; ?></td></tr>
 				<tr><th><label for="ba-tok-<?php echo esc_attr( $id ); ?>">Token Fio API</label></th><td>
-					<input id="ba-tok-<?php echo esc_attr( $id ); ?>" type="password" name="token" class="large-text" autocomplete="new-password" spellcheck="false" placeholder="<?php echo ! empty( $a['token'] ) ? 'uložený (…' . esc_attr( substr( $a['token'], -4 ) ) . ') – nový token ho nahradí' : 'vložte 64-znakový token'; ?>">
+					<input id="ba-tok-<?php echo esc_attr( $id ); ?>" type="password" name="token" class="large-text" autocomplete="new-password" spellcheck="false" placeholder="<?php echo ! empty( $a['token'] ) ? 'uložený (…' . esc_attr( $a['token_tail'] ?? substr( jinv_decrypt( $a['token'] ), -4 ) ) . ') – nový token ho nahradí' : 'vložte 64-znakový token'; ?>">
 					<p><a class="button button-secondary" href="https://ib.fio.sk/ib/login" target="_blank" rel="noopener noreferrer">Otvoriť internetbanking Fio ↗</a> <a href="https://ib.fio.cz/ib/login" target="_blank" rel="noopener noreferrer" class="description">(český účet: ib.fio.cz)</a></p>
 					<p class="description">V internetbankingu Fio → <strong>Nastavenia → API → Pridať token</strong>, druh <strong>Sledovanie účtu</strong> (len čítanie, platí 180 dní). Token začne fungovať asi 5 minút po autorizácii. Neukladajte token s právom zadávať platby.</p>
 				</td></tr>

@@ -232,6 +232,7 @@ function jsk_cancel_doc( $id ) {
 			}
 		}
 		$wpdb->update( jsk_t( 'docs' ), array( 'status' => 'cancelled' ), array( 'id' => $id ) );
+		do_action( 'jsk_doc_cancelled', (int) $id );
 		return true;
 	} finally {
 		jsk_unlock( 'jsk_doc_' . (int) $id );

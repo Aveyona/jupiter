@@ -178,7 +178,7 @@ HTML
 <table class="jhelp-table">
 <thead><tr><th>Situácia</th><th>Čo urobí J-Fakturácia</th></tr></thead>
 <tbody>
-<tr><td><strong>Vrátenie peňazí (Refund) vo WooCommerce</strong></td><td>Pri zapnutom <em>Dobropis pri vrátení peňazí</em> vystaví dobropis na vrátenú sumu.</td></tr>
+<tr><td><strong>Vrátenie peňazí (Refund) vo WooCommerce</strong></td><td>Pri zapnutom <em>Dobropis pri vrátení peňazí</em> vystaví dobropis na vrátenú sumu. Vrátenie cez Stripe: dobropis je uhradený (úhrada kartou). Ručné vrátenie pri napojenej banke: dobropis čaká na odchádzajúcu platbu – spáruje sa s ňou v Banke (výdaj ↔ dobropis).</td></tr>
 <tr><td><strong>Vrátenie pred vystavením faktúry</strong></td><td>Po vystavení faktúry doplní dobropis (alebo upozornenie v boxe Doklady).</td></tr>
 <tr><td><strong>Zrušená objednávka s faktúrou</strong></td><td>Pri zapnutom automatickom dobropise vystaví dobropis na zostatok faktúry, inak zapíše upozornenie „Faktúra ostáva platná“.</td></tr>
 <tr><td><strong>Zrušená objednávka so zálohovou faktúrou</strong></td><td>Neuhradenú zálohovú faktúru stornuje.</td></tr>
@@ -219,7 +219,8 @@ HTML
 <ul>
 <li>Každý doklad môže mať <strong>viac úhrad</strong> (čiastočné platby) s dátumom, spôsobom (prevodom, v hotovosti, kartou, zápočtom, iné) a poznámkou.</li>
 <li>Stav <strong>Uhradená</strong> nastane, keď súčet úhrad dosiahne sumu dokladu; inak doklad ukazuje zostávajúcu sumu.</li>
-<li>Úhrady vznikajú ručne (box Úhrady v detaile, tlačidlo <em>Označiť ako uhradený</em>), z banky (párovanie), z karty (J-Platby) a z dobierky (Packeta doručila).</li>
+<li>Úhrady vznikajú ručne (box Úhrady v detaile, tlačidlo <em>Označiť ako uhradený</em>), z banky (párovanie), z karty (J-Platby) a z dobierky (Packeta doručila – spôsob <em>Dobierkou</em>).</li>
+<li>Storno faktúry a nová faktúra k tej istej objednávke: úhrady kartou a dobierkou prejdú na novú faktúru (nezapíšu sa dvakrát). Úhrady z banky sa pri storne uvoľnia na nové spárovanie.</li>
 <li><em>Zrušiť úhradu</em> zmaže ručné úhrady; úhrady z banky sa rušia zrušením spárovania. Zmazaná úhrada z banky vráti pohyb do Na spárovanie.</li>
 <li>Stornovanie dokladu uvoľní jeho úhrady z banky na spárovanie.</li>
 </ul>

@@ -1,9 +1,9 @@
 === J-Platby ===
 Contributors: aveyona
 Requires at least: 6.5
-Tested up to: 6.8
+Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 
 Platby kartou pre WooCommerce cez Stripe Checkout. Súčasť rodiny Jupiter.
@@ -19,6 +19,11 @@ Platby kartou pre WooCommerce cez Stripe Checkout. Súčasť rodiny Jupiter.
 * Úhrada kartou sa zapíše k faktúre J-Fakturácie, poplatok Stripe do J-Účtovníctva (568 / 261).
 
 == Changelog ==
+
+= 0.2.1 =
+* Platba sa nezapíše druhýkrát k novej faktúre po storne; testovacie platby sa nezapisujú ako úhrady.
+* Kontrola sumy, meny a režimu platby so objednávkou (nesúlad = poznámka, objednávka sa neoznačí ako zaplatená).
+* Export platieb do CSV chránený pred vzorcami. Deaktivácia zruší plánovanú úlohu, odinštalovanie zmaže kľúče Stripe.
 
 = 0.2.0 =
 * Oprava: upozornenie, keď sa tajný kľúč alebo tajomstvo webhooku nedá prečítať (zmena bezpečnostných kľúčov WordPressu) – platba kartou vtedy zmizne z pokladne.

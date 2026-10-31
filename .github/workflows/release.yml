@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
+      # Voliteľný tajný kľúč Ed25519 (base64, 64 bajtov) na podpis vydaní – Settings → Secrets → JUPITER_SIGNING_KEY.
+      JUPITER_SIGNING_KEY: ${{ secrets.JUPITER_SIGNING_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,11 +53,18 @@ jobs:
             test -d "plugins/$plugin"
             rm -f "$tag.zip"
             (cd plugins && zip -qr "../$tag.zip" "$plugin" -x '*.git*')
+            # Kontrolný súčet a (ak je kľúč) podpis – J-Pomocník ich overí pred inštaláciou.
+            sha256sum "$tag.zip" | awk '{print $1}' > "$tag.zip.sha256"
+            assets="$tag.zip $tag.zip.sha256"
+            if [ -n "$JUPITER_SIGNING_KEY" ]; then
+              php -r '$k=base64_decode(getenv("JUPITER_SIGNING_KEY"),true); if(!$k||strlen($k)!==SODIUM_CRYPTO_SIGN_SECRETKEYBYTES){fwrite(STDERR,"Neplatný JUPITER_SIGNING_KEY\n");exit(1);} echo base64_encode(sodium_crypto_sign_detached(file_get_contents($argv[1]),$k));' "$tag.zip" > "$tag.zip.sig"
+              assets="$assets $tag.zip.sig"
+            fi
             notes=$(php -r '$j=json_decode(file_get_contents("updates.json"),true); echo $j["plugins"][$argv[1]]["notes"] ?? "";' "$plugin")
             if gh release view "$tag" >/dev/null 2>&1; then
-              gh release upload "$tag" "$tag.zip" --clobber
+              gh release upload "$tag" $assets --clobber
             else
-              gh release create "$tag" "$tag.zip" --target "${GITHUB_SHA}" --title "$tag" --notes "${notes:-Vydanie $tag}"
+              gh release create "$tag" $assets --target "${GITHUB_SHA}" --title "$tag" --notes "${notes:-Vydanie $tag}"
             fi
             echo "Vydané: $tag"
           done

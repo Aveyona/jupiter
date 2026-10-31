@@ -103,9 +103,10 @@ HTML
 <tbody>
 <tr><td>Vydaná faktúra</td><td>311 / 604 (tovar), 602 (služby, doprava), 343 (DPH); zálohy cez 324.</td></tr>
 <tr><td>Prijatá faktúra</td><td>Podľa kategórie (501, 504, 518, 042 …) / 321.</td></tr>
-<tr><td>Pohyb v banke</td><td>Párovaný s faktúrou 221 / 311 alebo 321 / 221; ostatné podľa pravidiel.</td></tr>
+<tr><td>Pohyb v banke</td><td>Párovaný s faktúrou 221 / 311 alebo 321 / 221, vrátenie peňazí k dobropisu 311 / 221; výplata od Packety a Stripe 221 / 261; ostatné podľa pravidiel.</td></tr>
 <tr><td>Sklad</td><td>Príjemky 132 / 131 alebo 321, predaný tovar 504 / 132 za mesiac.</td></tr>
 <tr><td>Platba kartou (J-Platby)</td><td>Úhrada cez 261 a poplatok Stripe 568.</td></tr>
+<tr><td>Dobierka (Packeta)</td><td>Peniaze na ceste 261002 / 311 – nie do pokladne; výplata Packety do banky 221 / 261002 (zostatok 261002 = ešte nevyplatené dobierky alebo zrážky Packety).</td></tr>
 </tbody>
 </table>
 <p>Keď sa zdroj zmení (napr. oprava faktúry), účtovný doklad sa stornuje a zaúčtuje znova. Keď sa zdroj zmaže, zaúčtovanie sa stornuje.</p>

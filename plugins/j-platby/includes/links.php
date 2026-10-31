@@ -16,9 +16,17 @@ function jpl_record_invoice_payment( $order_id ) {
 	if ( ! $order || 'jpl_stripe' !== $order->get_payment_method() || ! $order->get_meta( '_jpl_pi' ) || ! $order->is_paid() ) {
 		return;
 	}
+	if ( 'test' === $order->get_meta( '_jpl_mode' ) ) {
+		return; // testovacia platba nie je skutočná úhrada
+	}
 	$doc = jinv_by_order( $order->get_id(), 'issued' );
 	if ( ! $doc || 'cancelled' === $doc['status'] || jinv_payments( $doc['id'] ) ) {
 		return; // bez faktúry, alebo už má zapísané úhrady
+	}
+	// Táto platba už je zapísaná pri inom doklade objednávky (napr. stornovanej faktúre) – J-Fakturácia ju presunie, nezapisuje sa druhýkrát.
+	global $wpdb;
+	if ( function_exists( 'jinv_table' ) && $wpdb->get_var( $wpdb->prepare( 'SELECT p.id FROM ' . jinv_table( 'payments' ) . ' p JOIN ' . jinv_table() . " d ON d.id = p.doc_id WHERE p.source = 'stripe' AND p.ref = %s AND d.order_id = %d LIMIT 1", (string) $order->get_meta( '_jpl_pi' ), $order->get_id() ) ) ) { // phpcs:ignore
+		return;
 	}
 	$date = $order->get_date_paid() ? $order->get_date_paid()->date_i18n( 'Y-m-d' ) : current_time( 'Y-m-d' );
 	$a    = array( 'date' => $date, 'method' => 'card', 'source' => 'stripe', 'ref' => (string) $order->get_meta( '_jpl_pi' ), 'note' => trim( 'Stripe ' . $order->get_meta( '_jpl_card' ) ) );

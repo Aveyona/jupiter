@@ -2,9 +2,9 @@
 Contributors: aveyona
 Tags: woocommerce, stock, inventory, warehouse, jupiter
 Requires at least: 6.5
-Tested up to: 6.9
+Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.6.0
+Stable tag: 0.6.1
 License: GPLv2 or later
 
 Sklad pre WooCommerce: príjemky, výdajky, kniha pohybov zásob a hodnota skladu. Súčasť rodiny Jupiter.
@@ -27,6 +27,9 @@ Zásoba ostáva v produktoch WooCommerce (Spravovať zásoby, Množstvo na sklad
 Pripravuje sa: PDF dokladov, import príjemky z CSV, návrh objednávky tovaru, viac skladov.
 
 == Changelog ==
+
+= 0.6.1 =
+* Storno dokladu oznámi J-Účtovníctvu (udalosť jsk_doc_cancelled).
 
 = 0.6.0 =
 * Merné jednotky: pole Jednotka v úprave produktu (Zásoby) – kus, hodina, minúta, deň, týždeň, mesiac, rok, kg, g, l, ml, m, m², m³, balenie, sada, pár, licencia, osoba, strana; vlastné jednotky v Nastaveniach. Jednotka sa zobrazuje pri zásobe, v dokladoch, v pohyboch a v balíčkoch („IT poradenstvo – 8 h“); voliteľne aj pri cene v obchode („· za hodinu“).

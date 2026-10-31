@@ -262,6 +262,11 @@ function juc_month_checks( $ym ) {
 		list( $open, $late ) = juc_issues_count();
 		$out[] = array( $late ? 'warn' : 'ok', $late ? $late . ' úloh na riešenie je po termíne.' : ( $open ? $open . ' otvorených úloh na riešenie (bez omeškania).' : 'Žiadne úlohy na riešenie.' ), juc_url( 'j-uctovnictvo-issues' ) );
 	}
+	// Ručné zmeny zásob v J-Sklade (úprava produktu, import, iný doplnok) sa neúčtujú – pri spôsobe A rozídu 132 so skladom.
+	if ( 'A' === juc_opt( 'stock_method' ) && function_exists( 'jsk_t' ) ) {
+		$man = (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(m.qty * COALESCE(m.cost, CAST(c.meta_value AS DECIMAL(14,4)), 0)),0) FROM ' . jsk_t( 'moves' ) . " m LEFT JOIN {$wpdb->postmeta} c ON c.post_id = m.product_id AND c.meta_key = '_jsk_cost' WHERE m.source IN ('manual','other') AND m.created_at BETWEEN %s AND %s", $ym . '-01 00:00:00', $end . ' 23:59:59' ) ); // phpcs:ignore
+		$out[] = array( abs( $man ) >= 0.01 ? 'warn' : 'ok', abs( $man ) >= 0.01 ? sprintf( 'Ručné zmeny zásob v J-Sklade za mesiac (%s € v nákupných cenách) nie sú v účtovníctve – zaúčtujte ich príjemkou, výdajkou alebo inventúrou, inak účet 132 nesedí so skladom.', juc_money( $man ) ) : 'Žiadne nezaúčtované ručné zmeny zásob.', admin_url( 'admin.php?page=j-sklad' ) );
+	}
 	// Odpisy majetku za mesiac.
 	if ( function_exists( 'juc_assets' ) ) {
 		$posted = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . juc_t( 'entries' ) . " WHERE source = 'asset' AND status = 'posted' AND entry_date BETWEEN %s AND %s", $ym . '-01', $end ) ); // phpcs:ignore

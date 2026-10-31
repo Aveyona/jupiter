@@ -227,6 +227,19 @@ function jpl_check_session( WC_Order $order, $session ) {
 		return new WP_Error( 'jpl_mismatch', 'Platba nepatrí k tejto objednávke.' );
 	}
 	if ( 'paid' === ( $session['payment_status'] ?? '' ) ) {
+		// Suma, mena a režim platby musia sedieť s objednávkou (napr. objednávka upravená po vytvorení odkazu na platbu).
+		$paid_cents = (int) ( $session['amount_total'] ?? -1 );
+		$want_cents = (int) round( (float) $order->get_total() * 100 );
+		$cur_ok     = strtolower( (string) ( $session['currency'] ?? '' ) ) === strtolower( $order->get_currency() );
+		$mode_ok    = '' === $mode || ( ! empty( $session['livemode'] ) ? 'live' : 'test' ) === $mode;
+		if ( $paid_cents !== $want_cents || ! $cur_ok || ! $mode_ok ) {
+			if ( ! $order->get_meta( '_jpl_mismatch' ) ) {
+				$order->update_meta_data( '_jpl_mismatch', current_time( 'mysql' ) );
+				$order->add_order_note( sprintf( 'J-Platby: platba Stripe nesedí s objednávkou (zaplatené %s %s%s, objednávka %s %s) – objednávka sa neoznačila ako zaplatená. Skontrolujte platbu v Stripe.', number_format( $paid_cents / 100, 2, ',', ' ' ), strtoupper( (string) ( $session['currency'] ?? '' ) ), $mode_ok ? '' : ', iný režim', number_format( (float) $order->get_total(), 2, ',', ' ' ), $order->get_currency() ) );
+				$order->save();
+			}
+			return new WP_Error( 'jpl_amount', 'Suma, mena alebo režim platby nesedí s objednávkou.' );
+		}
 		return jpl_mark_paid( $order, $session );
 	}
 	return false;

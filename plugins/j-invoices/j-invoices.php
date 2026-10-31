@@ -3,7 +3,7 @@
  * Plugin Name:       J-Fakturácia
  * Plugin URI:        https://github.com/Aveyona/jupiter
  * Description:       Doklady pre WooCommerce: faktúry z objednávok s číselným radom, splatnosťou a variabilným symbolom, prehľad a tlačový náhľad; pripravujú sa zálohové faktúry, dobropisy, PDF s QR PAY by square, e-mail, Pohoda a prechod z Woo Faktura. Súčasť rodiny Jupiter.
- * Version:           0.11.0
+ * Version:           0.12.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -17,8 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JINV_VERSION', '0.11.0' );
-define( 'JINV_DB_VERSION', 4 );
+define( 'JINV_VERSION', '0.12.0' );
+define( 'JINV_DB_VERSION', 5 );
 define( 'JINV_FILE', __FILE__ );
 define( 'JINV_DIR', plugin_dir_path( __FILE__ ) );
 define( 'JINV_URL', plugin_dir_url( __FILE__ ) );
@@ -53,12 +53,37 @@ require_once JINV_DIR . 'includes/partners.php';
 require_once JINV_DIR . 'includes/bank.php';
 
 register_activation_hook( __FILE__, 'jinv_install' );
+register_deactivation_hook( __FILE__, function () {
+	wp_clear_scheduled_hook( 'jinv_bank_cron' );
+} );
+
+/**
+ * 0.12: úhrady dobierkou mali spôsob „V hotovosti“ (J-Účtovníctvo ich účtovalo do pokladne) → „Dobierkou“;
+ * token Fio API sa zašifruje.
+ */
+function jinv_upgrade_5() {
+	global $wpdb;
+	$ids = (array) $wpdb->get_col( 'SELECT id FROM ' . jinv_table( 'payments' ) . " WHERE source = 'cod' AND method = 'cash'" ); // phpcs:ignore
+	if ( $ids ) {
+		$wpdb->query( 'UPDATE ' . jinv_table( 'payments' ) . " SET method = 'cod' WHERE source = 'cod' AND method = 'cash'" ); // phpcs:ignore
+		foreach ( $ids as $pid ) {
+			$doc = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT doc_id FROM ' . jinv_table( 'payments' ) . ' WHERE id = %d', $pid ) ); // phpcs:ignore
+			do_action( 'jinv_payment_added', (int) $pid, $doc, 0, array( 'moved' => true ) );
+		}
+	}
+	if ( function_exists( 'jinv_bank_encrypt_tokens' ) ) {
+		jinv_bank_encrypt_tokens();
+	}
+}
 add_action( 'plugins_loaded', function () {
 	if ( (int) get_option( 'jinv_db_version' ) < JINV_DB_VERSION ) {
 		$was = (int) get_option( 'jinv_db_version' );
 		jinv_install();
 		if ( $was && $was < 3 ) {
 			jinv_partners_from_received(); // dodávatelia z doterajších prijatých faktúr
+		}
+		if ( $was && $was < 5 ) {
+			jinv_upgrade_5();
 		}
 	}
 } );

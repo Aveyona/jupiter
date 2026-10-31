@@ -2,9 +2,9 @@
 Contributors: aveyona
 Tags: woocommerce, accounting, double-entry, slovakia, jupiter
 Requires at least: 6.5
-Tested up to: 6.9
+Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.7.0
+Stable tag: 0.7.1
 License: GPLv2 or later
 
 Podvojné účtovníctvo pre slovenské s. r. o. Súčasť rodiny Jupiter.
@@ -32,6 +32,13 @@ Pripravuje sa: DPH (pri registrácii).
 Program nenahrádza odborné posúdenie – pred podaním účtovnej závierky a daňového priznania odporúčame kontrolu účtovníkom.
 
 == Changelog ==
+
+= 0.7.1 =
+* Dobierka sa účtuje na peniaze na ceste 261002 (nie do pokladne), výplaty Packety a Stripe na účet sa zaúčtujú automaticky na zúčtovacie účty.
+* Vrátenie peňazí prevodom (výdaj spárovaný s dobropisom) 311 / 221.
+* Storno faktúry a skladového dokladu sa zaúčtuje hneď (nie až pri dennej kontrole).
+* Kontrola mesiaca upozorní na ručné zmeny zásob v J-Sklade, ktoré nie sú v účtovníctve.
+* Počítadlo Na riešenie sa nepočíta pri každom načítaní administrácie. Deaktivácia zruší plánované úlohy.
 
 = 0.7.0 =
 * Termíny a daň: kalendár povinností (daňové priznanie, závierka, registrácia, preddavky na daň), predĺženie lehoty, pracovný list DPPO s výpočtom dane a rozdelenie výsledku hospodárenia (zisk do 421 / 364 / 428, úhrada straty).

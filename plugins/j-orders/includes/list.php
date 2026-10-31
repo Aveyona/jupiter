@@ -82,7 +82,7 @@ function jord_tobill_ids( $date_created = '' ) {
 	}
 	$cand = wc_get_orders( array(
 		'type'         => 'shop_order',
-		'status'       => array( 'wc-' . jinv_fulfil_status() ),
+		'status'       => array_values( array_unique( array( 'wc-' . jinv_fulfil_status(), 'wc-completed' ) ) ), // ako jinv_is_fulfilled()
 		'date_created' => '' !== $date_created ? $date_created : '>' . ( time() - (int) apply_filters( 'jord_tobill_days', 90 ) * DAY_IN_SECONDS ),
 		'limit'        => -1,
 		'return'       => 'ids',

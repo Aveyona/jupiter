@@ -85,6 +85,7 @@ add_action( 'admin_post_jinv_action', function () {
 			}
 		}
 		jinv_update( $id, array( 'status' => 'cancelled' ) );
+		do_action( 'jinv_document_cancelled', $id, $inv );
 		if ( $inv && $inv['order_id'] && ( $o = wc_get_order( $inv['order_id'] ) ) ) {
 			$meta = jinv_kinds()[ $inv['kind'] ][1] ?? '';
 			if ( $meta && (string) $o->get_meta( $meta ) === (string) $inv['number'] ) {

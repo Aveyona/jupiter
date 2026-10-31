@@ -194,6 +194,47 @@ function juc_build_received( array $d ) {
 	);
 }
 
+/**
+ * Zúčtovací účet dobierok (peniaze na ceste): dobierka sa neúčtuje do pokladne – peniaze vyberá dopravca a pošle ich
+ * hromadne na účet. Nastavenie acc_cod, inak analytika 261002 (pri analytickej karte 261001), inak účet karty.
+ */
+function juc_cod_account() {
+	$v = preg_replace( '/\D/', '', (string) juc_opt( 'acc_cod' ) );
+	if ( $v ) {
+		return $v;
+	}
+	$card = juc_acc_opt( 'acc_card', '261' );
+	if ( 6 === strlen( $card ) ) {
+		$num = substr( $card, 0, 3 ) . '002';
+		if ( function_exists( 'juc_account_ensure' ) ) {
+			juc_account_ensure( $num, 'Peniaze na ceste – dobierky (Packeta)' );
+		}
+		return $num;
+	}
+	return $card;
+}
+
+/**
+ * Výplaty platobnej brány a dopravcu na účet (príjem od Stripe / Packety) → zúčtovací účet peňazí na ceste.
+ * Používa sa, keď na pohyb nie je pravidlo používateľa. Filter juc_payout_rules: [ regex => účet ].
+ */
+function juc_payout_account( array $t ) {
+	if ( (float) $t['amount'] <= 0 ) {
+		return '';
+	}
+	$hay   = mb_strtolower( trim( $t['counter_name'] . ' ' . $t['message'] ) );
+	$rules = (array) apply_filters( 'juc_payout_rules', array(
+		'/packeta|z[aá]silkovna|zasielkovna/u' => juc_cod_account(),
+		'/\bstripe\b/u'                       => juc_acc_opt( 'acc_card', '261' ),
+	) );
+	foreach ( $rules as $re => $acc ) {
+		if ( $acc && preg_match( $re, $hay ) ) {
+			return (string) $acc;
+		}
+	}
+	return '';
+}
+
 /** Účet podľa pravidla pre protiúčet (Nastavenia → Pravidlá pre pohyby v banke), alebo ''. */
 function juc_bank_rule( array $t ) {
 	$iban = strtoupper( str_replace( ' ', '', (string) $t['counter_account'] ) );
@@ -213,7 +254,7 @@ function juc_bank_rule( array $t ) {
 			return (string) $acc;
 		}
 	}
-	return '';
+	return juc_payout_account( $t );
 }
 
 /** Kľúč pravidla pre pohyb (zapamätanie z „Na zaúčtovanie“): IBAN, inak názov protistrany, inak začiatok textu. */
@@ -272,6 +313,9 @@ function juc_build_banktx( array $t ) {
 		} elseif ( 'proforma' === $d['kind'] ) {
 			$line = array( 'md' => $bank, 'd' => juc_acc_opt( 'acc_adv_recv', '324' ), 'amount' => $abs, 'text' => 'Prijatý preddavok – ' . $d['number'], 'vs' => $vs );
 			$head['adv_key'] = 'jinv:' . (int) $d['id'];
+		} elseif ( 'creditnote' === $d['kind'] ) {
+			// Vrátenie peňazí zákazníkovi prevodom (dobropis spárovaný s výdajom).
+			$line = array( 'md' => juc_acc_opt( 'acc_customers', '311' ), 'd' => $bank, 'amount' => $abs, 'text' => 'Vrátenie peňazí – ' . $d['number'], 'vs' => $vs );
 		} else {
 			$line = array( 'md' => $bank, 'd' => juc_acc_opt( 'acc_customers', '311' ), 'amount' => $abs, 'text' => 'Úhrada faktúry ' . $d['number'], 'vs' => $vs );
 		}
@@ -304,7 +348,7 @@ function juc_build_payment( array $p, array $d, $acc = '' ) {
 		if ( 'bank' === $m && juc_bank_connected() && ! juc_bank_payment_keep( $p ) ) {
 			return null; // účtuje sa z pohybu v banke
 		}
-		$acc = array( 'cash' => juc_acc_opt( 'acc_cash', '211' ), 'card' => juc_acc_opt( 'acc_card', '261' ), 'bank' => juc_acc_opt( 'acc_bank', '221' ) )[ $m ] ?? '';
+		$acc = array( 'cash' => juc_acc_opt( 'acc_cash', '211' ), 'card' => juc_acc_opt( 'acc_card', '261' ), 'cod' => juc_cod_account(), 'bank' => juc_acc_opt( 'acc_bank', '221' ) )[ $m ] ?? '';
 		if ( ! $acc ) {
 			return null; // zápočet / iné – čaká v „Na zaúčtovanie“ (juc_queue_payments)
 		}
@@ -881,6 +925,14 @@ add_action( 'jinv_bank_paired_order', function ( $tx, $order_id = 0 ) {
 add_action( 'jsk_doc_posted', function ( $id ) {
 	juc_autopost_mark( 'jsk', $id );
 } );
+// Storno faktúry alebo skladového dokladu: zápis sa stornuje pri najbližšom behu (nie až pri dennej kontrole).
+add_action( 'jinv_document_cancelled', function ( $id ) {
+	juc_autopost_mark_doc( (int) $id );
+	juc_queue_count_reset();
+} );
+add_action( 'jsk_doc_cancelled', function ( $id ) {
+	juc_autopost_mark( 'jsk', (int) $id );
+} );
 
 // Zmazaná úhrada: jej zápis sa stornuje hneď (beh by zmazaný riadok už nenašiel). Pohyb v banke, z ktorého úhrada
 // vznikla, J-Fakturácia vráti medzi nespárované – jeho zápis (úhrada faktúry) sa prepočíta pri najbližšom behu.
@@ -902,7 +954,7 @@ add_action( 'jinv_payment_deleted', function ( $payment_id, $doc_id = 0 ) {
 }, 10, 2 );
 
 // Po zmene dokladu v J-Fakturácii, banke alebo sklade sa účtovanie spustí o minútu (nie hneď – zmien býva viac naraz).
-foreach ( array( 'jinv_document_created', 'jinv_document_regenerated', 'jinv_payment_added', 'jinv_payment_deleted', 'jinv_bank_paired', 'jinv_bank_paired_order', 'jsk_doc_posted' ) as $juc_hook ) {
+foreach ( array( 'jinv_document_created', 'jinv_document_regenerated', 'jinv_document_cancelled', 'jinv_payment_added', 'jinv_payment_deleted', 'jinv_bank_paired', 'jinv_bank_paired_order', 'jsk_doc_posted', 'jsk_doc_cancelled' ) as $juc_hook ) {
 	add_action( $juc_hook, function () {
 		if ( juc_start_date() && juc_opt( 'auto' ) && ! wp_next_scheduled( 'juc_autopost_soon' ) ) {
 			wp_schedule_single_event( time() + 60, 'juc_autopost_soon' );
@@ -972,7 +1024,7 @@ function juc_queue_payments() {
 		return array();
 	}
 	$e = juc_t( 'entries' );
-	return (array) $wpdb->get_results( $wpdb->prepare( 'SELECT p.*, d.number doc_number, d.kind doc_kind, d.customer_name FROM ' . jinv_table( 'payments' ) . ' p JOIN ' . jinv_table() . " d ON d.id = p.doc_id WHERE p.source <> 'bank' AND p.pay_date >= %s AND p.method NOT IN ('bank','cash','card') AND d.status <> 'cancelled' AND NOT EXISTS (SELECT 1 FROM $e e WHERE e.source = 'jinv' AND e.source_type = 'payment' AND e.source_id = p.id AND e.status = 'posted') ORDER BY p.pay_date, p.id LIMIT 300", $st ), ARRAY_A ); // phpcs:ignore
+	return (array) $wpdb->get_results( $wpdb->prepare( 'SELECT p.*, d.number doc_number, d.kind doc_kind, d.customer_name FROM ' . jinv_table( 'payments' ) . ' p JOIN ' . jinv_table() . " d ON d.id = p.doc_id WHERE p.source <> 'bank' AND p.pay_date >= %s AND p.method NOT IN ('bank','cash','card','cod') AND d.status <> 'cancelled' AND NOT EXISTS (SELECT 1 FROM $e e WHERE e.source = 'jinv' AND e.source_type = 'payment' AND e.source_id = p.id AND e.status = 'posted') ORDER BY p.pay_date, p.id LIMIT 300", $st ), ARRAY_A ); // phpcs:ignore
 }
 
 /** Počet položiek „Na zaúčtovanie“ (v menu na každej stránke administrácie) – uložený na 5 minút. */
