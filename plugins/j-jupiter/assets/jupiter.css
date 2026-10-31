@@ -72,3 +72,10 @@
 /* Ikona Jupiter v ľavom menu: planéta ako maska vo farbe menu */
 #adminmenu #toplevel_page_j-jupiter div.wp-menu-image::before { content: ""; display: block; width: 20px; height: 20px; margin: 7px auto 0; padding: 0; background-color: currentColor; -webkit-mask: url(planet.svg) center / 20px 20px no-repeat; mask: url(planet.svg) center / 20px 20px no-repeat; }
 #adminmenu #toplevel_page_j-jupiter div.wp-menu-image br { display: none; }
+
+/* Stav doplnku na dlaždici (filter jupiter_tile_status). */
+.jju-status { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; font-weight: 600; }
+.jju-status i { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.jju-st-ok { color: #1e7e34; }
+.jju-st-warn { color: #9a6700; }
+.jju-st-err { color: #b32d2e; }

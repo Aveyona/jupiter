@@ -43,9 +43,10 @@ function jpl_page_payments() {
 		Mesiac <input type="month" name="m" value="<?php echo esc_attr( $month ); ?>"> <button class="button">Zobraziť</button>
 		<a class="button" href="<?php echo esc_url( jpl_dashboard_url( 'payments' ) ); ?>" target="_blank" rel="noopener">Otvoriť Stripe</a>
 		<a class="button" href="<?php echo esc_url( jpl_dashboard_url( 'payouts' ) ); ?>" target="_blank" rel="noopener">Výplaty na účet</a>
+		<a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=jpl_csv&m=' . $month ), 'jpl_csv' ) ); ?>">Export CSV</a>
 	</form>
 	<table class="widefat striped">
-		<thead><tr><th>Objednávka</th><th>Dátum</th><th>Zákazník</th><th class="num">Suma</th><th class="num">Poplatok</th><th class="num">Dostanete</th><th>Karta</th><th>Stav</th><th>Stripe</th></tr></thead>
+		<thead><tr><th>Objednávka</th><th>Dátum</th><th>Zákazník</th><th class="num">Suma</th><th class="num">Poplatok</th><th class="num" title="Suma po odpočítaní poplatku Stripe a vrátených peňazí">Dostanete</th><th>Karta</th><th>Stav</th><th>Stripe</th></tr></thead>
 		<tbody>
 		<?php if ( ! $orders ) : ?><tr><td colspan="9">Žiadne objednávky s platbou kartou v tomto mesiaci.</td></tr><?php endif; ?>
 		<?php
@@ -59,7 +60,7 @@ function jpl_page_payments() {
 				$sum['n']++;
 				$sum['paid'] += (float) $o->get_total();
 				$sum['fee']  += (float) $fee;
-				$sum['net']  += (float) $net;
+				$sum['net']  += '' !== (string) $net ? (float) $net - $ref : 0; // čistá suma po vrátení (poplatok Stripe sa nevracia)
 				$sum['ref']  += $ref;
 			}
 			$st = $pi ? ( $ref > 0 ? ( $ref >= (float) $o->get_total() - 0.005 ? 'vrátená' : 'čiastočne vrátená' ) : 'zaplatená' ) : ( $o->has_status( 'pending' ) ? 'čaká na platbu' : 'nezaplatená' );
@@ -70,7 +71,7 @@ function jpl_page_payments() {
 				<td><?php echo esc_html( $o->get_formatted_billing_full_name() ); ?></td>
 				<td class="num"><?php echo wp_kses_post( wc_price( $o->get_total(), array( 'currency' => $o->get_currency() ) ) ); ?><?php echo $ref > 0 ? '<br><small style="color:#b32d2e">−' . wp_kses_post( wc_price( $ref ) ) . '</small>' : ''; ?></td>
 				<td class="num"><?php echo '' !== (string) $fee ? wp_kses_post( wc_price( (float) $fee ) ) : '—'; ?></td>
-				<td class="num"><?php echo '' !== (string) $net ? wp_kses_post( wc_price( (float) $net ) ) : '—'; ?></td>
+				<td class="num"><?php echo '' !== (string) $net ? wp_kses_post( wc_price( (float) $net - $ref ) ) : '—'; ?></td>
 				<td><?php echo esc_html( (string) $o->get_meta( '_jpl_card' ) ); ?></td>
 				<td><?php echo esc_html( $st ); ?></td>
 				<td><?php echo $pi ? '<a href="' . esc_url( jpl_dashboard_url( 'payments/' . $pi, $test ? 'test' : 'live' ) ) . '" target="_blank" rel="noopener">detail</a>' : '—'; ?></td>
@@ -81,7 +82,7 @@ function jpl_page_payments() {
 		<tfoot><tr><th colspan="3">Spolu <?php echo (int) $sum['n']; ?> platieb</th><th class="num"><?php echo wp_kses_post( wc_price( $sum['paid'] ) ); ?><?php echo $sum['ref'] > 0 ? '<br><small>vrátené −' . wp_kses_post( wc_price( $sum['ref'] ) ) . '</small>' : ''; ?></th><th class="num"><?php echo wp_kses_post( wc_price( $sum['fee'] ) ); ?></th><th class="num"><?php echo wp_kses_post( wc_price( $sum['net'] ) ); ?></th><th colspan="3"></th></tr></tfoot>
 		<?php endif; ?>
 	</table>
-	<p class="description">Peniaze z platieb posiela Stripe na bankový účet automaticky (výplata). Vrátenie peňazí: detail objednávky → Vrátiť peniaze → Vrátiť cez Platba kartou.</p>
+	<p class="description">Dostanete = suma − poplatok Stripe − vrátené peniaze (poplatok sa pri vrátení nevracia). Peniaze z platieb posiela Stripe na bankový účet automaticky (výplata). Vrátenie peňazí: detail objednávky → Vrátiť peniaze → Vrátiť cez Platba kartou. Export CSV = platby mesiaca pre účtovníka (Excel).</p>
 	</div>
 	<?php
 }
@@ -126,6 +127,8 @@ function jpl_page_settings() {
 	<p>a vyberte udalosti:</p>
 	<p><code><?php echo implode( '</code> <code>', array_map( 'esc_html', $events ) ); ?></code></p>
 	<p>Po vytvorení kliknite na <em>Reveal signing secret</em> a hodnotu <code>whsec_…</code> vložte vyššie do poľa Tajomstvo webhooku.</p>
+	<?php $wst = jpl_webhook_state(); ?>
+	<p><strong>Stav:</strong> <span style="color:<?php echo 'ok' === $wst[0] ? '#1e7e34' : ( 'err' === $wst[0] ? '#b32d2e' : '#9a6700' ); ?>;font-weight:600"><?php echo esc_html( $wst[1] ); ?></span></p>
 	<p><strong>Posledná udalosť zo Stripe:</strong> <?php echo $last ? esc_html( $last['at'] . ' – ' . ( $last['ok'] ? ( $last['type'] ?? '' ) . ' (' . ( $last['msg'] ?? '' ) . ')' : 'ODMIETNUTÁ: ' . ( $last['msg'] ?? '' ) ) ) : 'zatiaľ žiadna'; ?></p>
 
 	<h2>Testovacie karty</h2>

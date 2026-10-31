@@ -17,6 +17,19 @@ add_action( 'admin_post_jju_pin', function () {
 	exit;
 } );
 
+/**
+ * Stav doplnku na dlaždici (napr. „Webhook Stripe funguje“). Doplnok ho vráti filtrom jupiter_tile_status:
+ * [ 'ok' | 'warn' | 'err', text ] pre svoj slug, alebo nič.
+ */
+function jju_status_html( $slug ) {
+	$st = apply_filters( 'jupiter_tile_status', null, $slug );
+	if ( ! is_array( $st ) || empty( $st[1] ) ) {
+		return '';
+	}
+	$k = in_array( $st[0], array( 'ok', 'warn', 'err' ), true ) ? $st[0] : 'warn';
+	return '<span class="jju-status jju-st-' . esc_attr( $k ) . '"><i aria-hidden="true"></i>' . esc_html( $st[1] ) . '</span>';
+}
+
 /** Jedna dlaždica doplnku. */
 function jju_tile( $slug, $it, $color, $pinned ) {
 	$badge = jju_badge( $it['raw'] );
@@ -28,6 +41,7 @@ function jju_tile( $slug, $it, $color, $pinned ) {
 		. '<a class="jju-main" href="' . esc_url( jju_page_url( $slug ) ) . '">' . jju_icon( $it['icon'] )
 		. '<strong>' . esc_html( jju_short( $it['title'] ) ) . '</strong>' . ( $badge ? '<i class="jju-badge" title="Čaká na vybavenie">' . (int) $badge . '</i>' : '' )
 		. '<span class="jju-desc">' . esc_html( jju_desc( $slug ) ) . '</span>'
+		. jju_status_html( $slug )
 		. ( $ver ? '<span class="jju-ver">Verzia ' . esc_html( $ver ) . '</span>' : '' ) . '</a>';
 	$subs = array_values( array_filter( $it['subs'], function ( $s ) use ( $slug ) {
 		return $s['slug'] !== $slug;

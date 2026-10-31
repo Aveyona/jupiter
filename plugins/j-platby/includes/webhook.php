@@ -58,6 +58,7 @@ function jpl_webhook( WP_REST_Request $req ) {
 	$mode    = jpl_verify_signature( $payload, $req->get_header( 'stripe-signature' ) );
 	if ( is_wp_error( $mode ) ) {
 		update_option( 'jpl_webhook_last', array( 'at' => current_time( 'mysql' ), 'ok' => 0, 'msg' => $mode->get_error_message() ), false );
+		update_option( 'jpl_webhook_fail_at', time(), false );
 		return new WP_REST_Response( array( 'error' => $mode->get_error_message() ), 400 );
 	}
 	$ev   = json_decode( $payload, true );
@@ -65,6 +66,7 @@ function jpl_webhook( WP_REST_Request $req ) {
 	$obj  = (array) ( $ev['data']['object'] ?? array() );
 	$msg  = jpl_handle_event( $type, $obj );
 	update_option( 'jpl_webhook_last', array( 'at' => current_time( 'mysql' ), 'ok' => 1, 'type' => $type, 'mode' => $mode, 'msg' => $msg ), false );
+	update_option( 'jpl_webhook_ok_at', time(), false );
 	return new WP_REST_Response( array( 'received' => true, 'result' => $msg ), 200 );
 }
 
@@ -72,7 +74,11 @@ function jpl_webhook( WP_REST_Request $req ) {
 function jpl_order_from_session( array $s ) {
 	$id    = absint( $s['metadata']['order_id'] ?? $s['client_reference_id'] ?? 0 );
 	$order = $id ? wc_get_order( $id ) : null;
-	if ( ! $order || 'jpl_stripe' !== $order->get_payment_method() ) {
+	if ( ! $order ) {
+		return null;
+	}
+	// Platba kartou z pokladne, alebo odkaz na platbu z administrácie (uložené ID session sa zhoduje).
+	if ( 'jpl_stripe' !== $order->get_payment_method() && (string) $order->get_meta( '_jpl_session' ) !== (string) ( $s['id'] ?? '' ) ) {
 		return null;
 	}
 	return $order;
@@ -110,7 +116,14 @@ function jpl_handle_event( $type, array $obj ) {
 
 		case 'checkout.session.expired':
 			$order = jpl_order_from_session( $obj );
-			if ( $order && ! $order->is_paid() && $order->has_status( 'pending' ) && (string) $order->get_meta( '_jpl_session' ) === (string) ( $obj['id'] ?? '' ) ) {
+			if ( $order && $order->get_meta( '_jpl_link' ) && (string) $order->get_meta( '_jpl_session' ) === (string) ( $obj['id'] ?? '' ) ) {
+				// Odkaz na platbu vypršal – objednávka sa nemení (zákazník môže platiť inak, odkaz sa dá vytvoriť znova).
+				$order->delete_meta_data( '_jpl_link' );
+				$order->add_order_note( 'Stripe: odkaz na platbu kartou vypršal bez zaplatenia.' );
+				$order->save();
+				return 'odkaz vypršal #' . $order->get_order_number();
+			}
+			if ( $order && 'jpl_stripe' === $order->get_payment_method() && ! $order->is_paid() && $order->has_status( 'pending' ) && (string) $order->get_meta( '_jpl_session' ) === (string) ( $obj['id'] ?? '' ) ) {
 				$order->update_status( 'cancelled', 'Stripe: zákazník platbu nedokončil, platobná stránka vypršala.' );
 				return 'zrušená #' . $order->get_order_number();
 			}

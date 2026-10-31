@@ -4,7 +4,7 @@ Tags: woocommerce, dokumentácia, jupiter
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,6 +15,10 @@ Dokumentácia doplnkov Jupiter pre WooCommerce priamo v administrácii.
 J-Pomocník je súčasť rodiny doplnkov Jupiter pre slovenské e-shopy na WooCommerce. Zobrazí prehľad doplnkov Jupiter (verzia, stav), návody a plán vývoja. Všetky doplnky Jupiter umiestni v menu administrácie spolu hneď pod položku Marketing.
 
 == Changelog ==
+
+= 1.6.0 =
+* Príručka J-Platby (13 kapitol, schéma): nastavenie Stripe, režimy, webhook, prehľad a export, odkaz na platbu, vrátenie, účtovníctvo.
+* Plán vývoja: J-Platby 0.2 a ďalšie kroky.
 
 = 1.5.0 =
 * Príručka J-Doprava (14 kapitol, schéma): Packeta v košíku, podanie, štítky, sledovanie, dobierka, spätná zásielka, Slovenská pošta – ePodací hárok, osobný odber.

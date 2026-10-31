@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.5.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.5.0/j-help-v1.5.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.5.0",
+      "version": "1.6.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.6.0/j-help-v1.6.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.6.0",
       "published": "2026-10-31",
-      "notes": "Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
       "version": "0.10.2",
@@ -51,18 +51,18 @@
       "notes": "Prvá verzia: plány s úlohami a stavom, dokumentácia v Markdowne, prehľad „Teraz robím“, denník zmien, nahrávanie a sťahovanie súborov .md."
     },
     "j-jupiter": {
-      "version": "0.1.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-jupiter-v0.1.0/j-jupiter-v0.1.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-jupiter-v0.1.0",
+      "version": "0.1.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-jupiter-v0.1.1/j-jupiter-v0.1.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-jupiter-v0.1.1",
       "published": "2026-10-31",
-      "notes": "Prvá verzia: hlavný doplnok Jupiter – nástenka doplnkov J-, zlúčenie do jednej položky menu, navigácia na stránkach doplnkov, farby."
+      "notes": "Stav doplnku na dlaždici nástenky (napr. webhook J-Platieb)."
     },
     "j-platby": {
-      "version": "0.1.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-platby-v0.1.0/j-platby-v0.1.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-platby-v0.1.0",
-      "published": "2026-10-30",
-      "notes": "Nový doplnok: platby kartou cez Stripe Checkout (karta, Apple Pay, Google Pay), potvrdenie webhookom, vrátenie peňazí z objednávky, prehľad platieb s poplatkami, prepojenie s J-Fakturáciou a J-Účtovníctvom."
+      "version": "0.2.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-platby-v0.2.0/j-platby-v0.2.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-platby-v0.2.0",
+      "published": "2026-10-31",
+      "notes": "Opravy: upozornenie na nečitateľný kľúč a odmietnutý webhook, platobná stránka zladená s rušením nezaplatených objednávok, čistá suma po vrátení, bloková pokladňa pod 0,50 €. Nové: odkaz na platbu kartou z objednávky, export CSV, stav webhooku na nástenke."
     },
     "j-kupony": {
       "version": "0.1.0",
