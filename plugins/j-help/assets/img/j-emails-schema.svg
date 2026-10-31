@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" width="1200" height="620" font-family="Arial, Helvetica, sans-serif">
+  <title>Jupiter Pošta – schéma: schránka, administrácia, e-maily webu a faktúry z Gmailu</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f7fc"/><stop offset="1" stop-color="#e8eef8"/></linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+    <marker id="arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
+    <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#15803d"/></marker>
+  </defs>
+  <rect width="1200" height="620" fill="url(#bg)"/>
+
+  <!-- Schránka -->
+  <rect x="40" y="70" width="270" height="250" rx="18" fill="#fff" stroke="#cbd5e1"/>
+  <text x="175" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="#64748b" letter-spacing="1.5">E-MAILOVÁ SCHRÁNKA</text>
+  <text x="175" y="132" text-anchor="middle" font-size="20" font-weight="800" fill="#0f172a">info@vasa-firma.sk</text>
+  <text x="175" y="156" text-anchor="middle" font-size="13" fill="#475569">napr. u WebSupportu</text>
+  <rect x="62" y="176" width="226" height="56" rx="12" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="175" y="200" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">IMAP – prijímanie</text>
+  <text x="175" y="220" text-anchor="middle" font-size="12" fill="#475569">priečinky, správy, príznaky</text>
+  <rect x="62" y="244" width="226" height="56" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="175" y="268" text-anchor="middle" font-size="14" font-weight="700" fill="#166534">SMTP – odosielanie</text>
+  <text x="175" y="288" text-anchor="middle" font-size="12" fill="#475569">odpovede a e-maily webu</text>
+
+  <!-- Jadro -->
+  <rect x="400" y="50" width="400" height="300" rx="22" fill="url(#core)"/>
+  <text x="600" y="92" text-anchor="middle" font-size="13" font-weight="700" fill="#bfdbfe" letter-spacing="1.5">ADMINISTRÁCIA WORDPRESSU</text>
+  <text x="600" y="128" text-anchor="middle" font-size="30" font-weight="800" fill="#fff">Jupiter Pošta</text>
+  <g font-size="14" fill="#e0e7ff">
+    <rect x="428" y="150" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="511" y="174" text-anchor="middle">Pošta (ako Gmail)</text>
+    <rect x="606" y="150" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="689" y="174" text-anchor="middle">Napísať a odpovedať</text>
+    <rect x="428" y="198" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="511" y="222" text-anchor="middle">Nastavenia</text>
+    <rect x="606" y="198" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="689" y="222" text-anchor="middle">Šablóny e-mailov</text>
+    <rect x="428" y="246" width="344" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="600" y="270" text-anchor="middle">Faktúry z e-mailu (Gmail)</text>
+  </g>
+  <text x="600" y="324" text-anchor="middle" font-size="12.5" fill="#bfdbfe">Poštu vidí len administrátor · heslo uložené zašifrované</text>
+
+  <!-- Šípky schránka ↔ jadro -->
+  <path d="M290 204 L398 170" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arb)" marker-start="url(#arb)"/>
+  <path d="M398 250 L290 272" stroke="#15803d" stroke-width="3" fill="none" marker-end="url(#arg)"/>
+
+  <!-- Web a e-shop -->
+  <rect x="890" y="70" width="270" height="250" rx="18" fill="#fff" stroke="#cbd5e1"/>
+  <text x="1025" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="#64748b" letter-spacing="1.5">WEB A E-SHOP</text>
+  <g font-size="14" fill="#334155">
+    <text x="920" y="140">• potvrdenia objednávok</text>
+    <text x="920" y="166">• faktúry (J-Fakturácia)</text>
+    <text x="920" y="192">• registrácia, obnova hesla</text>
+    <text x="920" y="218">• Packeta: Objednávka odoslaná</text>
+  </g>
+  <rect x="912" y="240" width="226" height="56" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="1025" y="264" text-anchor="middle" font-size="14" font-weight="700" fill="#166534">cez SMTP schránky</text>
+  <text x="1025" y="284" text-anchor="middle" font-size="12" fill="#475569">nepadajú do spamu</text>
+  <path d="M888 268 L802 268" stroke="#15803d" stroke-width="3" fill="none" stroke-dasharray="7 5" marker-end="url(#arg)"/>
+  <text x="845" y="258" text-anchor="middle" font-size="11.5" fill="#166534">wp_mail</text>
+
+  <!-- Spodný rad: Gmail → J-Fakturácia → banka -->
+  <rect x="40" y="420" width="300" height="150" rx="18" fill="#fff" stroke="#cbd5e1"/>
+  <text x="190" y="452" text-anchor="middle" font-size="13" font-weight="700" fill="#64748b" letter-spacing="1.5">ÚČET GOOGLE (GMAIL)</text>
+  <text x="190" y="482" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">faktúry dodávateľov</text>
+  <text x="190" y="506" text-anchor="middle" font-size="13" fill="#475569">štítky, napr. „Telekom“</text>
+  <text x="190" y="530" text-anchor="middle" font-size="13" fill="#475569">prístup len na čítanie (OAuth)</text>
+
+  <rect x="450" y="420" width="300" height="150" rx="18" fill="#fff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="600" y="452" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8" letter-spacing="1.5">J-FAKTURÁCIA</text>
+  <text x="600" y="482" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">prijatá faktúra s PDF</text>
+  <text x="600" y="506" text-anchor="middle" font-size="13" fill="#475569">dodávateľ a kategória zo štítka</text>
+  <text x="600" y="530" text-anchor="middle" font-size="13" fill="#475569">suma, VS, obdobie, splatnosť</text>
+
+  <rect x="860" y="420" width="300" height="150" rx="18" fill="#fff" stroke="#cbd5e1"/>
+  <text x="1010" y="452" text-anchor="middle" font-size="13" font-weight="700" fill="#64748b" letter-spacing="1.5">BANKA</text>
+  <text x="1010" y="482" text-anchor="middle" font-size="15" font-weight="700" fill="#0f172a">úhrada sa spáruje sama</text>
+  <text x="1010" y="506" text-anchor="middle" font-size="13" fill="#475569">podľa VS a sumy</text>
+  <text x="1010" y="530" text-anchor="middle" font-size="13" fill="#475569">a zaúčtuje (J-Účtovníctvo)</text>
+
+  <path d="M342 495 L446 495" stroke="#475569" stroke-width="3" fill="none" marker-end="url(#ar)"/>
+  <text x="394" y="485" text-anchor="middle" font-size="11.5" fill="#475569">Prevziať</text>
+  <path d="M752 495 L856 495" stroke="#475569" stroke-width="3" fill="none" marker-end="url(#ar)"/>
+  <path d="M600 352 L600 416" stroke="#475569" stroke-width="3" fill="none" stroke-dasharray="7 5" marker-end="url(#ar)"/>
+  <text x="612" y="390" font-size="11.5" fill="#475569">Faktúry z e-mailu</text>
+</svg>
