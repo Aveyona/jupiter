@@ -29,6 +29,7 @@ function jinv_defaults() {
 		'format_creditnote' => 'D{RRRR}{nnn}',
 		'auto_proforma'     => 1,         // zálohová faktúra pri platbe prevodom (objednávka Čaká na platbu)
 		'auto_creditnote'   => 0,         // dobropis pri vrátení peňazí vo WooCommerce
+		'cod_paid_delivered' => 1,        // faktúra na dobierku uhradená, keď prepravca (Packeta) zásielku doručí
 		'transfer_methods'  => 'bacs',    // kódy platieb prevodom na účet (oddelené čiarkou)
 		'send_proforma'     => 1,         // poslať zálohovú faktúru zákazníkovi hneď po vystavení
 		'send_issued'       => 1,         // poslať faktúru zákazníkovi hneď po vystavení
@@ -38,6 +39,7 @@ function jinv_defaults() {
 		'due_days'     => 14,
 		'auto'         => 1,             // režim: 1 = automatický, 0 = manuálny (ostrá faktúra tlačidlom)
 		'bank_order_paid' => 0,          // platba z banky za objednávku → objednávka zaplatená
+		'bank_mail'       => 1,          // denný e-mail správcovi pri problémoch s bankou a nespárovaných platbách
 		'transfer_when' => 'paid',       // ostrá faktúra pri prevode: paid = po zaplatení, fulfilled = pri vybavení
 		'fulfil_status' => 'completed',  // stav objednávky, ktorý znamená „vybavená“ (napr. Vybavené a odoslané)
 		'regen_number'  => 'new',        // pregenerovanie: new = nové číslo (stará sa stornuje), keep = ponechať číslo
@@ -229,7 +231,8 @@ function jinv_setting_fields() {
 			'next_proforma'   => array( 'Pokračovať od čísla – zálohové faktúry', 'int', '' ),
 			'next_creditnote' => array( 'Pokračovať od čísla – dobropisy', 'int', '' ),
 			'auto_proforma'   => array( 'Zálohová faktúra pri platbe prevodom', 'checkbox', 'Vystaví sa hneď, keď objednávka s platbou prevodom prejde do stavu Čaká na platbu (Pozastavené).' ),
-			'auto_creditnote' => array( 'Dobropis pri vrátení peňazí', 'checkbox', 'Pri vrátení peňazí (Refund) vo WooCommerce sa k faktúre vystaví dobropis na vrátenú sumu.' ),
+			'auto_creditnote' => array( 'Dobropis pri vrátení peňazí', 'checkbox', 'Pri vrátení peňazí (Refund) vo WooCommerce sa k faktúre vystaví dobropis na vrátenú sumu. Platí aj pre zrušenú objednávku s faktúrou (dobropis na zostatok faktúry) a pre vrátenie urobené ešte pred vystavením faktúry.' ),
+			'cod_paid_delivered' => array( 'Dobierka uhradená po doručení', 'checkbox', 'Keď Packeta (J-Doprava) ohlási doručenie zásielky, faktúra na dobierku sa označí ako uhradená (zákazník zaplatil pri prevzatí). Iní prepravcovia: označte ručne.' ),
 			'transfer_methods' => array( 'Platby prevodom na účet', 'text', 'Kódy spôsobov platby oddelené čiarkou (predvolene bacs = Priamy bankový prevod).' ),
 			'cod_item'      => array( 'Položka dobierky na faktúre', 'checkbox', 'Pri platbe na dobierku sa poplatok z objednávky uvedie ako položka s týmto názvom. Ak objednávka poplatok nemá, pridá sa položka s cenou 0 €.' ),
 			'cod_item_name' => array( 'Názov položky dobierky', 'text', 'Napr. „Dobierka“ alebo „Poplatok za dobierku“.' ),
@@ -249,6 +252,7 @@ add_action( 'admin_post_jinv_save_settings', function () {
 	$sections = jinv_settings_sections();
 	$section  = isset( $in['section'] ) && isset( $sections[ $in['section'] ] ) ? $in['section'] : 'dodavatel';
 	$out      = wp_parse_args( (array) get_option( 'jinv_settings', array() ), jinv_defaults() ); // ukladajú sa len polia odoslanej záložky, ostatné ostávajú
+	$prev     = $out;
 	foreach ( jinv_setting_fields() as $gname => $group ) {
 		if ( ! in_array( $gname, $sections[ $section ][1], true ) ) {
 			continue;
@@ -280,8 +284,14 @@ add_action( 'admin_post_jinv_save_settings', function () {
 			$out[ $fk ] = $fd;
 		}
 	}
+	// Počiatočné čísla („pokračovať od“) platia v roku, keď boli zadané – rok sa mení len pri zmene niektorého čísla,
+	// nie pri každom uložení záložky (inak by sa v novom roku rad preskočil na staré počiatočné číslo).
 	if ( 'doklady' === $section ) {
-		$out['next_year'] = (int) current_time( 'Y' ); // počiatočné čísla platia v roku, keď boli zadané
+		foreach ( array( 'next_issued', 'next_proforma', 'next_creditnote' ) as $nk ) {
+			if ( (int) ( $out[ $nk ] ?? 0 ) !== (int) ( $prev[ $nk ] ?? 0 ) ) {
+				$out['next_year'] = (int) current_time( 'Y' );
+			}
+		}
 	}
 	$out['transfer_methods'] = implode( ',', array_filter( array_map( 'sanitize_key', explode( ',', (string) $out['transfer_methods'] ) ) ) );
 	update_option( 'jinv_settings', $out, false );

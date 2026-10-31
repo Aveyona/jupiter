@@ -2,18 +2,18 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.6.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.6.0/j-help-v1.6.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.6.0",
+      "version": "1.7.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.7.0/j-help-v1.7.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.7.0",
       "published": "2026-10-31",
-      "notes": "Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
-      "version": "0.10.2",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.10.2/j-invoices-v0.10.2.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.10.2",
-      "published": "2026-10-29",
-      "notes": "Prijatá faktúra aj z J-Pošty (faktúry z e-mailu) s PDF a spárovaním platby. Banka (Fio API, automatické párovanie úhrad podľa VS), dodávatelia (adresár, načítanie z registra podľa IČO, detail s faktúrami a príjemkami), prijaté faktúry s našepkávačom dodávateľa, filtrami a prepojením na príjemku J-Skladu, úhrady dokladov vrátane čiastočných platieb."
+      "version": "0.11.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.11.0/j-invoices-v0.11.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.11.0",
+      "published": "2026-10-31",
+      "notes": "Bezpečnosť príloh, spoľahlivé párovanie banky (žiadne dvojité spárovanie, dvojité platby na kontrolu, mena), upozornenia na banku, opravy číslovania, upomienky a stav Po splatnosti, dobierka uhradená po doručení, dobropis pri zrušenej objednávke, zostávajúca suma v PDF a QR."
     },
     "j-emails": {
       "version": "0.5.2",

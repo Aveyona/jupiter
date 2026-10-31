@@ -278,8 +278,8 @@ class JINV_PDF extends tFPDF {
 			$this->MultiCell( 74, 4.4, $this->t( $sup['vat_note'] ), 0, 'R' );
 			$this->SetX( 120 );
 		}
-		if ( ! empty( $d['proforma'] ) && 'issued' === $kind ) {
-			$this->MultiCell( 74, 4.4, 'Uhradené na základe zálohovej faktúry č. ' . $d['proforma'] . '.', 0, 'R' );
+		foreach ( jinv_doc_pay_lines( $inv ) as $line ) {
+			$this->MultiCell( 74, 4.4, $this->t( $line ), 0, 'R' );
 			$this->SetX( 120 );
 		}
 		// Pečiatka stavu.

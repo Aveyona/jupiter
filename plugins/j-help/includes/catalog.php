@@ -202,6 +202,27 @@ function jhelp_roadmap() {
 			),
 		),
 		array(
+			'title'  => 'J-Fakturácia 0.11 – bezpečnosť, banka, upomienky, príručka',
+			'state'  => 'done',
+			'points' => array(
+				'Prílohy prijatých faktúr len PDF a obrázky (kontrola obsahu), chránené uloženie.',
+				'Banka: žiadne dvojité spárovanie, dvojité platby na kontrolu, porovnanie meny, uvoľnenie pohybu pri zmazaní úhrady a storne, upozornenia a denný e-mail (token, zlyhané načítanie, platby na spárovanie).',
+				'Číslovanie bez preskočenia v novom roku, zálohová faktúra len bez faktúry, prevod odoslaný pred zaplatením = neuhradená faktúra.',
+				'Stav Po splatnosti a upomienka e-mailom, dobierka uhradená po doručení Packetou, dobropis pri zrušenej objednávke a pri vrátení pred faktúrou, zostávajúca suma v PDF, e-maile a QR kóde.',
+				'Podrobná príručka J-Fakturácia v J-Pomocníkovi.',
+			),
+		),
+		array(
+			'title'  => 'J-Fakturácia – ďalej',
+			'state'  => 'next',
+			'points' => array(
+				'Preplatky a dvojité platby: prehľad a postup vrátenia (dobropis + príkaz na úhradu).',
+				'Úhrada prijatých faktúr naraz: neuhradené faktúry podľa splatnosti do súboru pre banku (SEPA XML).',
+				'Výplaty zo Stripe a dobierok Packety a ich párovanie s bankou.',
+				'Import výpisov iných bánk (Tatra banka, SLSP, VÚB, ČSOB) zo súboru, keď nemáte Fio.',
+			),
+		),
+		array(
 			'title'  => 'J-Sklad a ďalšie doplnky',
 			'state'  => 'next',
 			'points' => array(

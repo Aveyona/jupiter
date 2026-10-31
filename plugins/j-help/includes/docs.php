@@ -61,6 +61,16 @@ function jhelp_docs_list() {
 			'hero_w'    => 1200,
 			'hero_h'    => 620,
 		),
+		'j-invoices' => array(
+			'name'      => 'J-Fakturácia',
+			'title'     => 'J-Fakturácia',
+			'fn'        => 'jhelp_doc_j_invoices',
+			'ver_const' => 'JINV_VERSION',
+			'badge'     => 'Faktúry, úhrady a banka',
+			'hero'      => 'img/j-invoices-schema.svg',
+			'hero_w'    => 1200,
+			'hero_h'    => 620,
+		),
 		'j-sklad'  => array(
 			'name'      => 'J-Sklad',
 			'title'     => 'J-Sklad',

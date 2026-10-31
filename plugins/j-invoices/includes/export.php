@@ -245,6 +245,16 @@ function jinv_export_pohoda( array $rows ) {
 			if ( ! empty( $it['info'] ) ) {
 				continue;
 			}
+			// Pohoda počíta množstvo × jednotková cena: ak zaokrúhlená cena nedá presne sumu riadku (zľava),
+			// riadok sa pošle ako 1 × celá suma (inak by vznikol rozdiel o cent oproti faktúre).
+			$qty   = (float) $it['qty'];
+			$total = isset( $it['total'] ) ? (float) $it['total'] : $qty * (float) $it['price'];
+			if ( abs( round( $qty * (float) $it['price'], 2 ) - round( $total, 2 ) ) >= 0.005 ) {
+				$it['name']  = $it['name'] . ' (' . wc_format_localized_decimal( abs( $qty ) ) . ( ! empty( $it['unit'] ) ? ' ' . $it['unit'] : '' ) . ')';
+				$it['qty']   = $total < 0 ? -1 : 1;
+				$it['price'] = abs( $total );
+				$it['unit']  = '';
+			}
 			$x->startElement( 'inv:invoiceItem' );
 			$x->writeElement( 'inv:text', mb_substr( (string) $it['name'], 0, 90 ) );
 			$x->writeElement( 'inv:quantity', (string) (float) $it['qty'] );
