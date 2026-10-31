@@ -71,6 +71,16 @@ function jhelp_docs_list() {
 			'hero_w'    => 1200,
 			'hero_h'    => 620,
 		),
+		'j-uctovnictvo' => array(
+			'name'      => 'J-Účtovníctvo',
+			'title'     => 'J-Účtovníctvo',
+			'fn'        => 'jhelp_doc_j_uctovnictvo',
+			'ver_const' => 'JUC_VERSION',
+			'badge'     => 'Podvojné účtovníctvo pre s. r. o.',
+			'hero'      => 'img/j-uctovnictvo-schema.svg',
+			'hero_w'    => 1200,
+			'hero_h'    => 620,
+		),
 		'j-sklad'  => array(
 			'name'      => 'J-Sklad',
 			'title'     => 'J-Sklad',

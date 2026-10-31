@@ -122,6 +122,7 @@ Zdroj: tamtiež, str. 3 tlačiva („UZMUJv14_3“).
 
 Poznámky k pasívam:
 * **A.VI. (r. 33) sa v mikro súvahe počíta ako rozdielový riadok** (aktíva mínus ostatné pasíva), nie priamo z účtu. V hlavnej knihe je výsledok bežného obdobia zostatok účtu 710 prevedený na 702; 431 má pri uzatvorení nulový zostatok (výsledok minulého roka sa naň účtuje až pri otvorení kníh).
+* **431 (výsledok hospodárenia v schvaľovaní)** vzor pri r. 32 výslovne neuvádza (len 428, 429). Ak má 431 k súvahovému dňu zostatok (výsledok minulého roka ešte nebol rozdelený), J-Účtovníctvo ho vykazuje v r. 32 ako výsledok minulých rokov (zisk = zostatok Dal kladne, strata záporne). Inak by sa cez rozdielový r. 33 pripočítal k výsledku bežného obdobia a r. 33 by nesúhlasil s r. 38 výkazu ziskov a strát. Ide o výklad – overte s účtovníkom.
 * Dlhodobé záväzky zahŕňajú dlhodobé časti 383A a 384A (výdavky/výnosy budúcich období), krátkodobé časti sú v r. 42.
 * 473A a 255A sa delia medzi r. 35 (dlhodobé) a r. 45 (krátkodobé finančné výpomoci).
 * 361 nie je vo vzore výslovne uvedený (len 36X v r. 42) – UNVERIFIED zaradenie.

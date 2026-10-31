@@ -122,16 +122,68 @@ function juc_close_tax( array $y ) {
 	}
 	$vh     = round( $rev - $cost, 2 );
 	$base   = round( $vh + $nd + (float) $o['nondeduct'] - $nt, 2 );
+	// Odpočet daňovej straty: zadaná suma sa odpočíta celá. Pri daňovníkovi, ktorý nie je mikrodaňovník, je odpočet
+	// obmedzený na 50 % základu dane (§ 30 ZDP) – stav mikrodaňovníka plugin neeviduje, sumu treba zadať už obmedzenú.
 	$base2  = max( 0.0, round( $base - (float) $o['loss'], 2 ) );
-	$rate   = juc_tax_rate( $rev );
-	$calc   = floor( $base2 * $rate * 100 ) / 100;
-	$min    = $o['exempt'] ? 0.0 : (float) juc_min_tax( $rev, $yr );
+	// Pásmo sadzby a minimálnej dane podľa zdaniteľných príjmov – bez výnosov z účtov označených ako nedaňové.
+	$taxable = round( $rev - $nt, 2 );
+	$rate    = juc_tax_rate( $taxable );
+	$calc    = floor( $base2 * $rate * 100 ) / 100;
+	$min     = $o['exempt'] ? 0.0 : (float) juc_min_tax( $taxable, $yr );
 	$final  = '' !== (string) $o['tax_override'] ? round( (float) $o['tax_override'], 2 ) : max( $calc, $min );
 	return array(
-		'revenue' => round( $rev, 2 ), 'cost' => round( $cost, 2 ), 'vh' => $vh, 'nondeduct_acc' => round( $nd, 2 ), 'nondeduct' => (float) $o['nondeduct'], 'nontax_rev' => round( $nt, 2 ),
+		'revenue' => round( $rev, 2 ), 'taxable' => $taxable, 'cost' => round( $cost, 2 ), 'vh' => $vh, 'nondeduct_acc' => round( $nd, 2 ), 'nondeduct' => (float) $o['nondeduct'], 'nontax_rev' => round( $nt, 2 ),
 		'base' => $base, 'loss' => (float) $o['loss'], 'base2' => $base2, 'rate' => $rate, 'calc' => $calc, 'min' => $min, 'final' => $final, 'posted' => round( $tax, 2 ),
 		'vh_after' => round( $vh - $final, 2 ),
 	);
+}
+
+/**
+ * Odpisy roka: [ podľa plánu, zaúčtované ]. Plán = mesiace kariet od max(zaradenie, začiatok účtovania) v roku;
+ * zaúčtované = len doklady mesačných odpisov (zdroj asset/dep vrátane stornovaných – netto), nie celý účet 551
+ * (ten obsahuje aj zostatkovú cenu pri vyradení a po uzávierke aj zápisy UZ).
+ */
+function juc_close_dep_status( array $y ) {
+	global $wpdb;
+	$yr    = substr( $y['start_date'], 0, 4 );
+	$start = (string) juc_start_date();
+	$from  = $start ? gmdate( 'Ym', strtotime( $start ) ) : '';
+	$need  = 0.0;
+	if ( function_exists( 'juc_assets' ) ) {
+		foreach ( juc_assets() as $a ) {
+			foreach ( juc_asset_months( $a ) as $m => $v ) {
+				if ( substr( (string) $m, 0, 4 ) === $yr && ( ! $from || (string) $m >= $from ) ) {
+					$need += $v;
+				}
+			}
+		}
+	}
+	$done = (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(l.amount),0) FROM ' . juc_t( 'lines' ) . ' l JOIN ' . juc_t( 'entries' ) . " e ON e.id = l.entry_id WHERE l.year_id = %d AND e.source = 'asset' AND e.source_type = 'dep'", $y['id'] ) ); // phpcs:ignore
+	return array( round( $need, 2 ), round( $done, 2 ) );
+}
+
+/**
+ * Poradie krokov ročnej uzávierky: odpisy → zásoby (spôsob B) → daň → uzavretie. $step = 'tax' | 'close'.
+ * Vráti true alebo WP_Error so slovenským popisom, čo treba urobiť.
+ */
+function juc_close_prereq( array $y, $step ) {
+	$yr = (int) substr( $y['start_date'], 0, 4 );
+	if ( function_exists( 'juc_assets' ) && juc_assets() ) {
+		list( $need, $done ) = juc_close_dep_status( $y );
+		if ( abs( $need - $done ) >= 0.01 ) {
+			return new WP_Error( 'juc_close_order', 'Najprv zaúčtujte odpisy majetku do 12/' . $yr . ' (krok 2): podľa plánu ' . juc_money( $need ) . ' €, zaúčtované ' . juc_money( $done ) . ' €.' );
+		}
+	}
+	if ( 'B' === juc_opt( 'stock_method' ) && '' === (string) juc_close_opts( $yr )['stock'] ) {
+		return new WP_Error( 'juc_close_order', 'Najprv zadajte a zaúčtujte zásoby tovaru podľa inventúry k ' . juc_date( $y['end_date'] ) . ' (krok 3) – aj keď sú nulové.' );
+	}
+	if ( 'close' === $step ) {
+		$t = juc_close_tax( $y );
+		if ( abs( $t['final'] - $t['posted'] ) >= 0.005 ) {
+			return new WP_Error( 'juc_close_order', 'Daň z príjmov nie je aktuálna (krok 4): podľa výpočtu ' . juc_money( $t['final'] ) . ' €, na účte 591 je ' . juc_money( $t['posted'] ) . ' €. Uložte a zaúčtujte daň a potom rok uzavrite.' );
+		}
+	}
+	return true;
 }
 
 /** Kontroly pred uzávierkou: [ [ ok(bool|null), text, link ] ]. */
@@ -170,16 +222,7 @@ function juc_close_checks( array $y ) {
 	$out[] = array( ! $errs, $errs ? count( $errs ) . ' dokladov sa nepodarilo zaúčtovať automaticky.' : 'Automatické účtovanie bez chýb.', juc_url( 'j-uctovnictvo-queue' ) );
 	// Odpisy.
 	if ( function_exists( 'juc_assets' ) ) {
-		$need = 0.0;
-		$done = 0.0;
-		foreach ( juc_assets() as $a ) {
-			foreach ( juc_asset_months( $a ) as $m => $v ) {
-				if ( substr( $m, 0, 4 ) === substr( $end, 0, 4 ) ) {
-					$need += $v;
-				}
-			}
-		}
-		$done  = round( juc_account_balance( '551', $end, (int) $y['id'] ), 2 );
+		list( $need, $done ) = juc_close_dep_status( $y );
 		$out[] = array( abs( $need - $done ) < 0.01, 'Odpisy majetku za rok: podľa plánu ' . juc_money( $need ) . ' €, zaúčtované ' . juc_money( $done ) . ' €.', juc_url( 'j-uctovnictvo-assets' ) );
 	}
 	// Otvorené položky Na riešenie s vysokou prioritou.
@@ -246,8 +289,8 @@ function juc_close_build_books( array $y ) {
 	}
 	$yr = substr( $y['start_date'], 0, 4 );
 	return array(
-		$pl ? array( 'head' => array( 'series' => 'UZ', 'number' => 'UZ' . $yr . '-710', 'entry_date' => $end, 'doc_date' => $end, 'descr' => 'Uzavretie výsledkových účtov ' . $yr . ' (účet ziskov a strát 710)' ), 'lines' => $pl ) : null,
-		$bs ? array( 'head' => array( 'series' => 'UZ', 'number' => 'UZ' . $yr . '-702', 'entry_date' => $end, 'doc_date' => $end, 'descr' => 'Uzavretie súvahových účtov ' . $yr . ' (konečný účet súvahový 702)' ), 'lines' => $bs ) : null,
+		$pl ? array( 'head' => array( 'series' => 'UZ', 'number' => juc_close_number( 'UZ' . $yr . '-710' ), 'entry_date' => $end, 'doc_date' => $end, 'descr' => 'Uzavretie výsledkových účtov ' . $yr . ' (účet ziskov a strát 710)' ), 'lines' => $pl ) : null,
+		$bs ? array( 'head' => array( 'series' => 'UZ', 'number' => juc_close_number( 'UZ' . $yr . '-702' ), 'entry_date' => $end, 'doc_date' => $end, 'descr' => 'Uzavretie súvahových účtov ' . $yr . ' (konečný účet súvahový 702)' ), 'lines' => $bs ) : null,
 		$vh,
 	);
 }
@@ -271,7 +314,26 @@ function juc_close_build_open( array $y ) {
 	if ( abs( $vh ) >= 0.005 ) {
 		$lines[] = $vh > 0 ? array( 'md' => '701', 'd' => '431', 'amount' => $vh, 'text' => 'Výsledok hospodárenia ' . ( $next - 1 ) . ' v schvaľovaní – zisk' ) : array( 'md' => '431', 'd' => '701', 'amount' => -$vh, 'text' => 'Výsledok hospodárenia ' . ( $next - 1 ) . ' v schvaľovaní – strata' );
 	}
-	return $lines ? array( 'head' => array( 'series' => 'PS', 'number' => 'PS' . $next . '-UZ', 'entry_date' => $date, 'doc_date' => $date, 'descr' => 'Počiatočné stavy ' . $next . ' z uzávierky ' . ( $next - 1 ) . ' (otvorenie účtovných kníh cez 701)', 'opening' => 1 ), 'lines' => $lines ) : null;
+	return $lines ? array( 'head' => array( 'series' => 'PS', 'number' => juc_close_number( 'PS' . $next . '-UZ' ), 'entry_date' => $date, 'doc_date' => $date, 'descr' => 'Počiatočné stavy ' . $next . ' z uzávierky ' . ( $next - 1 ) . ' (otvorenie účtovných kníh cez 701)', 'opening' => 1 ), 'lines' => $lines ) : null;
+}
+
+/**
+ * Číslo uzávierkového dokladu bez duplicity: po zrušení uzávierky (storno) a novom uzavretí dostane doklad príponu -2, -3…
+ * Pri opakovanom spustení bez zmeny sa nič nezaúčtuje (číslo nevstupuje do porovnania zmeny), takže nové číslo nevadí.
+ */
+function juc_close_number( $num ) {
+	global $wpdb;
+	$base = $num;
+	for ( $i = 2; $i < 100 && $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . juc_t( 'entries' ) . ' WHERE number = %s LIMIT 1', $num ) ); $i++ ) { // phpcs:ignore
+		$num = $base . '-' . $i;
+	}
+	return $num;
+}
+
+/** Riadky s príznakom počiatočného stavu v roku, ktoré nepochádzajú z tejto uzávierky (sprievodca, import, ručné PS). */
+function juc_close_foreign_opening( $year_id ) {
+	global $wpdb;
+	return (array) $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT e.number FROM ' . juc_t( 'entries' ) . ' e JOIN ' . juc_t( 'lines' ) . " l ON l.entry_id = e.id WHERE l.year_id = %d AND l.opening = 1 AND e.status = 'posted' AND e.source <> 'closing' ORDER BY e.number LIMIT 10", $year_id ) ); // phpcs:ignore
 }
 
 /** Ročná uzávierka: uzavretie kníh, uzavretie obdobia a otvorenie ďalšieho roka. */
@@ -281,22 +343,44 @@ function juc_close_year_run( array $y ) {
 	if ( 'closed' === $y['status'] ) {
 		return new WP_Error( 'juc_close', 'Rok ' . $yr . ' je už uzavretý.' );
 	}
+	// Poradie krokov: odpisy → zásoby → daň (aktuálna) → uzavretie.
+	$ok = juc_close_prereq( $y, 'close' );
+	if ( is_wp_error( $ok ) ) {
+		return $ok;
+	}
+	// Nasledujúci rok: nesmie byť uzavretý a nesmie už mať počiatočné stavy z iného zdroja (zdvojili by sa).
+	$next = juc_year_of( ( $yr + 1 ) . '-01-01' );
+	if ( $next && 'closed' === $next['status'] ) {
+		return new WP_Error( 'juc_close', 'Rok ' . ( $yr + 1 ) . ' je uzavretý – počiatočné stavy z uzávierky ' . $yr . ' sa doň nedajú zaúčtovať. Najprv zrušte uzávierku ' . ( $yr + 1 ) . '.' );
+	}
+	if ( $next && ( $foreign = juc_close_foreign_opening( (int) $next['id'] ) ) ) {
+		return new WP_Error( 'juc_close', 'Rok ' . ( $yr + 1 ) . ' už má zaúčtované počiatočné stavy (' . implode( ', ', $foreign ) . ' – zo sprievodcu, importu alebo ručne). Uzávierka by ich zdvojila: stornujte tieto doklady PS a rok uzavrite znova, prípadne uzavrite rok ' . $yr . ' mimo J-Účtovníctva.' );
+	}
 	$GLOBALS['juc_importing'] = true; // uzávierka môže účtovať aj po dátume uzávierky mesiaca
 	list( $pl, $bs ) = juc_close_build_books( $y );
+	$posted = array();
 	foreach ( array( 'pl' => $pl, 'bs' => $bs ) as $k => $b ) {
 		$r = juc_sync_source( 'closing', $k, $yr, $b );
 		if ( is_wp_error( $r ) ) {
+			juc_close_rollback( $posted, $yr );
 			unset( $GLOBALS['juc_importing'] );
 			return $r;
+		}
+		if ( in_array( $r, array( 'posted', 'updated' ), true ) ) {
+			$posted[] = $k;
 		}
 	}
 	$open = juc_close_build_open( $y );
 	$r    = juc_sync_source( 'closing', 'open', $yr, $open );
-	unset( $GLOBALS['juc_importing'] );
 	if ( is_wp_error( $r ) ) {
+		juc_close_rollback( $posted, $yr );
+		unset( $GLOBALS['juc_importing'] );
 		return $r;
 	}
+	unset( $GLOBALS['juc_importing'] );
 	$wpdb->update( juc_t( 'years' ), array( 'status' => 'closed', 'closed_at' => current_time( 'mysql' ) ), array( 'id' => (int) $y['id'] ) );
+	// Pôvodný dátum uzávierky mesiaca sa uloží – zrušenie uzávierky roka ho obnoví.
+	juc_close_opts_save( $yr, array( 'prev_lock' => (string) juc_opt( 'lock_date' ) ) );
 	if ( (string) juc_opt( 'lock_date' ) < $y['end_date'] ) {
 		juc_settings_update( array( 'lock_date' => $y['end_date'] ) );
 	}
@@ -304,25 +388,66 @@ function juc_close_year_run( array $y ) {
 	return true;
 }
 
-/** Zrušenie uzávierky (oprava po uzavretí): otvorí rok, stornuje uzávierkové doklady a počiatočné stavy ďalšieho roka. */
-function juc_close_year_undo( array $y ) {
-	global $wpdb;
-	$yr = (int) substr( $y['start_date'], 0, 4 );
-	$wpdb->update( juc_t( 'years' ), array( 'status' => 'open', 'closed_at' => null ), array( 'id' => (int) $y['id'] ) );
-	$GLOBALS['juc_importing'] = true;
-	foreach ( array( 'pl', 'bs', 'open' ) as $k ) {
+/** Storno práve zaúčtovaných uzávierkových dokladov po neúspešnej uzávierke (rok ostane otvorený bez dokladov UZ). */
+function juc_close_rollback( array $types, $yr ) {
+	foreach ( $types as $k ) {
 		$cur = juc_entry_by_source( 'closing', $k, $yr );
 		if ( $cur ) {
-			$r = juc_storno( (int) $cur['id'], 'zrušenie uzávierky ' . $yr );
-			if ( is_wp_error( $r ) ) {
-				unset( $GLOBALS['juc_importing'] );
-				return $r;
-			}
+			juc_storno( (int) $cur['id'], 'neúspešná uzávierka ' . $yr, $cur['entry_date'] );
+		}
+	}
+}
+
+/**
+ * Zrušenie uzávierky (oprava po uzavretí): stornuje počiatočné stavy ďalšieho roka a uzávierkové doklady, otvorí rok
+ * a obnoví pôvodný dátum uzávierky mesiaca. Ak sa niečo nepodarí, rok ostane uzavretý a počiatočné stavy sa obnovia.
+ */
+function juc_close_year_undo( array $y ) {
+	global $wpdb;
+	$yr   = (int) substr( $y['start_date'], 0, 4 );
+	$next = juc_year_of( ( $yr + 1 ) . '-01-01' );
+	if ( 'closed' !== $y['status'] ) {
+		return new WP_Error( 'juc_close', 'Rok ' . $yr . ' nie je uzavretý.' );
+	}
+	if ( $next && 'closed' === $next['status'] ) {
+		return new WP_Error( 'juc_close', 'Rok ' . ( $yr + 1 ) . ' je uzavretý – najprv zrušte uzávierku ' . ( $yr + 1 ) . ', potom uzávierku ' . $yr . '.' );
+	}
+	$lock = (string) juc_opt( 'lock_date' );
+	if ( $lock > $y['end_date'] ) {
+		return new WP_Error( 'juc_close', 'Účtovníctvo je uzavreté do ' . juc_date( $lock ) . ' (mesiace roka ' . ( $yr + 1 ) . '). Po zrušení uzávierky by sa do roka ' . $yr . ' aj tak nedalo účtovať – najprv v časti Uzávierka mesiaca nastavte dátum najviac 31. 12. ' . $yr . '.' );
+	}
+	$GLOBALS['juc_importing'] = true;
+	// 1. Počiatočné stavy ďalšieho roka (otvorené obdobie – storno k ich dátumu).
+	$open = juc_entry_by_source( 'closing', 'open', $yr );
+	if ( $open ) {
+		$r = juc_storno( (int) $open['id'], 'zrušenie uzávierky ' . $yr, $open['entry_date'] );
+		if ( is_wp_error( $r ) ) {
+			unset( $GLOBALS['juc_importing'] );
+			return $r;
+		}
+	}
+	// 2. Doklady UZ – rok sa musí otvoriť, aby storno pristálo k 31. 12. (nie v inom roku).
+	$wpdb->update( juc_t( 'years' ), array( 'status' => 'open', 'closed_at' => null ), array( 'id' => (int) $y['id'] ) );
+	foreach ( array( 'bs', 'pl' ) as $k ) {
+		$cur = juc_entry_by_source( 'closing', $k, $yr );
+		if ( ! $cur ) {
+			continue;
+		}
+		$r = juc_storno( (int) $cur['id'], 'zrušenie uzávierky ' . $yr, $cur['entry_date'] );
+		if ( is_wp_error( $r ) ) {
+			// Obnovenie: rok späť uzavretý, počiatočné stavy ďalšieho roka znova zaúčtované.
+			$wpdb->update( juc_t( 'years' ), array( 'status' => 'closed', 'closed_at' => $y['closed_at'] ), array( 'id' => (int) $y['id'] ) );
+			$rr = $open ? juc_sync_source( 'closing', 'open', $yr, juc_close_build_open( $y ) ) : true;
+			unset( $GLOBALS['juc_importing'] );
+			return new WP_Error( 'juc_close', 'Uzávierku sa nepodarilo zrušiť: ' . $r->get_error_message() . ( is_wp_error( $rr ) ? ' Počiatočné stavy ' . ( $yr + 1 ) . ' sa nepodarilo obnoviť: ' . $rr->get_error_message() : ' Rok ostáva uzavretý.' ) );
 		}
 	}
 	unset( $GLOBALS['juc_importing'] );
-	if ( (string) juc_opt( 'lock_date' ) >= $y['start_date'] ) {
-		juc_settings_update( array( 'lock_date' => gmdate( 'Y-m-d', strtotime( $y['start_date'] . ' -1 day' ) ) ) );
+	// 3. Dátum uzávierky mesiaca: pôvodný (uložený pri uzavretí roka), pri starších uzávierkach deň pred začiatkom roka.
+	if ( $lock >= $y['start_date'] ) {
+		$o    = juc_close_opts( $yr );
+		$prev = array_key_exists( 'prev_lock', $o ) ? (string) $o['prev_lock'] : null;
+		juc_settings_update( array( 'lock_date' => null !== $prev && $prev <= $y['end_date'] ? $prev : gmdate( 'Y-m-d', strtotime( $y['start_date'] . ' -1 day' ) ) ) );
 	}
 	return true;
 }
@@ -369,6 +494,10 @@ add_action( 'admin_post_juc_close', function () {
 		case 'tax':
 			juc_close_opts_save( $yr, array( 'nondeduct' => (float) $num( 'nondeduct' ), 'loss' => (float) $num( 'loss' ), 'exempt' => ! empty( $in['exempt'] ) ? 1 : 0, 'tax_override' => '' === trim( (string) ( $in['tax_override'] ?? '' ) ) ? '' : (float) $num( 'tax_override' ) ) );
 			if ( ! empty( $in['post'] ) ) {
+				$ok = juc_close_prereq( $y, 'tax' );
+				if ( is_wp_error( $ok ) ) {
+					juc_back_err( $back, 'Údaje pre výpočet dane sú uložené, daň sa nezaúčtovala. ' . $ok->get_error_message() );
+				}
 				$t = juc_close_tax( $y );
 				$r = juc_sync_source( 'closing', 'tax', $yr, juc_close_build_tax( $y, $t['final'] ) );
 				if ( is_wp_error( $r ) ) {
@@ -414,9 +543,11 @@ function juc_notes_fields() {
 	return array(
 		'activity'  => array( 'Čl. I – predmet činnosti', 'Činnosti v oblasti informačných technológií, predaj tovaru a služieb cez internetový obchod.' ),
 		'employees' => array( 'Čl. I – priemerný prepočítaný počet zamestnancov', '0' ),
+		'employees_prev' => array( 'Čl. I – priemerný prepočítaný počet zamestnancov v predchádzajúcom období (prázdne = údaj z poznámok minulého roka)', '' ),
 		'changes'   => array( 'Čl. II.4 – zmeny účtovných zásad a metód', 'Spoločnosť nemenila účtovné zásady a účtovné metódy.' ),
 		'errors'    => array( 'Čl. II.6 – oprava významných chýb minulých období', 'Spoločnosť neúčtovala o opravách chýb minulých účtovných období.' ),
 		'unusual'   => array( 'Čl. III.1 – výnimočné položky nákladov a výnosov', 'Spoločnosť nemala položky nákladov a výnosov výnimočného rozsahu alebo výskytu.' ),
+		'long5'     => array( 'Čl. III.2a – záväzky so zostatkovou dobou splatnosti viac ako 5 rokov', 'Záväzky so zostatkovou dobou splatnosti viac ako päť rokov nie sú evidované.' ),
 		'secured'   => array( 'Čl. III.2b – zabezpečené záväzky', 'Spoločnosť nemá zabezpečené záväzky.' ),
 		'organs'    => array( 'Čl. III.4 – podmienky pôžičiek a plnení členom štatutárneho orgánu', '' ),
 		'duties'    => array( 'Čl. III.5 – finančné povinnosti a podmienené záväzky mimo súvahy', 'Spoločnosť nemá významné finančné povinnosti ani podmienené záväzky, ktoré sa nevykazujú v súvahe.' ),
@@ -447,6 +578,11 @@ function juc_notes_html( array $y ) {
 	$long  = fn( $b ) => max( 0, $sum( $b, '/^(47|46)/' ) );
 	$own   = fn( $b ) => max( 0, $sum( $b, '/^355/', false ) );
 	$m     = fn( $v ) => abs( $v ) < 0.005 ? '–' : juc_money( $v );
+	// Počet zamestnancov v predchádzajúcom období: zadaný, inak z poznámok minulého roka, inak bez údaja.
+	$po       = juc_close_opts( $yr - 1 );
+	$emp_prev = trim( (string) ( $o['notes']['employees_prev'] ?? '' ) );
+	$emp_prev = '' !== $emp_prev ? $emp_prev : trim( (string) ( $po['notes']['employees'] ?? '' ) );
+	$emp_prev = '' !== $emp_prev ? $emp_prev : '–';
 	$assets = function_exists( 'juc_assets' ) ? array_filter( juc_assets(), fn( $a ) => 'small' !== $a['kind'] ) : array();
 	ob_start();
 	?>
@@ -457,7 +593,7 @@ function juc_notes_html( array $y ) {
 	<p><strong>1. Základné informácie o účtovnej jednotke</strong><br>Obchodné meno: <?php echo esc_html( $s['company'] ); ?><br>Sídlo: <?php echo esc_html( trim( $s['street'] . ', ' . $s['zip'] . ' ' . $s['city'], ', ' ) ); ?><br>Dátum vzniku: <?php echo esc_html( $s['founded'] ? juc_date( $s['founded'] ) : '' ); ?><?php echo $s['register'] ? '<br>Zápis: ' . esc_html( $s['register'] ) : ''; ?><br>Predmet činnosti: <?php echo esc_html( $n( 'activity' ) ); ?><?php echo $s['statutory'] ? '<br>Štatutárny orgán: ' . esc_html( $s['statutory'] ) : ''; ?></p>
 	<p><strong>2. Údaje o konsolidovanom celku</strong><br>Účtovná jednotka nie je súčasťou konsolidovaného celku.</p>
 	<p><strong>3. Priemerný prepočítaný počet zamestnancov</strong></p>
-	<table><tr><th>Položka</th><th class="n">Bežné obdobie</th><th class="n">Predchádzajúce obdobie</th></tr><tr><td>Priemerný prepočítaný počet zamestnancov</td><td class="n"><?php echo esc_html( $n( 'employees' ) ); ?></td><td class="n"><?php echo esc_html( $n( 'employees' ) ); ?></td></tr></table>
+	<table><tr><th>Položka</th><th class="n">Bežné obdobie</th><th class="n">Predchádzajúce obdobie</th></tr><tr><td>Priemerný prepočítaný počet zamestnancov</td><td class="n"><?php echo esc_html( $n( 'employees' ) ); ?></td><td class="n"><?php echo esc_html( $emp_prev ); ?></td></tr></table>
 	<h2>Čl. II – Informácie o použitých účtovných zásadách a metódach</h2>
 	<p><strong>1. Nepretržité pokračovanie v činnosti</strong><br>Účtovná závierka bola zostavená za predpokladu, že účtovná jednotka bude nepretržite pokračovať vo svojej činnosti.</p>
 	<p><strong>2. Spôsob oceňovania</strong><br>
@@ -484,7 +620,9 @@ function juc_notes_html( array $y ) {
 	<table><tr><th>Položka</th><th class="n">Bežné obdobie €</th><th class="n">Predchádzajúce obdobie €</th></tr>
 		<tr><td>Dlhodobé záväzky spolu</td><td class="n"><?php echo esc_html( $m( $long( $cur ) ) ); ?></td><td class="n"><?php echo esc_html( $m( $long( $prev ) ) ); ?></td></tr>
 		<tr><td>Krátkodobé záväzky spolu (splatnosť do 1 roka)</td><td class="n"><?php echo esc_html( $m( $short( $cur ) ) ); ?></td><td class="n"><?php echo esc_html( $m( $short( $prev ) ) ); ?></td></tr>
+		<tr><td>Záväzky so zostatkovou dobou splatnosti viac ako 5 rokov</td><td class="n">0,00</td><td class="n">0,00</td></tr>
 	</table>
+	<p><?php echo nl2br( esc_html( $n( 'long5' ) ) ); ?></p>
 	<p><strong>b) Zabezpečené záväzky</strong><br><?php echo nl2br( esc_html( $n( 'secured' ) ) ); ?></p>
 	<p><strong>3. Vlastné akcie a obchodné podiely</strong><br>Účtovná jednotka nenadobudla vlastné akcie ani vlastné obchodné podiely.</p>
 	<p><strong>4. Plnenia členom štatutárneho orgánu</strong></p>
@@ -541,6 +679,7 @@ function juc_page_closing() {
 	?>
 	<div class="juc-panel">
 		<h2 style="margin-top:4px">Uzávierka mesiaca</h2>
+		<?php if ( function_exists( 'juc_render_month_checks' ) ) { juc_render_month_checks(); } ?>
 		<p><?php echo $lock ? 'Účtovníctvo je uzavreté do <strong>' . esc_html( juc_date( $lock ) ) . '</strong> – do tohto dňa sa už nedá účtovať ani stornovať.' : 'Žiadny mesiac nie je uzavretý.'; ?> Mesiac uzavrite po kontrole banky a dokladov (výpis z banky = účet 221, pokladňa, doklady na zaúčtovanie).</p>
 		<?php $form( 'lock', '<label>Uzavrieť do konca mesiaca<br><input type="month" name="month" value="' . esc_attr( $lock ? substr( $lock, 0, 7 ) : '' ) . '"></label>', 'Uložiť', '', false ); ?>
 	</div>
@@ -571,7 +710,7 @@ function juc_page_closing() {
 		<?php $t = juc_close_tax( $y ); ?>
 		<h3 style="margin-top:4px">4. Daň z príjmov <?php echo (int) $yr; ?></h3>
 		<table class="widefat juc-table" style="max-width:720px"><tbody>
-			<tr><td>Výnosy (zdaniteľné príjmy)</td><td class="n"><?php echo esc_html( juc_money( $t['revenue'] ) ); ?> €</td></tr>
+			<tr><td>Výnosy (zdaniteľné príjmy pre sadzbu a minimálnu daň: <?php echo esc_html( juc_money( $t['taxable'] ) ); ?> €)</td><td class="n"><?php echo esc_html( juc_money( $t['revenue'] ) ); ?> €</td></tr>
 			<tr><td>Náklady (bez dane z príjmov)</td><td class="n"><?php echo esc_html( juc_money( $t['cost'] ) ); ?> €</td></tr>
 			<tr><th>Výsledok hospodárenia pred zdanením</th><th class="n"><?php echo esc_html( juc_money( $t['vh'] ) ); ?> €</th></tr>
 			<tr><td>+ nedaňové náklady (účty označené ako nedaňové)</td><td class="n"><?php echo esc_html( juc_money( $t['nondeduct_acc'] ) ); ?> €</td></tr>
@@ -595,7 +734,7 @@ function juc_page_closing() {
 			'Uložiť a zaúčtovať daň'
 		);
 		?>
-		<p class="description">Sadzba: 10 % pri zdaniteľných príjmoch do 100 000 €, 21 % do 5 mil. €, 24 % nad 5 mil. €. Minimálna daň: do 50 000 € 340 €, do 250 000 € 960 €, do 500 000 € 1 920 €, do 5 mil. € 3 840 €, nad 5 mil. € 11 520 € – platí aj pri strate; rozdiel medzi minimálnou a vypočítanou daňou sa dá započítať v nasledujúcich 3 rokoch. Daňové priznanie DPPO sa podáva do 31. 3. nasledujúceho roka (s účtovnou závierkou). Výpočet je pomôcka – priznanie overte s účtovníkom.</p>
+		<p class="description">Sadzba: 10 % pri zdaniteľných príjmoch do 100 000 €, 21 % do 5 mil. €, 24 % nad 5 mil. €. Minimálna daň: do 50 000 € 340 €, do 250 000 € 960 €, do 500 000 € 1 920 €, do 5 mil. € 3 840 €, nad 5 mil. € 11 520 € – platí aj pri strate; rozdiel medzi minimálnou a vypočítanou daňou sa dá započítať v nasledujúcich 3 rokoch. Pásmo sadzby a minimálnej dane sa určuje zo zdaniteľných príjmov (bez výnosov z účtov označených ako nedaňové). Odpočet daňovej straty: mikrodaňovník bez obmedzenia, ostatní daňovníci najviac 50 % základu dane – plugin stav mikrodaňovníka neeviduje, zadajte už obmedzenú sumu. Daňové priznanie DPPO sa podáva do 31. 3. nasledujúceho roka (s účtovnou závierkou). Výpočet je pomôcka – priznanie overte s účtovníkom.</p>
 	</div>
 	<div class="juc-panel">
 		<h3 style="margin-top:4px">5. Uzavretie účtovných kníh</h3>

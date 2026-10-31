@@ -4,7 +4,7 @@ Tags: woocommerce, dokumentácia, jupiter
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,6 +15,10 @@ Dokumentácia doplnkov Jupiter pre WooCommerce priamo v administrácii.
 J-Pomocník je súčasť rodiny doplnkov Jupiter pre slovenské e-shopy na WooCommerce. Zobrazí prehľad doplnkov Jupiter (verzia, stav), návody a plán vývoja. Všetky doplnky Jupiter umiestni v menu administrácie spolu hneď pod položku Marketing.
 
 == Changelog ==
+
+= 1.8.0 =
+* Príručka J-Účtovníctvo (16 kapitol, schéma): založenie, doklady a storno, automatické účtovanie a pravidlá banky, odsúhlasenie banky, pokladňa, majetok, knihy, mesačná kontrola, ročná uzávierka, termíny a DPPO, závierka Úč MÚJ.
+* Plán vývoja: J-Účtovníctvo 0.7 a ďalšie kroky.
 
 = 1.7.0 =
 * Príručka J-Fakturácia (21 kapitol v dvoch častiach, schéma): vydané doklady, číslovanie, PDF a QR, e-maily a upomienky, nákup na firmu, dodávatelia, prijaté faktúry, úhrady, banka Fio, export, prechod z Woo Faktury.

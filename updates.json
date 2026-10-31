@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.7.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.7.0/j-help-v1.7.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.7.0",
+      "version": "1.8.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.8.0/j-help-v1.8.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.8.0",
       "published": "2026-10-31",
-      "notes": "Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Príručka J-Účtovníctvo (16 kapitol, schéma) a plán vývoja J-Účtovníctva. Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
       "version": "0.11.0",
@@ -37,11 +37,11 @@
       "notes": "Merné jednotky pri produkte (kus, hodina, kg, mesiac, licencia… aj vlastné), zobrazené pri zásobe, v dokladoch, pohyboch a balíčkoch, voliteľne aj pri cene v obchode. Balíčky (zostavy): k produktu sa v košíku automaticky pridajú súčasti (napr. členstvo a hodiny poradenstva) za bežnú alebo vlastnú cenu; prehľad J-Sklad → Balíčky. Akcie a novinky: hromadné zľavy s dátumom od – do a názvom akcie, novinky ručne alebo automaticky, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky]. Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
     },
     "j-uctovnictvo": {
-      "version": "0.6.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-uctovnictvo-v0.6.0/j-uctovnictvo-v0.6.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-uctovnictvo-v0.6.0",
-      "published": "2026-10-29",
-      "notes": "Majetok a odpisy (karty majetku, odpisový plán, zaradenie, mesačné odpisy, vyradenie) a uzávierka (mesiac, ročná uzávierka s daňou z príjmov a minimálnou daňou, uzavretie kníh 710/702, otvorenie roka 701, poznámky Úč MÚJ 3-01). Na riešenie: úlohy, rozhodnutia, otázky pre účtovníka a automatické kontroly. Pokladňa: pokladničné doklady a kniha. Import účtovníctva z OBERON-u (Exalogic) po rokoch. Podvojné účtovníctvo pre s. r. o.: sprievodca založením, overený účtový rozvrh, účtovné doklady so stornom, denník, hlavná kniha, obratová predvaha, saldokonto, automatické účtovanie a účtovná závierka mikro účtovnej jednotky (Úč MÚJ)."
+      "version": "0.7.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-uctovnictvo-v0.7.0/j-uctovnictvo-v0.7.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-uctovnictvo-v0.7.0",
+      "published": "2026-10-31",
+      "notes": "Termíny a daň (kalendár povinností, pracovný list DPPO, rozdelenie výsledku hospodárenia), odsúhlasenie banky, prehľad pre majiteľa, pravidlá banky podľa názvu a textu, vylúčenie dokladu z automatického účtovania, rozpis počiatočného saldokonta po faktúrach a desiatky opráv automatického účtovania, uzávierky a výkazov. Majetok a odpisy (karty majetku, odpisový plán, zaradenie, mesačné odpisy, vyradenie) a uzávierka (mesiac, ročná uzávierka s daňou z príjmov a minimálnou daňou, uzavretie kníh 710/702, otvorenie roka 701, poznámky Úč MÚJ 3-01). Na riešenie: úlohy, rozhodnutia, otázky pre účtovníka a automatické kontroly. Pokladňa: pokladničné doklady a kniha. Import účtovníctva z OBERON-u (Exalogic) po rokoch. Podvojné účtovníctvo pre s. r. o.: sprievodca založením, overený účtový rozvrh, účtovné doklady so stornom, denník, hlavná kniha, obratová predvaha, saldokonto, automatické účtovanie a účtovná závierka mikro účtovnej jednotky (Úč MÚJ)."
     },
     "j-notes": {
       "version": "0.1.0",

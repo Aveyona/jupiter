@@ -73,6 +73,7 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		array(
 			'Ak firma existovala pred začiatkom účtovania v Jupiteri, počiatočné stavy sú konečné zostatky súvahových účtov z minulého obdobia – zo súvahy a obratovej predvahy od účtovníka.',
 			'Sprievodca → krok 5: zadajte zostatky (aktíva na strane MD, pasíva na strane Dal), súčty sa musia rovnať. Účtuje sa proti účtu 701 – Začiatočný účet súvahový, doklad série PS.',
+			'Neuhradené faktúry (311, 321) môžete rozpísať v tabuľke Rozpis neuhradených faktúr – partner, variabilný symbol a suma. Súčet sa musí rovnať zostatku účtu; saldokonto potom ukazuje každú faktúru a úhrada s rovnakým VS ju uzavrie.',
 			'Zostatky môžete zadať aj po spustení účtovania (keď je minulý rok uzavretý). Oprava: zmeňte hodnoty a uložte – pôvodný doklad PS sa stornuje a zaúčtuje znova.',
 		),
 		'J-Účtovníctvo',
@@ -94,6 +95,25 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'Postup: odpisy do decembra → zásoby podľa inventúry (spôsob B) → daň z príjmov (výpočet so sadzbou a minimálnou daňou, zaúčtovanie 591/341) → Uzavrieť rok.',
 			'Uzavretie roka zaúčtuje uzávierkové doklady UZ (710, 702), uzavrie obdobie a v novom roku zaúčtuje počiatočné stavy cez 701; výsledok hospodárenia ide na 431. Opravu po uzavretí urobíte tlačidlom Zrušiť uzávierku.',
 			'Poznámky Úč MÚJ 3-01 sa zostavia automaticky (údaje firmy, záväzky, pohľadávka voči konateľovi, majetok); texty sa dajú upraviť a vytlačiť. Súvaha a výkaz ziskov a strát sú v časti Účtovná závierka.',
+		),
+		'J-Účtovníctvo',
+	);
+	$guides[] = array(
+		'Termíny, daň a rozdelenie výsledku',
+		array(
+			'J-Účtovníctvo → Termíny a daň: kalendár povinností roka (daňové priznanie DPPO, uloženie závierky, preddavky na daň). Ak podáte oznámenie o predĺžení lehoty, zapnite ho tu – termíny sa posunú.',
+			'Pracovný list DPPO ukazuje výsledok hospodárenia, nedaňové náklady (účty s analytikou nedaňové), základ dane, odpočet straty, sadzbu a minimálnu daň – podklad k riadkom priznania.',
+			'Rozdelenie výsledku po schválení závierky: zisk z 431 do nerozdeleného zisku (428), zákonného fondu alebo na výplatu podielov (364); strata 431 sa preúčtuje na 429 alebo sa uhradí z 428.',
+		),
+		'J-Účtovníctvo',
+	);
+	$guides[] = array(
+		'Mesačná kontrola a odsúhlasenie banky',
+		array(
+			'Prehľad J-Účtovníctva ukazuje najbližšie termíny, výsledok roka a faktúry po splatnosti. Uzávierka → Kontroly mesiaca: zostatok banky podľa výpisu, záporná pokladňa, doklady na zaúčtovanie; mesiac uzamknete jedným klikom.',
+			'J-Účtovníctvo → Odsúhlasenie banky: zostatok účtu 221 (analytiky) za každý mesiac oproti stavu podľa výpisu z J-Fakturácie; rozdiel znamená chýbajúci alebo dvakrát zaúčtovaný pohyb.',
+			'Pohyb v banke, ktorý sa nezaúčtoval sám, priraďte vo fronte Na zaúčtovanie. Zaškrtnite „zapamätať“ – pravidlo (IBAN, inak názov protiúčtu, inak text) sa uloží a podobné pohyby sa zaúčtujú hneď. Pravidlá upravíte v Nastaveniach (napr. názov: Orange = 518).',
+			'Doklad, ktorý sa nemá účtovať automaticky (napr. interný prevod), otvorte a zvoľte Vylúčiť z automatického účtovania – zaúčtovanie sa stornuje a už sa nevytvorí.',
 		),
 		'J-Účtovníctvo',
 	);

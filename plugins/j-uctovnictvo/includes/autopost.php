@@ -34,9 +34,19 @@ function juc_bank_account( $jinv_account_id ) {
 	if ( ! empty( $map[ $jinv_account_id ] ) ) {
 		return $map[ $jinv_account_id ];
 	}
-	$base = juc_acc_opt( 'acc_bank', '221' );
-	$n    = count( $map ) + 1;
-	$num  = substr( $base, 0, 3 ) . sprintf( '%03d', $n );
+	global $wpdb;
+	$base = substr( juc_acc_opt( 'acc_bank', '221' ), 0, 3 );
+	// Nové analytické číslo = najvyššia existujúca analytika banky (v mape aj v rozvrhu, napr. založená ručne) + 1.
+	$n = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(CAST(SUBSTRING(num, 4) AS UNSIGNED)) FROM ' . juc_t( 'accounts' ) . ' WHERE syn = %s AND CHAR_LENGTH(num) = 6', $base ) ); // phpcs:ignore
+	foreach ( $map as $m ) {
+		if ( 0 === strpos( (string) $m, $base ) && 6 === strlen( (string) $m ) ) {
+			$n = max( $n, (int) substr( (string) $m, 3 ) );
+		}
+	}
+	do {
+		++$n;
+		$num = $base . sprintf( '%03d', $n );
+	} while ( $n < 999 && ( juc_account( $num ) || in_array( $num, $map, true ) ) );
 	$acc  = function_exists( 'jinv_bank_account' ) ? jinv_bank_account( $jinv_account_id ) : null;
 	juc_account_ensure( $num, $acc ? ( $acc['name'] ?? 'Bankový účet' ) . ( ! empty( $acc['iban'] ) ? ' ' . substr( $acc['iban'], -4 ) : '' ) : 'Bankový účet' );
 	$map[ $jinv_account_id ] = $num;
@@ -135,6 +145,7 @@ function juc_build_issued( array $d ) {
  * behu menil).
  */
 function juc_advance_balance( $order_id, $doc_id = 0 ) {
+	juc_advances_flush(); // odložený prepočet evidencie preddavkov (po zaúčtovaní úhrad)
 	$keys = array( 'got:order:' . (int) $order_id );
 	if ( function_exists( 'jinv_docs_for_order' ) ) {
 		foreach ( jinv_docs_for_order( $order_id ) as $x ) {
@@ -169,7 +180,9 @@ function juc_build_received( array $d ) {
 	return array(
 		'head'  => array(
 			'series'       => 'DF',
-			'number'       => 'DF-' . $d['number'],
+			// Vlastné číslo dokladu (rok + poradie v J-Fakturácii) – číslo dodávateľa sa môže u rôznych dodávateľov opakovať;
+			// to ostáva v popise.
+			'number'       => (int) $d['seq'] ? 'DF' . (int) $d['year'] . sprintf( '%04d', (int) $d['seq'] ) : 'DF-' . (int) $d['id'],
 			'entry_date'   => $d['supply_date'] && '0000-00-00' !== $d['supply_date'] ? $d['supply_date'] : $d['issue_date'],
 			'doc_date'     => $d['issue_date'],
 			'descr'        => 'Prijatá faktúra ' . $d['number'] . ' – ' . $d['customer_name'] . ( $cat ? ' (' . $cat . ')' : '' ),
@@ -185,7 +198,57 @@ function juc_build_received( array $d ) {
 function juc_bank_rule( array $t ) {
 	$iban = strtoupper( str_replace( ' ', '', (string) $t['counter_account'] ) );
 	$r    = (array) juc_opt( 'bank_rules' );
-	return ( $iban && ! empty( $r[ $iban ] ) ) ? (string) $r[ $iban ] : '';
+	if ( $iban && ! empty( $r[ $iban ] ) ) {
+		return (string) $r[ $iban ];
+	}
+	// Pravidlá podľa názvu protistrany (n:…) a textu pohybu (t:… – správa, typ pohybu) – napr. nákupy kartou bez IBAN.
+	$name = mb_strtolower( (string) $t['counter_name'] );
+	$text = mb_strtolower( trim( $t['message'] . ' ' . $t['tx_type'] . ' ' . $t['counter_name'] ) );
+	foreach ( $r as $k => $acc ) {
+		$k = (string) $k;
+		if ( 0 === strpos( $k, 'n:' ) && '' !== $name && false !== mb_strpos( $name, substr( $k, 2 ) ) ) {
+			return (string) $acc;
+		}
+		if ( 0 === strpos( $k, 't:' ) && false !== mb_strpos( $text, substr( $k, 2 ) ) ) {
+			return (string) $acc;
+		}
+	}
+	return '';
+}
+
+/** Kľúč pravidla pre pohyb (zapamätanie z „Na zaúčtovanie“): IBAN, inak názov protistrany, inak začiatok textu. */
+function juc_bank_rule_key( array $t ) {
+	$iban = strtoupper( str_replace( ' ', '', (string) $t['counter_account'] ) );
+	if ( preg_match( '/^[A-Z]{2}\d{2}[0-9A-Z]{10,30}$/', $iban ) ) {
+		return $iban;
+	}
+	$name = trim( mb_strtolower( (string) $t['counter_name'] ) );
+	if ( mb_strlen( $name ) >= 3 ) {
+		return 'n:' . $name;
+	}
+	// Text bez čísel a dátumov (napr. „nákup: google *cloud“ z „Nákup: GOOGLE *CLOUD 9D8CSJ, … dne 30.10.2026“).
+	$txt = mb_strtolower( trim( preg_replace( '/[,;].*$/u', '', (string) $t['message'] ) ) );
+	$txt = trim( preg_replace( '/\s+\S*\d\S*$/u', '', $txt ) );
+	return mb_strlen( $txt ) >= 4 ? 't:' . mb_substr( $txt, 0, 40 ) : '';
+}
+
+/* ---------------------------------------------------------------- Vylúčenie z automatického účtovania */
+
+/** Zdroje vylúčené z automatického účtovania („zaúčtujem ručne“): kľúč source:type:id => dátum. */
+function juc_excluded( $source, $type, $sid ) {
+	$x = (array) get_option( 'juc_excluded', array() );
+	return isset( $x[ $source . ':' . $type . ':' . (int) $sid ] );
+}
+
+function juc_exclude_set( $source, $type, $sid, $on ) {
+	$x = (array) get_option( 'juc_excluded', array() );
+	$k = $source . ':' . $type . ':' . (int) $sid;
+	if ( $on ) {
+		$x[ $k ] = current_time( 'mysql' );
+	} else {
+		unset( $x[ $k ] );
+	}
+	update_option( 'juc_excluded', $x, false );
 }
 
 /** Pohyb v banke. Vráti zápis, alebo null (čaká na rozhodnutie v „Na zaúčtovanie“). */
@@ -231,15 +294,20 @@ function juc_build_banktx( array $t ) {
 	return array( 'head' => $head, 'lines' => array( $line ) );
 }
 
-/** Úhrada mimo banky (hotovosť, karta, ručne). Bankové úhrady sa účtujú z pohybov v banke. */
-function juc_build_payment( array $p, array $d ) {
+/**
+ * Úhrada mimo banky (hotovosť, karta, ručne). Bankové úhrady sa účtujú z pohybov v banke.
+ * $acc = protiúčet zvolený používateľom („Na zaúčtovanie“ – zápočet, iné); prázdne = podľa spôsobu úhrady.
+ */
+function juc_build_payment( array $p, array $d, $acc = '' ) {
 	$m = $p['method'];
-	if ( 'bank' === $m && juc_bank_connected() ) {
-		return null; // účtuje sa z pohybu v banke
-	}
-	$acc = array( 'cash' => juc_acc_opt( 'acc_cash', '211' ), 'card' => juc_acc_opt( 'acc_card', '261' ), 'bank' => juc_acc_opt( 'acc_bank', '221' ) )[ $m ] ?? '';
-	if ( ! $acc ) {
-		return null; // zápočet / iné – rozhodne používateľ
+	if ( '' === $acc ) {
+		if ( 'bank' === $m && juc_bank_connected() && ! juc_bank_payment_keep( $p ) ) {
+			return null; // účtuje sa z pohybu v banke
+		}
+		$acc = array( 'cash' => juc_acc_opt( 'acc_cash', '211' ), 'card' => juc_acc_opt( 'acc_card', '261' ), 'bank' => juc_acc_opt( 'acc_bank', '221' ) )[ $m ] ?? '';
+		if ( ! $acc ) {
+			return null; // zápočet / iné – čaká v „Na zaúčtovanie“ (juc_queue_payments)
+		}
 	}
 	$vs   = $d['vs'] ? $d['vs'] : $d['number'];
 	$amt  = (float) $p['amount'];
@@ -253,12 +321,14 @@ function juc_build_payment( array $p, array $d ) {
 	} else {
 		$line = array( 'md' => $acc, 'd' => $cust, 'amount' => $amt, 'text' => 'Úhrada faktúry ' . $d['number'], 'vs' => $vs );
 	}
+	// Pokladňa: príjem PD, výdaj (Dal 211) VD.
+	$cash = 0 === strpos( (string) $acc, substr( juc_acc_opt( 'acc_cash', '211' ), 0, 3 ) );
 	return array(
 		'head'  => array(
-			'series'       => 'cash' === $m ? 'PD' : 'ID',
+			'series'       => $cash ? ( (string) $line['d'] === (string) $acc ? 'VD' : 'PD' ) : 'ID',
 			'number'       => '',
 			'entry_date'   => $p['pay_date'],
-			'descr'        => jinv_pay_methods()[ $m ] . ' – úhrada ' . $d['number'],
+			'descr'        => ( jinv_pay_methods()[ $m ] ?? $m ) . ' – úhrada ' . $d['number'],
 			'partner_name' => $d['customer_name'],
 			'vs'           => $vs,
 			'adv_key'      => 'proforma' === $d['kind'] ? 'jinv:' . (int) $d['id'] : '',
@@ -269,6 +339,24 @@ function juc_build_payment( array $p, array $d ) {
 
 function juc_bank_connected() {
 	return function_exists( 'jinv_bank_accounts' ) && (bool) array_filter( jinv_bank_accounts(), fn( $a ) => ! empty( $a['token'] ) || ! empty( $a['last_sync'] ) );
+}
+
+/**
+ * Ručne zapísaná úhrada „prevodom“ pri napojenej banke: účtuje sa (alebo ostáva zaúčtovaná), ak
+ *  - už je zaúčtovaná (napojenie banky ju nesmie dodatočne stornovať), alebo
+ *  - je z obdobia pred prvým načítaným pohybom v banke (pohyb, z ktorého by sa zaúčtovala, neexistuje).
+ * Inak sa účtuje z pohybu v banke.
+ */
+function juc_bank_payment_keep( array $p ) {
+	static $first = null;
+	if ( ! empty( $p['id'] ) && juc_entry_by_source( 'jinv', 'payment', (int) $p['id'] ) ) {
+		return true;
+	}
+	if ( null === $first ) {
+		global $wpdb;
+		$first = function_exists( 'jinv_table' ) ? (string) $wpdb->get_var( 'SELECT MIN(tx_date) FROM ' . jinv_table( 'banktx' ) ) : ''; // phpcs:ignore
+	}
+	return '' === $first || (string) $p['pay_date'] < $first;
 }
 
 /** Doklad J-Skladu (príjemka, výdajka, inventúra). */
@@ -331,15 +419,37 @@ function juc_build_sales_month( $ym ) {
 
 /* ---------------------------------------------------------------- Synchronizácia */
 
+/** Názov zámku (MySQL GET_LOCK) pre jeden zdroj – spoločný pre automatické účtovanie, „Na zaúčtovanie“ aj J-Platby. */
+function juc_source_lock_name( $source, $type, $sid ) {
+	return 'juc_src_' . substr( md5( $source . ':' . $type . ':' . (int) $sid ), 0, 20 );
+}
+
 /**
  * Zaúčtuje / aktualizuje jeden zdroj. $built = null → zdroj sa neúčtuje (zrušený); pri existujúcom zápise storno.
  * Vráti 'posted' | 'updated' | 'cancelled' | 'same' | 'skip' | WP_Error.
+ * Beží pod zámkom zdroja – súbežné volanie (napr. webhook J-Platieb a hodinový beh) nezaúčtuje doklad dvakrát.
  */
 function juc_sync_source( $source, $type, $sid, $built, $label = '' ) {
+	$lock = juc_source_lock_name( $source, $type, $sid );
+	if ( ! juc_lock( $lock, 15 ) ) {
+		return new WP_Error( 'juc_busy', 'Doklad sa práve účtuje v inom procese – zaúčtuje sa pri ďalšom behu.' );
+	}
+	try {
+		return juc_sync_source_locked( $source, $type, $sid, $built );
+	} finally {
+		juc_unlock( $lock );
+	}
+}
+
+function juc_sync_source_locked( $source, $type, $sid, $built ) {
+	if ( juc_excluded( $source, $type, $sid ) ) {
+		return 'skip'; // vylúčené – používateľ účtuje ručne
+	}
 	$cur = juc_entry_by_source( $source, $type, $sid );
 	if ( ! $built || ! array_filter( $built['lines'], fn( $l ) => abs( (float) $l['amount'] ) >= 0.005 ) ) {
 		if ( $cur && 'manual' !== $cur['source_hash'] ) {
 			$r = juc_storno( (int) $cur['id'], 'zdrojový doklad bol zrušený alebo zmenený' );
+			juc_advances_touch();
 			return is_wp_error( $r ) ? $r : 'cancelled';
 		}
 		return 'skip';
@@ -347,6 +457,9 @@ function juc_sync_source( $source, $type, $sid, $built, $label = '' ) {
 	$hash = md5( wp_json_encode( array( $built['head']['entry_date'], $built['lines'] ) ) );
 	if ( $cur && ( $cur['source_hash'] === $hash || 'manual' === $cur['source_hash'] && 'bank' !== $source ) ) {
 		return 'same';
+	}
+	if ( ! $cur && juc_user_storno_blocks( $source, $type, $sid, $hash ) ) {
+		return 'skip'; // používateľ doklad stornoval ručne a zdroj sa odvtedy nezmenil
 	}
 	if ( $cur ) {
 		$ok = juc_can_post( $cur['entry_date'] );
@@ -357,7 +470,7 @@ function juc_sync_source( $source, $type, $sid, $built, $label = '' ) {
 		if ( is_wp_error( $r ) ) {
 			return $r;
 		}
-		juc_advances_recount();
+		juc_advances_touch();
 	}
 	$adv = ! empty( $built['head']['adv_key'] ) || (bool) array_filter( $built['lines'], fn( $l ) => 0 === strpos( (string) $l['md'], juc_acc_opt( 'acc_adv_recv', '324' ) ) || 0 === strpos( (string) $l['d'], juc_acc_opt( 'acc_adv_recv', '324' ) ) );
 	unset( $built['head']['adv_key'] );
@@ -366,14 +479,84 @@ function juc_sync_source( $source, $type, $sid, $built, $label = '' ) {
 		return $r;
 	}
 	if ( $adv ) {
-		juc_advances_recount();
+		juc_advances_touch();
 	}
 	return $cur ? 'updated' : 'posted';
 }
 
+/**
+ * Storno zápisu zdroja, ktorý už neexistuje (zmazaná úhrada, doklad). Stornuje aj zápis zaúčtovaný ručne
+ * z „Na zaúčtovanie“ – bez zdroja nemá opodstatnenie.
+ */
+function juc_cancel_source( $source, $type, $sid, $reason ) {
+	$lock = juc_source_lock_name( $source, $type, $sid );
+	if ( ! juc_lock( $lock, 15 ) ) {
+		return new WP_Error( 'juc_busy', 'Doklad sa práve účtuje v inom procese – storno sa urobí pri ďalšom behu.' );
+	}
+	try {
+		$cur = juc_entry_by_source( $source, $type, $sid );
+		if ( ! $cur ) {
+			return 'skip';
+		}
+		$r = juc_storno( (int) $cur['id'], $reason );
+		juc_advances_touch();
+		return is_wp_error( $r ) ? $r : 'cancelled';
+	} finally {
+		juc_unlock( $lock );
+	}
+}
+
+/* ---- Ručné storno automaticky zaúčtovaného dokladu */
+
+/** Zdroje, ktoré sa účtujú automaticky (ručné storno ich zápisu nesmie ďalší beh vrátiť späť). */
+function juc_user_storno_sources() {
+	return array( 'jinv', 'bank', 'jsk', 'jpl', 'asset' );
+}
+
+/** Zapamätá ručné storno automatického zápisu: zdroj sa znova zaúčtuje, až keď sa zmení (iný odtlačok). */
+function juc_user_storno_mark( array $e ) {
+	if ( ! in_array( (string) $e['source'], juc_user_storno_sources(), true ) || ! (int) $e['source_id'] || in_array( (string) $e['source_hash'], array( '', 'manual' ), true ) ) {
+		return;
+	}
+	$flags = (array) get_option( 'juc_user_storno', array() );
+	$flags[ $e['source'] . ':' . $e['source_type'] . ':' . (int) $e['source_id'] ] = (string) $e['source_hash'];
+	update_option( 'juc_user_storno', $flags, false );
+}
+
+/** Má sa zdroj preskočiť (ručne stornovaný a nezmenený)? Pri zmene sa značka zruší. */
+function juc_user_storno_blocks( $source, $type, $sid, $hash ) {
+	$flags = (array) get_option( 'juc_user_storno', array() );
+	$k     = $source . ':' . $type . ':' . (int) $sid;
+	if ( ! isset( $flags[ $k ] ) ) {
+		return false;
+	}
+	if ( $flags[ $k ] === $hash ) {
+		return true;
+	}
+	unset( $flags[ $k ] );
+	update_option( 'juc_user_storno', $flags, false );
+	return false;
+}
+
+/* ---- Evidencia preddavkov */
+
+/** Zaúčtovanie sa dotklo preddavkov – prepočet sa urobí raz, až keď je potrebný (alebo na konci požiadavky). */
+function juc_advances_touch() {
+	$GLOBALS['juc_adv_dirty'] = true;
+}
+
+function juc_advances_flush() {
+	if ( ! empty( $GLOBALS['juc_adv_dirty'] ) ) {
+		$GLOBALS['juc_adv_dirty'] = false;
+		juc_advances_recount();
+	}
+}
+add_action( 'shutdown', 'juc_advances_flush' );
+
 /** Evidencia prijatých preddavkov (324) podľa zálohovej faktúry / objednávky – prepočíta sa zo zaúčtovaných dokladov. */
 function juc_advances_recount() {
 	global $wpdb;
+	$GLOBALS['juc_adv_dirty'] = false;
 	$adv  = juc_acc_opt( 'acc_adv_recv', '324' );
 	$out  = array();
 	$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT e.source, e.source_type, e.source_id, l.amount, l.md, l.d FROM ' . juc_t( 'lines' ) . ' l JOIN ' . juc_t( 'entries' ) . ' e ON e.id = l.entry_id WHERE (l.d LIKE %s OR l.md LIKE %s)', $adv . '%', $adv . '%' ), ARRAY_A ); // phpcs:ignore
@@ -395,9 +578,107 @@ function juc_advances_recount() {
 	update_option( 'juc_advances', $out, false );
 }
 
-/** Hlavný beh automatického účtovania. Vráti súhrn [posted, updated, cancelled, errors[]]. */
-function juc_autopost_run( $limit = 2000 ) {
+/* ---- Hlavný beh */
+
+/** Druhy zdrojov v poradí spracovania (úhrady skôr ako faktúry – zúčtovanie preddavku potrebuje ich zostatok). */
+function juc_autopost_types() {
+	$t = array();
+	if ( function_exists( 'jinv_table' ) ) {
+		$t[] = 'pay';
+		if ( function_exists( 'jinv_bank_tx' ) ) {
+			$t[] = 'tx';
+		}
+		$t[] = 'doc';
+	}
+	if ( 'A' === juc_opt( 'stock_method' ) && function_exists( 'jsk_t' ) && function_exists( 'jsk_doc' ) ) {
+		$t[] = 'jsk';
+	}
+	return $t;
+}
+
+/** Riadky zdrojov daného druhu od začiatku účtovania, zoradené podľa ID. $where používa alias x. */
+function juc_autopost_fetch( $type, $where, $limit ) {
 	global $wpdb;
+	$start = juc_start_date();
+	$limit = max( 1, (int) $limit );
+	switch ( $type ) {
+		case 'pay':
+			$sql = $wpdb->prepare( 'SELECT x.* FROM ' . jinv_table( 'payments' ) . " x WHERE x.source <> 'bank' AND x.pay_date >= %s AND $where ORDER BY x.id LIMIT %d", $start, $limit ); // phpcs:ignore
+			break;
+		case 'tx':
+			$sql = $wpdb->prepare( 'SELECT x.* FROM ' . jinv_table( 'banktx' ) . " x WHERE x.tx_date >= %s AND $where ORDER BY x.id LIMIT %d", $start, $limit ); // phpcs:ignore
+			break;
+		case 'doc':
+			$sql = $wpdb->prepare( 'SELECT x.* FROM ' . jinv_table() . " x WHERE x.kind IN ('issued','creditnote','received') AND x.issue_date >= %s AND $where ORDER BY x.id LIMIT %d", $start, $limit ); // phpcs:ignore
+			break;
+		case 'jsk':
+			$sql = $wpdb->prepare( 'SELECT x.id FROM ' . jsk_t( 'docs' ) . " x WHERE x.type IN ('receipt','issue','inventory') AND x.status IN ('posted','cancelled') AND x.doc_date >= %s AND $where ORDER BY x.id LIMIT %d", $start, $limit ); // phpcs:ignore
+			break;
+		default:
+			return array();
+	}
+	return (array) $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore
+}
+
+/** Zaúčtovanie jedného zdroja daného druhu. */
+function juc_autopost_one( $type, array $row, callable $count ) {
+	if ( 'pay' === $type ) {
+		$d = jinv_get( (int) $row['doc_id'] );
+		if ( $d ) {
+			$count( juc_sync_source( 'jinv', 'payment', (int) $row['id'], juc_build_payment( $row, $d ) ), 'Úhrada ' . $d['number'] );
+		}
+	} elseif ( 'tx' === $type ) {
+		$cur = juc_entry_by_source( 'bank', 'tx', (int) $row['id'] );
+		if ( $cur && 'manual' === $cur['source_hash'] && 'matched' !== $row['status'] ) {
+			return; // zaúčtované ručne z „Na zaúčtovanie“
+		}
+		$b = juc_build_banktx( $row );
+		if ( $b || $cur ) {
+			$count( juc_sync_source( 'bank', 'tx', (int) $row['id'], $b ), 'Pohyb ' . $row['ext_id'] );
+		}
+	} elseif ( 'doc' === $type ) {
+		$row['data'] = json_decode( (string) $row['data'], true );
+		$built       = 'cancelled' === $row['status'] ? null : ( 'received' === $row['kind'] ? juc_build_received( $row ) : juc_build_issued( $row ) );
+		$count( juc_sync_source( 'jinv', 'doc', (int) $row['id'], $built ), ( 'received' === $row['kind'] ? 'Prijatá faktúra ' : 'Faktúra ' ) . $row['number'] );
+	} elseif ( 'jsk' === $type ) {
+		$d = jsk_doc( (int) $row['id'] );
+		if ( $d ) {
+			$count( juc_sync_source( 'jsk', 'doc', (int) $d['id'], 'posted' === $d['status'] ? juc_build_stock_doc( $d ) : null ), 'Doklad skladu ' . $d['number'] );
+		}
+	}
+}
+
+/** Zápisy zdrojov J-Fakturácie a J-Skladu, ktorých zdrojový riadok už neexistuje (zmazaný) → storno. */
+function juc_autopost_deleted( callable $count ) {
+	global $wpdb;
+	$e      = juc_t( 'entries' );
+	$checks = array();
+	if ( function_exists( 'jinv_table' ) ) {
+		$checks[] = array( 'jinv', 'payment', jinv_table( 'payments' ), 'Úhrada' );
+		$checks[] = array( 'jinv', 'doc', jinv_table(), 'Doklad J-Fakturácie' );
+	}
+	if ( function_exists( 'jsk_t' ) ) {
+		$checks[] = array( 'jsk', 'doc', jsk_t( 'docs' ), 'Doklad skladu' );
+	}
+	foreach ( $checks as $c ) {
+		$ids = $wpdb->get_col( $wpdb->prepare( "SELECT e.source_id FROM $e e WHERE e.source = %s AND e.source_type = %s AND e.status = 'posted' AND NOT EXISTS (SELECT 1 FROM {$c[2]} s WHERE s.id = e.source_id) LIMIT 200", $c[0], $c[1] ) ); // phpcs:ignore
+		foreach ( (array) $ids as $sid ) {
+			$count( juc_cancel_source( $c[0], $c[1], (int) $sid, 'zdrojový doklad bol zmazaný' ), $c[3] . ' #' . (int) $sid . ' (zmazaná)' );
+		}
+	}
+}
+
+/**
+ * Hlavný beh automatického účtovania. Vráti súhrn [posted, updated, cancelled, errors[]].
+ *
+ * Každý beh (hodinový, po zmene dokladu): 1) zdroje nahlásené cez hooky ako zmenené, 2) nové zdroje (ID väčšie ako
+ * naposledy spracované), 3) zmazané zdroje → storno, 4) predaj tovaru za otvorené mesiace.
+ * Úplná kontrola všetkých zdrojov (zmeny, o ktorých hook nedá vedieť – storno faktúry, úprava prijatej faktúry…)
+ * beží najviac raz denne a pri ručnom spustení; pokračuje od uloženej pozície (juc_autopost_state), kým neprejde všetko.
+ * Beh má časový limit (20 s, ručne 240 s) – čo nestihne, dokončí ďalší beh.
+ * Chyby sa ukladajú do juc_autopost_errors (zobrazia sa v „Na zaúčtovanie“); úspešne zaúčtovaný zdroj sa z nich vymaže.
+ */
+function juc_autopost_run( $limit = 2000 ) {
 	$start = juc_start_date();
 	$res   = array( 'posted' => 0, 'updated' => 0, 'cancelled' => 0, 'errors' => array() );
 	if ( ! $start || ! juc_opt( 'auto' ) && ! defined( 'JUC_FORCE_RUN' ) ) {
@@ -406,71 +687,129 @@ function juc_autopost_run( $limit = 2000 ) {
 	if ( ! juc_lock( 'juc_autopost' ) ) {
 		return $res;
 	}
-	juc_advances_recount();
-	$count = function ( $r, $label ) use ( &$res ) {
+	$force  = defined( 'JUC_FORCE_RUN' );
+	$t0     = microtime( true );
+	$budget = $force ? 240 : 20;
+	$page   = 200;
+	$n      = 0;
+	$state  = wp_parse_args( (array) get_option( 'juc_autopost_state', array() ), array( 'max' => array(), 'cursor' => array(), 'stage' => '', 'full_at' => 0 ) );
+	$errs   = (array) get_option( 'juc_autopost_errors', array() );
+	$count  = function ( $r, $label ) use ( &$res, &$errs ) {
 		if ( is_wp_error( $r ) ) {
 			$res['errors'][ $label ] = $r->get_error_message();
-		} elseif ( isset( $res[ $r ] ) ) {
+			$errs[ $label ]          = $r->get_error_message();
+			return;
+		}
+		unset( $errs[ $label ] );
+		if ( isset( $res[ $r ] ) ) {
 			$res[ $r ]++;
 		}
 	};
+	$left = function () use ( $t0, $budget, &$n, $limit ) {
+		return microtime( true ) - $t0 < $budget && $n < max( 1, (int) $limit );
+	};
 	try {
-		if ( function_exists( 'jinv_table' ) ) {
-			// Úhrady (preddavky) skôr ako faktúry – zúčtovanie preddavku pri faktúre potrebuje ich zostatok.
-			$pays = $wpdb->get_results( $wpdb->prepare( 'SELECT p.* FROM ' . jinv_table( 'payments' ) . " p WHERE p.source <> 'bank' AND p.pay_date >= %s ORDER BY p.pay_date, p.id LIMIT %d", $start, $limit ), ARRAY_A ); // phpcs:ignore
-			foreach ( (array) $pays as $p ) {
-				$d = jinv_get( (int) $p['doc_id'] );
-				if ( $d ) {
-					$count( juc_sync_source( 'jinv', 'payment', (int) $p['id'], juc_build_payment( $p, $d ) ), 'Úhrada ' . $d['number'] );
+		juc_advances_recount();
+		$types = juc_autopost_types();
+		// 1) Zdroje zmenené podľa hookov (úhrada, spárovanie, pregenerovanie faktúry, zaúčtovanie dokladu skladu).
+		$dirty = (array) get_option( 'juc_autopost_dirty', array() );
+		delete_option( 'juc_autopost_dirty' );
+		foreach ( $types as $type ) {
+			$ids = array_values( array_unique( array_filter( array_map( 'intval', (array) ( $dirty[ $type ] ?? array() ) ) ) ) );
+			foreach ( array_chunk( $ids, 500 ) as $chunk ) {
+				foreach ( juc_autopost_fetch( $type, 'x.id IN (' . implode( ',', $chunk ) . ')', count( $chunk ) ) as $row ) {
+					juc_autopost_one( $type, $row, $count );
+					++$n;
 				}
-			}
-			// Bankové pohyby.
-			if ( function_exists( 'jinv_bank_tx' ) ) {
-				$txs = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . jinv_table( 'banktx' ) . ' WHERE tx_date >= %s ORDER BY tx_date, id LIMIT %d', $start, $limit * 2 ), ARRAY_A ); // phpcs:ignore
-				foreach ( (array) $txs as $t ) {
-					$cur = juc_entry_by_source( 'bank', 'tx', (int) $t['id'] );
-					if ( $cur && 'manual' === $cur['source_hash'] && 'matched' !== $t['status'] ) {
-						continue; // zaúčtované ručne z „Na zaúčtovanie“
-					}
-					$b = juc_build_banktx( $t );
-					if ( $b || $cur ) {
-						$count( juc_sync_source( 'bank', 'tx', (int) $t['id'], $b ), 'Pohyb ' . $t['ext_id'] );
-					}
-				}
-			}
-			// Vydané faktúry a dobropisy, prijaté faktúry.
-			$docs = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . jinv_table() . " WHERE kind IN ('issued','creditnote','received') AND issue_date >= %s ORDER BY issue_date, id LIMIT %d", $start, $limit ), ARRAY_A ); // phpcs:ignore
-			foreach ( (array) $docs as $d ) {
-				$d['data'] = json_decode( (string) $d['data'], true );
-				$built     = 'cancelled' === $d['status'] ? null : ( 'received' === $d['kind'] ? juc_build_received( $d ) : juc_build_issued( $d ) );
-				$count( juc_sync_source( 'jinv', 'doc', (int) $d['id'], $built ), ( 'received' === $d['kind'] ? 'Prijatá faktúra ' : 'Faktúra ' ) . $d['number'] );
 			}
 		}
-		// J-Sklad (metóda A).
-		if ( 'A' === juc_opt( 'stock_method' ) && function_exists( 'jsk_t' ) ) {
-			$docs = $wpdb->get_results( $wpdb->prepare( 'SELECT id FROM ' . jsk_t( 'docs' ) . " WHERE type IN ('receipt','issue','inventory') AND status IN ('posted','cancelled') AND doc_date >= %s ORDER BY doc_date, id LIMIT %d", $start, $limit ), ARRAY_A ); // phpcs:ignore
-			foreach ( (array) $docs as $x ) {
-				$d = jsk_doc( (int) $x['id'] );
-				$count( juc_sync_source( 'jsk', 'doc', (int) $d['id'], 'posted' === $d['status'] ? juc_build_stock_doc( $d ) : null ), 'Doklad skladu ' . $d['number'] );
+		// 2) Nové zdroje.
+		foreach ( $types as $type ) {
+			while ( $left() ) {
+				$rows = juc_autopost_fetch( $type, 'x.id > ' . (int) ( $state['max'][ $type ] ?? 0 ), $page );
+				foreach ( $rows as $row ) {
+					juc_autopost_one( $type, $row, $count );
+					++$n;
+					$state['max'][ $type ] = (int) $row['id'];
+					if ( ! $left() ) {
+						break;
+					}
+				}
+				if ( count( $rows ) < $page ) {
+					break;
+				}
 			}
-			// Predaj tovaru – ukončené mesiace od začiatku účtovania.
+		}
+		// 3) Úplná kontrola – najviac raz denne (ručne vždy), pokračuje od uloženej pozície.
+		$due = $force || '' !== $state['stage'] || (int) $state['full_at'] < time() - DAY_IN_SECONDS;
+		if ( $due && $types && $left() ) {
+			if ( ! in_array( $state['stage'], $types, true ) ) {
+				$state['stage']  = $types[0];
+				$state['cursor'] = array();
+			}
+			$all = true;
+			for ( $i = (int) array_search( $state['stage'], $types, true ); $i < count( $types ); $i++ ) {
+				$type           = $types[ $i ];
+				$state['stage'] = $type;
+				$done           = false;
+				while ( $left() ) {
+					$rows = juc_autopost_fetch( $type, 'x.id > ' . (int) ( $state['cursor'][ $type ] ?? 0 ), $page );
+					$cut  = false;
+					foreach ( $rows as $row ) {
+						juc_autopost_one( $type, $row, $count );
+						++$n;
+						$state['cursor'][ $type ] = (int) $row['id'];
+						if ( ! $left() ) {
+							$cut = true;
+							break;
+						}
+					}
+					if ( ! $cut && count( $rows ) < $page ) {
+						$done                  = true;
+						$state['max'][ $type ] = max( (int) ( $state['max'][ $type ] ?? 0 ), (int) ( $state['cursor'][ $type ] ?? 0 ) );
+						break;
+					}
+				}
+				if ( ! $done ) {
+					$all = false;
+					break;
+				}
+			}
+			if ( $all ) {
+				$state['stage']   = '';
+				$state['cursor']  = array();
+				$state['full_at'] = time();
+			}
+		}
+		// 4) Zmazané zdroje → storno.
+		juc_autopost_deleted( $count );
+		// 5) J-Sklad (metóda A): predaj tovaru – ukončené mesiace od začiatku účtovania. Mesiac v uzavretom období
+		//    (uzávierka, uzavretý rok) sa už nesynchronizuje – ocenenie aktuálnou priemernou cenou by ho stále „menilo“.
+		if ( in_array( 'jsk', $types, true ) ) {
 			$m = gmdate( 'Ym', strtotime( $start ) );
 			while ( $m < current_time( 'Ym' ) ) {
-				$count( juc_sync_source( 'jsk', 'sales', (int) $m, juc_build_sales_month( $m ) ), 'Predaj tovaru ' . $m );
+				$end = gmdate( 'Y-m-t', strtotime( substr( $m, 0, 4 ) . '-' . substr( $m, 4, 2 ) . '-01' ) );
+				if ( ! ( true !== juc_can_post( $end ) && juc_entry_by_source( 'jsk', 'sales', (int) $m ) ) ) {
+					$count( juc_sync_source( 'jsk', 'sales', (int) $m, juc_build_sales_month( $m ) ), 'Predaj tovaru ' . $m );
+				}
 				$m = gmdate( 'Ym', strtotime( substr( $m, 0, 4 ) . '-' . substr( $m, 4, 2 ) . '-01 +1 month' ) );
 			}
 		}
+		juc_advances_flush();
 	} finally {
+		update_option( 'juc_autopost_state', $state, false );
+		update_option( 'juc_autopost_errors', $errs, false );
+		juc_queue_count_reset();
 		juc_unlock( 'juc_autopost' );
 	}
 	update_option( 'juc_autopost_last', array( 'at' => current_time( 'mysql' ) ) + $res, false );
 	return $res;
 }
 
-/** Zámok behu (MySQL GET_LOCK) – nezávisle od J-Skladu. */
-function juc_lock( $name ) {
+/** Zámok (MySQL GET_LOCK) – nezávisle od J-Skladu. $wait = počet sekúnd čakania na uvoľnenie. */
+function juc_lock( $name, $wait = 0 ) {
 	global $wpdb;
-	return 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $wpdb->prefix . $name ) );
+	return 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $wpdb->prefix . $name, (int) $wait ) );
 }
 
 function juc_unlock( $name ) {
@@ -486,6 +825,81 @@ add_action( 'init', function () {
 	}
 } );
 add_action( 'juc_autopost', 'juc_autopost_run' );
+
+/** Označí zdroj ako zmenený – spracuje sa pri najbližšom behu (aj keď nie je nový). */
+function juc_autopost_mark( $type, $id ) {
+	$id = (int) $id;
+	if ( ! $id ) {
+		return;
+	}
+	$d            = (array) get_option( 'juc_autopost_dirty', array() );
+	$d[ $type ]   = (array) ( $d[ $type ] ?? array() );
+	$d[ $type ][] = $id;
+	$d[ $type ]   = array_slice( array_values( array_unique( array_map( 'intval', $d[ $type ] ) ) ), -2000 );
+	update_option( 'juc_autopost_dirty', $d, false );
+}
+
+/** Doklad a ostatné faktúry tej istej objednávky (zúčtovanie preddavku sa mení s úhradou zálohy). */
+function juc_autopost_mark_doc( $doc_id ) {
+	juc_autopost_mark( 'doc', $doc_id );
+	$d = function_exists( 'jinv_get' ) ? jinv_get( (int) $doc_id ) : null;
+	if ( $d && (int) $d['order_id'] ) {
+		juc_autopost_mark_order( (int) $d['order_id'] );
+	}
+}
+
+function juc_autopost_mark_order( $order_id ) {
+	if ( function_exists( 'jinv_docs_for_order' ) ) {
+		foreach ( jinv_docs_for_order( (int) $order_id ) as $x ) {
+			juc_autopost_mark( 'doc', (int) $x['id'] );
+		}
+	}
+}
+
+add_action( 'jinv_document_created', function ( $id ) {
+	juc_autopost_mark_doc( $id );
+} );
+add_action( 'jinv_document_regenerated', function ( $new, $old = 0 ) {
+	juc_autopost_mark_doc( $new );
+	juc_autopost_mark( 'doc', $old );
+}, 10, 2 );
+add_action( 'jinv_payment_added', function ( $id, $doc_id = 0 ) {
+	juc_autopost_mark( 'pay', $id );
+	juc_autopost_mark_doc( $doc_id );
+	juc_queue_count_reset();
+}, 10, 2 );
+add_action( 'jinv_bank_paired', function ( $tx, $doc_id = 0 ) {
+	juc_autopost_mark( 'tx', $tx );
+	juc_autopost_mark_doc( $doc_id );
+	juc_queue_count_reset();
+}, 10, 2 );
+add_action( 'jinv_bank_paired_order', function ( $tx, $order_id = 0 ) {
+	juc_autopost_mark( 'tx', $tx );
+	juc_autopost_mark_order( $order_id );
+	juc_queue_count_reset();
+}, 10, 2 );
+add_action( 'jsk_doc_posted', function ( $id ) {
+	juc_autopost_mark( 'jsk', $id );
+} );
+
+// Zmazaná úhrada: jej zápis sa stornuje hneď (beh by zmazaný riadok už nenašiel). Pohyb v banke, z ktorého úhrada
+// vznikla, J-Fakturácia vráti medzi nespárované – jeho zápis (úhrada faktúry) sa prepočíta pri najbližšom behu.
+add_action( 'jinv_payment_deleted', function ( $payment_id, $doc_id = 0 ) {
+	global $wpdb;
+	if ( ! juc_start_date() || ! juc_opt( 'auto' ) ) {
+		return;
+	}
+	juc_cancel_source( 'jinv', 'payment', (int) $payment_id, 'úhrada bola zmazaná' ); // pri chybe (uzavreté obdobie) to zopakuje beh
+	juc_autopost_mark_doc( $doc_id );
+	if ( function_exists( 'jinv_table' ) ) {
+		$like = array( juc_acc_opt( 'acc_customers', '311' ) . '%', juc_acc_opt( 'acc_suppliers', '321' ) . '%', juc_acc_opt( 'acc_adv_recv', '324' ) . '%' );
+		$txs  = $wpdb->get_col( $wpdb->prepare( 'SELECT e.source_id FROM ' . juc_t( 'entries' ) . ' e JOIN ' . jinv_table( 'banktx' ) . " t ON t.id = e.source_id WHERE e.source = 'bank' AND e.source_type = 'tx' AND e.status = 'posted' AND e.source_hash <> 'manual' AND t.status <> 'matched' AND EXISTS (SELECT 1 FROM " . juc_t( 'lines' ) . ' l WHERE l.entry_id = e.id AND (l.d LIKE %s OR l.md LIKE %s OR l.d LIKE %s))', $like[0], $like[1], $like[2] ) ); // phpcs:ignore
+		foreach ( (array) $txs as $tx ) {
+			juc_autopost_mark( 'tx', (int) $tx );
+		}
+	}
+	juc_queue_count_reset();
+}, 10, 2 );
 
 // Po zmene dokladu v J-Fakturácii, banke alebo sklade sa účtovanie spustí o minútu (nie hneď – zmien býva viac naraz).
 foreach ( array( 'jinv_document_created', 'jinv_document_regenerated', 'jinv_payment_added', 'jinv_payment_deleted', 'jinv_bank_paired', 'jinv_bank_paired_order', 'jsk_doc_posted' ) as $juc_hook ) {
@@ -506,9 +920,10 @@ add_action( 'admin_post_juc_autopost', function () {
 		define( 'JUC_FORCE_RUN', true );
 	}
 	@set_time_limit( 300 ); // phpcs:ignore
-	$r = juc_autopost_run( 5000 );
-	set_transient( 'juc_err_' . get_current_user_id(), sprintf( 'Zaúčtované nové: %d, aktualizované: %d, stornované: %d.', $r['posted'], $r['updated'], $r['cancelled'] ) . ( $r['errors'] ? ' Chyby: ' . count( $r['errors'] ) . ' – pozri Na zaúčtovanie.' : '' ), 120 );
-	update_option( 'juc_autopost_errors', $r['errors'], false );
+	$r    = juc_autopost_run( 5000 );
+	$errs = (array) get_option( 'juc_autopost_errors', array() ); // chyby uloží sám beh
+	$st   = (array) get_option( 'juc_autopost_state', array() );
+	set_transient( 'juc_err_' . get_current_user_id(), sprintf( 'Zaúčtované nové: %d, aktualizované: %d, stornované: %d.', $r['posted'], $r['updated'], $r['cancelled'] ) . ( ! empty( $st['stage'] ) ? ' Kontrola všetkých dokladov ešte nie je dokončená – pokračuje automaticky (alebo kliknite znova).' : '' ) . ( $errs ? ' Chyby: ' . count( $errs ) . ' – pozri Na zaúčtovanie.' : '' ), 120 );
 	wp_safe_redirect( add_query_arg( 'juc_msg', 'auto', wp_get_referer() ? wp_get_referer() : juc_url() ) );
 	exit;
 } );
@@ -546,13 +961,33 @@ function juc_queue_bank() {
 	return (array) $wpdb->get_results( $wpdb->prepare( 'SELECT t.* FROM ' . jinv_table( 'banktx' ) . " t WHERE t.tx_date >= %s AND NOT EXISTS (SELECT 1 FROM $e e WHERE e.source = 'bank' AND e.source_type = 'tx' AND e.source_id = t.id AND e.status = 'posted') ORDER BY t.tx_date, t.id LIMIT 300", $st ), ARRAY_A ); // phpcs:ignore
 }
 
+/**
+ * Úhrady, ktoré program nevie zaúčtovať sám (zápočet, iné – napr. „Pôvodná úhrada“ z J-Fakturácie):
+ * nezaúčtované, od začiatku účtovania. Zaúčtujú sa výberom protiúčtu v „Na zaúčtovanie“.
+ */
+function juc_queue_payments() {
+	global $wpdb;
+	$st = juc_start_date();
+	if ( ! $st || ! function_exists( 'jinv_table' ) ) {
+		return array();
+	}
+	$e = juc_t( 'entries' );
+	return (array) $wpdb->get_results( $wpdb->prepare( 'SELECT p.*, d.number doc_number, d.kind doc_kind, d.customer_name FROM ' . jinv_table( 'payments' ) . ' p JOIN ' . jinv_table() . " d ON d.id = p.doc_id WHERE p.source <> 'bank' AND p.pay_date >= %s AND p.method NOT IN ('bank','cash','card') AND d.status <> 'cancelled' AND NOT EXISTS (SELECT 1 FROM $e e WHERE e.source = 'jinv' AND e.source_type = 'payment' AND e.source_id = p.id AND e.status = 'posted') ORDER BY p.pay_date, p.id LIMIT 300", $st ), ARRAY_A ); // phpcs:ignore
+}
+
+/** Počet položiek „Na zaúčtovanie“ (v menu na každej stránke administrácie) – uložený na 5 minút. */
 function juc_queue_count() {
-	$n = wp_cache_get( 'juc_queue_n', 'juc' );
+	$n = get_transient( 'juc_queue_n' );
 	if ( false === $n ) {
-		$n = count( juc_queue_bank() ) + count( (array) get_option( 'juc_autopost_errors', array() ) );
-		wp_cache_set( 'juc_queue_n', $n, 'juc', 60 );
+		$n = count( juc_queue_bank() ) + count( juc_queue_payments() ) + count( (array) get_option( 'juc_autopost_errors', array() ) );
+		set_transient( 'juc_queue_n', $n, 5 * MINUTE_IN_SECONDS );
 	}
 	return (int) $n;
+}
+
+/** Zmena vo fronte (zaúčtovanie, beh, spárovanie) – počet sa nabudúce prepočíta. */
+function juc_queue_count_reset() {
+	delete_transient( 'juc_queue_n' );
 }
 
 function juc_page_queue() {
@@ -569,6 +1004,33 @@ function juc_page_queue() {
 		}
 		echo '</ul><p class="description">Po oprave (napr. doplnení účtu do rozvrhu alebo otvorení obdobia) kliknite Zaúčtovať nové doklady teraz.</p></div>';
 	}
+	$pays = juc_queue_payments();
+	if ( $pays ) :
+		juc_accounts_datalist( 'juc-accs-pay' );
+		?>
+		<h2>Úhrady bez určenia účtu</h2>
+		<p class="description">Úhrady zápočtom alebo „iným“ spôsobom (aj „Pôvodná úhrada“, ktorú J-Fakturácia doplní k staršej uhradenej faktúre) program nevie zaúčtovať sám. Zadajte účet, cez ktorý bola úhrada vyrovnaná (napr. 321 pri zápočte s dodávateľom, 211 pokladňa, 221 banka, 355 konateľ) – druhá strana (odberateľ 311, dodávateľ 321, preddavok 324) sa doplní podľa faktúry.</p>
+		<table class="widefat striped juc-table juc-queue">
+			<thead><tr><th>Dátum</th><th class="n">Suma €</th><th>Faktúra / spôsob</th><th>Zaúčtovať</th></tr></thead>
+			<tbody>
+			<?php foreach ( $pays as $p ) : ?>
+				<tr>
+					<td><?php echo esc_html( juc_date( $p['pay_date'] ) ); ?></td>
+					<td class="n"><?php echo esc_html( juc_money( $p['amount'] ) ); ?></td>
+					<td><?php echo esc_html( $p['doc_number'] . ( $p['customer_name'] ? ' – ' . $p['customer_name'] : '' ) ); ?><br><small><?php echo esc_html( trim( ( function_exists( 'jinv_pay_methods' ) ? ( jinv_pay_methods()[ $p['method'] ] ?? $p['method'] ) : $p['method'] ) . ' · ' . $p['note'], ' ·' ) ); ?></small></td>
+					<td>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="juc-qform">
+							<?php wp_nonce_field( 'juc_queue_pay_' . $p['id'] ); ?><input type="hidden" name="action" value="juc_queue_pay"><input type="hidden" name="pay" value="<?php echo (int) $p['id']; ?>">
+							<input name="acc" list="juc-accs-pay" placeholder="Účet" class="juc-qacc" inputmode="numeric" required>
+							<button class="button button-small">Zaúčtovať</button>
+						</form>
+					</td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+		<?php
+	endif;
 	$rows = juc_queue_bank();
 	$tpl  = juc_templates();
 	?>
@@ -598,6 +1060,7 @@ function juc_page_queue() {
 							</select>
 							<input name="acc" list="juc-accs" placeholder="alebo účet" class="juc-qacc" inputmode="numeric">
 							<input name="text" placeholder="Text zápisu" value="<?php echo esc_attr( $t['counter_name'] ? $t['counter_name'] : $t['tx_type'] ); ?>">
+							<?php $rk = juc_bank_rule_key( $t ); if ( $rk ) : ?><label class="juc-remember" title="<?php echo esc_attr( 'Pravidlo: ' . ( 0 === strpos( $rk, 'n:' ) ? 'názov „' . substr( $rk, 2 ) . '“' : ( 0 === strpos( $rk, 't:' ) ? 'text „' . substr( $rk, 2 ) . '“' : 'účet ' . $rk ) ) ); ?>"><input type="checkbox" name="remember" value="1"> zapamätať</label><?php endif; ?>
 							<button class="button button-small">Zaúčtovať</button>
 						</form>
 					</td>
@@ -623,6 +1086,16 @@ add_action( 'admin_post_juc_queue_tx', function () {
 	if ( ! $t || ! $acc ) {
 		juc_back_err( juc_url( 'j-uctovnictvo-queue' ), 'Vyberte účet protistrany.' );
 	}
+	// Zámok zdroja + nová kontrola: dvojklik ani druhé okno nezaúčtujú pohyb dvakrát.
+	$lock = juc_source_lock_name( 'bank', 'tx', $id );
+	if ( ! juc_lock( $lock, 10 ) ) {
+		juc_back_err( juc_url( 'j-uctovnictvo-queue' ), 'Pohyb sa práve účtuje – skúste to o chvíľu znova.' );
+	}
+	if ( juc_entry_by_source( 'bank', 'tx', $id ) ) {
+		juc_unlock( $lock );
+		juc_queue_count_reset();
+		juc_back_err( juc_url( 'j-uctovnictvo-queue' ), 'Pohyb už je zaúčtovaný.' );
+	}
 	$bank = juc_bank_account( $t['account_id'] );
 	$amt  = (float) $t['amount'];
 	$text = sanitize_text_field( wp_unslash( $_POST['text'] ?? '' ) ); // phpcs:ignore
@@ -638,10 +1111,71 @@ add_action( 'admin_post_juc_queue_tx', function () {
 		'source_id'    => $id,
 		'source_hash'  => 'manual',
 	), array( $amt > 0 ? array( 'md' => $bank, 'd' => $acc, 'amount' => $amt, 'text' => $text ) : array( 'md' => $acc, 'd' => $bank, 'amount' => -$amt, 'text' => $text ) ) );
+	juc_unlock( $lock );
+	juc_queue_count_reset();
 	if ( is_wp_error( $r ) ) {
 		juc_back_err( juc_url( 'j-uctovnictvo-queue' ), $r->get_error_message() );
 	}
-	wp_cache_delete( 'juc_queue_n', 'juc' );
+	// Zapamätať: pravidlo pre ďalšie pohyby rovnakej protistrany / textu – a hneď zaúčtovať čakajúce pohyby, ktoré mu zodpovedajú.
+	if ( ! empty( $_POST['remember'] ) && ( $rk = juc_bank_rule_key( $t ) ) ) { // phpcs:ignore
+		$rules        = (array) juc_opt( 'bank_rules' );
+		$rules[ $rk ] = $acc;
+		juc_settings_update( array( 'bank_rules' => $rules ) );
+		$more = 0;
+		foreach ( juc_queue_bank() as $q ) {
+			if ( juc_bank_rule( $q ) === $acc ) {
+				$res   = juc_sync_source( 'bank', 'tx', (int) $q['id'], juc_build_banktx( $q ) );
+				$more += in_array( $res, array( 'posted', 'updated' ), true ) ? 1 : 0;
+			}
+		}
+		juc_queue_count_reset();
+		set_transient( 'juc_err_' . get_current_user_id(), 'Doklad je zaúčtovaný a pravidlo uložené (Nastavenia → Pravidlá pre pohyby v banke).' . ( $more ? ' Podľa pravidla sa zaúčtovali aj ďalšie pohyby: ' . $more . '.' : '' ), 120 );
+		wp_safe_redirect( juc_url( 'j-uctovnictvo-queue', array( 'juc_msg' => 'auto' ) ) );
+		exit;
+	}
 	wp_safe_redirect( juc_url( 'j-uctovnictvo-queue', array( 'juc_msg' => 'posted' ) ) );
+	exit;
+} );
+
+// Úhrada bez určenia účtu (zápočet, iné) – zaúčtovanie so zvoleným protiúčtom.
+add_action( 'admin_post_juc_queue_pay', function () {
+	global $wpdb;
+	if ( ! current_user_can( JUC_CAP ) ) {
+		wp_die( 'Nemáte oprávnenie.' );
+	}
+	$id = (int) ( $_POST['pay'] ?? 0 );
+	check_admin_referer( 'juc_queue_pay_' . $id );
+	$back = juc_url( 'j-uctovnictvo-queue' );
+	$acc  = preg_replace( '/\D/', '', (string) wp_unslash( $_POST['acc'] ?? '' ) ); // phpcs:ignore
+	$p    = function_exists( 'jinv_table' ) ? $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . jinv_table( 'payments' ) . ' WHERE id = %d', $id ), ARRAY_A ) : null; // phpcs:ignore
+	$d    = $p ? jinv_get( (int) $p['doc_id'] ) : null;
+	if ( ! $p || ! $d ) {
+		juc_back_err( $back, 'Úhrada neexistuje.' );
+	}
+	if ( strlen( $acc ) < 3 ) {
+		juc_back_err( $back, 'Zadajte účet, cez ktorý bola úhrada vyrovnaná.' );
+	}
+	$lock = juc_source_lock_name( 'jinv', 'payment', $id );
+	if ( ! juc_lock( $lock, 10 ) ) {
+		juc_back_err( $back, 'Úhrada sa práve účtuje – skúste to o chvíľu znova.' );
+	}
+	if ( juc_entry_by_source( 'jinv', 'payment', $id ) ) {
+		juc_unlock( $lock );
+		juc_queue_count_reset();
+		juc_back_err( $back, 'Úhrada už je zaúčtovaná.' );
+	}
+	$b = juc_build_payment( $p, $d, $acc );
+	if ( ! empty( $b['head']['adv_key'] ) ) {
+		juc_advances_touch();
+	}
+	unset( $b['head']['adv_key'] );
+	$r = juc_post( $b['head'] + array( 'source' => 'jinv', 'source_type' => 'payment', 'source_id' => $id, 'source_hash' => 'manual' ), $b['lines'] );
+	juc_unlock( $lock );
+	juc_queue_count_reset();
+	if ( is_wp_error( $r ) ) {
+		juc_back_err( $back, $r->get_error_message() );
+	}
+	juc_autopost_mark_doc( (int) $d['id'] ); // zúčtovanie preddavku pri faktúre
+	wp_safe_redirect( add_query_arg( 'juc_msg', 'posted', $back ) );
 	exit;
 } );

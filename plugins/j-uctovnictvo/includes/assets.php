@@ -108,7 +108,7 @@ function juc_asset_plan( array $a ) {
 	$m0    = (int) substr( $a['in_use'], 5, 2 );
 	$yrs   = juc_asset_years( $a );
 	$end   = $a['disposed'] ? $a['disposed'] : '';
-	$own   = array_values( array_filter( array_map( fn( $v ) => (float) str_replace( array( ' ', ',' ), array( '', '.' ), $v ), preg_split( '/[;\s]+/', (string) $a['own_plan'] ) ), fn( $v ) => $v > 0 ) );
+	$own   = juc_asset_own_values( $a['own_plan'] );
 	$k     = array( 2 => array( 6, 7 ), 3 => array( 8, 9 ) );
 	$acc   = 0.0;
 	$n     = 0;
@@ -272,6 +272,14 @@ function juc_assets_sync( $through = '' ) {
 			$count( juc_sync_source( 'asset', 'dep', (int) $m, $built ), 'Odpisy ' . substr( $m, 4, 2 ) . '/' . substr( $m, 0, 4 ) );
 		}
 	}
+	// Už zaúčtované mesiace po $through (napr. odpisy do decembra pri uzávierke) – po vyradení, zmene alebo zrušení karty
+	// sa musia tiež opraviť alebo stornovať, inak by zostali podľa starého plánu.
+	global $wpdb;
+	$later = (array) $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT source_id FROM ' . juc_t( 'entries' ) . " WHERE source = 'asset' AND source_type = 'dep' AND status = 'posted' AND source_id > %d ORDER BY source_id", (int) $through ) ); // phpcs:ignore
+	foreach ( $later as $m ) {
+		$m = (string) $m;
+		$count( juc_sync_source( 'asset', 'dep', (int) $m, juc_asset_build_dep( $m, $all ) ), 'Odpisy ' . substr( $m, 4, 2 ) . '/' . substr( $m, 0, 4 ) );
+	}
 	foreach ( $all as $a ) {
 		$count( juc_sync_source( 'asset', 'out', (int) $a['id'], juc_asset_build_out( $a ) ), 'Vyradenie ' . $a['inv_no'] );
 	}
@@ -285,6 +293,38 @@ add_action( 'juc_autopost', function () {
 		juc_assets_sync();
 	}
 }, 20 );
+
+/**
+ * Prvý dátum, ku ktorému karta účtuje (zaradenie, alebo začiatok účtovania pri majetku zaradenom skôr), alebo '' – karta neúčtuje.
+ */
+function juc_asset_first_date( array $a ) {
+	$start = (string) juc_start_date();
+	if ( ! $start || 'small' === $a['kind'] || empty( $a['in_use'] ) ) {
+		return '';
+	}
+	return max( $start, (string) $a['in_use'] );
+}
+
+/**
+ * Dá sa karta zaúčtovať? Overí obdobie bez zakladania rokov (juc_period_check). Ak je prvý mesiac karty v uzavretom
+ * období, odpisy za uzavreté mesiace by sa nezaúčtovali, ale plán by s nimi rátal (nesprávne oprávky).
+ */
+function juc_asset_period_ok( array $a ) {
+	$first = juc_asset_first_date( $a );
+	if ( ! $first ) {
+		return true;
+	}
+	$ok = juc_period_check( $first );
+	if ( is_wp_error( $ok ) ) {
+		return new WP_Error( 'juc_asset_closed', 'Zaradenie alebo prvé odpisy karty (od ' . juc_date( $first ) . ') patria do uzavretého obdobia – odpisy za uzavreté mesiace by sa nezaúčtovali, ale odpisový plán by s nimi rátal. ' . $ok->get_error_message() . ' Zrušte uzávierku mesiaca alebo roka a kartu uložte znova. Majetok zaradený pred začiatkom účtovania v J-Účtovníctve patrí do počiatočných stavov (022/082) – jeho kartu založte, kým je prvé obdobie otvorené.' );
+	}
+	return true;
+}
+
+/** Vlastný plán odpisov (ročné sumy) zo zadaného textu. */
+function juc_asset_own_values( $text ) {
+	return array_values( array_filter( array_map( fn( $v ) => (float) str_replace( array( ' ', ',' ), array( '', '.' ), $v ), preg_split( '/[;\s]+/', (string) $text ) ), fn( $v ) => $v > 0 ) );
+}
 
 /** Nasledujúce inventárne číslo. */
 function juc_asset_next_no( $year ) {
@@ -342,6 +382,21 @@ add_action( 'admin_post_juc_asset_save', function () {
 	if ( $row['acquired'] && $row['in_use'] < $row['acquired'] ) {
 		juc_back_err( $back, 'Dátum zaradenia nemôže byť skôr ako dátum obstarania.' );
 	}
+	if ( 'own' === $row['method'] && 'small' !== $row['kind'] ) {
+		// Vlastný plán musí odpísať celú vstupnú cenu – inak by zvyšok zostal neodpísaný.
+		$own  = juc_asset_own_values( $row['own_plan'] );
+		$osum = round( array_sum( $own ), 2 );
+		$omax = juc_asset_years( $row ) + 1;
+		if ( ! $own ) {
+			juc_back_err( $back, 'Pri vlastnom pláne odpisov zadajte ročné odpisy oddelené bodkočiarkou (súčet = vstupná cena).' );
+		}
+		if ( abs( $osum - $row['price'] ) >= 0.01 ) {
+			juc_back_err( $back, 'Súčet vlastného plánu odpisov (' . juc_money( $osum ) . ' €) sa musí rovnať vstupnej cene (' . juc_money( $row['price'] ) . ' €) – inak by časť ceny zostala neodpísaná alebo by sa odpísalo viac.' );
+		}
+		if ( count( $own ) > $omax ) {
+			juc_back_err( $back, 'Vlastný plán má ' . count( $own ) . ' rokov, odpisovať sa dá najviac ' . $omax . ' rokov (doba odpisovania + rok zaradenia). Upravte plán alebo dobu odpisovania.' );
+		}
+	}
 	$old = $id ? juc_asset( $id ) : null;
 	if ( $old ) {
 		// Zmena karty mení zaúčtované doklady – v uzavretom období to nejde.
@@ -350,11 +405,16 @@ add_action( 'admin_post_juc_asset_save', function () {
 			$changed = $changed || (string) $old[ $k ] !== (string) $row[ $k ];
 		}
 		$from = max( (string) juc_start_date(), min( (string) $old['in_use'], (string) $row['in_use'] ) );
-		if ( $changed && $old['in_use'] && is_wp_error( $ok = juc_can_post( $from ) ) ) {
+		if ( $changed && $old['in_use'] && is_wp_error( $ok = juc_period_check( $from ) ) ) {
 			juc_back_err( $back, 'Kartu nie je možné zmeniť – zmena by menila doklady v uzavretom období. ' . $ok->get_error_message() );
 		}
 		$wpdb->update( juc_t( 'assets' ), $row, array( 'id' => $id ) );
 	} else {
+		// Nová karta: zaradenie aj všetky odpisy podľa plánu sa musia dať zaúčtovať (nie do uzavretého obdobia).
+		$ok = juc_asset_period_ok( $row );
+		if ( is_wp_error( $ok ) ) {
+			juc_back_err( $back, 'Kartu nie je možné založiť. ' . $ok->get_error_message() );
+		}
 		$row['inv_no']     = sanitize_text_field( $in['inv_no'] ?? '' ) ? mb_substr( sanitize_text_field( $in['inv_no'] ), 0, 30 ) : juc_asset_next_no( (int) substr( $row['in_use'], 0, 4 ) );
 		$row['status']     = 'active';
 		$row['created_at'] = current_time( 'mysql' );
@@ -407,15 +467,24 @@ add_action( 'admin_post_juc_asset_delete', function () {
 	}
 	$id = (int) ( $_POST['id'] ?? 0 );
 	check_admin_referer( 'juc_asset_delete_' . $id );
-	$a = juc_asset( $id );
-	if ( $a && $a['in_use'] ) {
-		$ok = juc_can_post( $a['in_use'] );
-		if ( is_wp_error( $ok ) && 'small' !== $a['kind'] ) {
-			juc_back_err( juc_url( 'j-uctovnictvo-assets', array( 'asset' => $id ) ), 'Kartu nie je možné zrušiť – zaradenie je v uzavretom období. Majetok vyraďte.' );
-		}
+	$a    = juc_asset( $id );
+	$back = juc_url( 'j-uctovnictvo-assets', array( 'asset' => $id ) );
+	if ( ! $a || 'deleted' === $a['status'] ) {
+		juc_back_err( juc_url( 'j-uctovnictvo-assets' ), 'Karta neexistuje.' );
+	}
+	// Kontrola bez zakladania účtových období (juc_can_post by založil chýbajúci rok).
+	$ok = juc_asset_period_ok( $a );
+	if ( is_wp_error( $ok ) ) {
+		juc_back_err( $back, 'Kartu nie je možné zrušiť – jej doklady (zaradenie, odpisy) sú v uzavretom období. Majetok vyraďte.' );
 	}
 	$wpdb->update( juc_t( 'assets' ), array( 'status' => 'deleted', 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $id ) );
-	juc_assets_sync();
+	$r = juc_assets_sync();
+	if ( $r['errors'] ) {
+		// Doklady sa nepodarilo stornovať – karta sa vráti do pôvodného stavu a stornované doklady sa znova zaúčtujú.
+		$wpdb->update( juc_t( 'assets' ), array( 'status' => $a['status'], 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $id ) );
+		juc_assets_sync();
+		juc_back_err( $back, 'Kartu nie je možné zrušiť – niektoré doklady sa nepodarilo stornovať: ' . implode( ' · ', array_map( fn( $k, $v ) => $k . ': ' . $v, array_keys( $r['errors'] ), $r['errors'] ) ) );
+	}
 	wp_safe_redirect( juc_url( 'j-uctovnictvo-assets', array( 'juc_msg' => 'asset' ) ) );
 	exit;
 } );
@@ -473,6 +542,9 @@ function juc_asset_card( array $a, $admin = true ) {
 		$rows['Odpisovanie'] = ( 'dnm' === $a['kind'] ? '' : 'skupina ' . (int) $a['dep_group'] . ' · ' ) . juc_asset_years( $a ) . ' r. · ' . ( juc_asset_methods()[ $a['method'] ] ?? '' );
 		$rows['Účty']        = $acc['asset'] . ' majetok · ' . $acc['dep'] . ' oprávky · ' . $acc['cost'] . ' odpisy · zaradenie z ' . $acc['source'];
 		$rows['Oprávky k ' . substr( $cur, 4, 2 ) . '/' . substr( $cur, 0, 4 )] = juc_money( juc_asset_acc_to( $a, $cur ) ) . ' € · zostatková cena ' . juc_money( (float) $a['price'] - juc_asset_acc_to( $a, $cur ) ) . ' €';
+	}
+	if ( 'small' !== $a['kind'] && $plan && 'disposed' !== $a['status'] && end( $plan )['nbv'] >= 0.01 ) {
+		$rows['Upozornenie'] = '⚠ Odpisový plán neodpíše celú vstupnú cenu – zostane neodpísaných ' . juc_money( end( $plan )['nbv'] ) . ' €.' . ( 'own' === $a['method'] ? ' Súčet vlastného plánu sa musí rovnať vstupnej cene – upravte kartu.' : '' );
 	}
 	if ( 'disposed' === $a['status'] ) {
 		$rows['Vyradenie'] = juc_date( $a['disposed'] ) . ' · ' . ( juc_asset_disposals()[ $a['disposed_how'] ][0] ?? '' ) . ( $a['disposed_note'] ? ' · ' . $a['disposed_note'] : '' );
