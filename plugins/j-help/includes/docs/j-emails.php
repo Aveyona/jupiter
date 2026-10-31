@@ -2,7 +2,7 @@
 /**
  * Príručka doplnku J-Pošta / Jupiter Pošta (podstránka J-Pomocník → Príručka J-Pošta).
  * Každá kapitola: id (kotva), názov, ikona (dashicons), HTML obsah. {ASSETS} = priečinok assets/ J-Pomocníka.
- * Pri zmene doplnku J-Pošta sem doplň, čo sa zmenilo (aktuálne podľa verzie 0.5.1).
+ * Pri zmene doplnku J-Pošta sem doplň, čo sa zmenilo (aktuálne podľa verzie 0.5.2).
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -152,8 +152,8 @@ HTML
 <h3>Prečo nepadajú do spamu</h3>
 <p>E-mail odoslaný zo schránky vašej domény prejde kontrolami SPF, DKIM a DMARC, ktoré má poskytovateľ schránky nastavené. E-mail poslaný priamo zo servera webu ich často nespĺňa a končí v spame.</p>
 <ul>
-<li>Odosielateľ z <strong>inej domény</strong> (napr. gmail.com) sa nahradí adresou schránky, meno odosielateľa ostane.</li>
-<li>Adresy <strong>tej istej domény</strong> (napr. <code>eshop@vasa-firma.sk</code> nastavená vo WooCommerce) ostanú – ak ich schránka smie používať (typicky aliasy).</li>
+<li>Odosielateľ, ktorý <strong>nie je adresou schránky ani aliasom</strong>, sa nahradí adresou schránky – napr. gmail.com z formulára alebo predvolená <code>wordpress@vasa-firma.sk</code>, ktorú používa WordPress. Meno odosielateľa ostane a odpoveď pôjde na pôvodnú skutočnú adresu (Odpovedať).</li>
+<li>Adresu, z ktorej posiela e-shop (napr. <code>eshop@vasa-firma.sk</code> vo WooCommerce), <strong>zapíšte medzi aliasy</strong> – potom ostane odosielateľom.</li>
 </ul>
 <h3>Náhradné odoslanie pri chybe</h3>
 <p>Ak sa e-mail webu cez SMTP nepodarí odoslať (napr. zlé heslo, výpadok servera), J-Pošta ho <strong>hneď pošle ešte raz štandardne cez server webu</strong> s pôvodnými údajmi a prílohami. Zákazník tak e-mail dostane a doplnky (napr. J-Fakturácia) ho nepovažujú za neodoslaný.</p>
@@ -269,7 +269,8 @@ HTML
 <table class="jhelp-table">
 <thead><tr><th>Problém</th><th>Čo urobiť</th></tr></thead>
 <tbody>
-<tr><td><strong>Upozornenie „odoslanie e-mailu webu cez SMTP schránky zlyhalo… Údaje neboli akceptované“</strong></td><td>Server schránky odmietol prihlásenie. Skontrolujte heslo (a prihlasovacie meno) v Nastaveniach, uložte, kliknite <em>Otestovať pripojenie</em> a potom <em>Poslať skúšobný e-mail</em>. Kým je chyba, e-maily webu idú náhradne cez server webu.</td></tr>
+<tr><td><strong>Upozornenie „odoslanie e-mailu webu cez SMTP schránky zlyhalo… Údaje neboli akceptované“</strong></td><td>Server schránky odmietol správu – najčastejšie pre adresu odosielateľa, ktorú schránka nesmie používať (vo verzii 0.5.2 sa taká adresa nahrádza adresou schránky; adresy e-shopu zapíšte medzi aliasy). Kliknite <em>Otestovať pripojenie</em> a <em>Poslať skúšobný e-mail</em>. Kým je chyba, e-maily webu idú náhradne cez server webu.</td></tr>
+<tr><td><strong>Upozornenie s chybou prihlásenia (SMTP authenticate)</strong></td><td>Skontrolujte heslo a prihlasovacie meno v Nastaveniach, uložte a otestujte pripojenie.</td></tr>
 <tr><td><strong>Pošta sa nenačíta / chyba IMAP</strong></td><td>Overte server, port a šifrovanie (WebSupport: imap.websupport.sk, 993, SSL/TLS) a heslo. <em>Otestovať pripojenie</em> vypíše presnú chybu.</td></tr>
 <tr><td><strong>„Heslo schránky sa nedá prečítať“</strong></td><td>Zmenili sa bezpečnostné kľúče WordPressu. Zadajte heslo v Nastaveniach znova.</td></tr>
 <tr><td><strong>Odoslané správy nie sú v Odoslaných</strong></td><td>V Nastaveniach zadajte presný názov priečinka Odoslané (zoznam priečinkov vypíše test pripojenia).</td></tr>
