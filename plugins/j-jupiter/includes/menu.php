@@ -59,7 +59,7 @@ add_action( 'admin_menu', function () {
 		remove_menu_page( $slug );
 		$b      = jju_badge( $it['raw'] );
 		$badge += $b;
-		$entries[] = array( $it['title'] . ( $b ? ' <span class="awaiting-mod count-' . $b . '"><span class="pending-count">' . $b . '</span></span>' : '' ), $it['cap'], 'admin.php?page=' . $slug, $it['title'] );
+		$entries[] = array( jju_short( $it['title'] ) . ( $b ? ' <span class="awaiting-mod count-' . $b . '"><span class="pending-count">' . $b . '</span></span>' : '' ), $it['cap'], 'admin.php?page=' . $slug, $it['title'] );
 	}
 	// Pod Jupiterom: Prehľad, doplnky, Nastavenia.
 	$own = (array) ( $submenu[ JJU_SLUG ] ?? array() );
@@ -99,7 +99,7 @@ add_action( 'in_admin_header', function () {
 		return;
 	}
 	$color = jju_colors( array_keys( (array) $jju_items ) )[ $jju_child[ $plugin_page ] ] ?? '#2271b1';
-	echo '<div class="jju-crumb" style="--app:' . esc_attr( $color ) . '"><a href="' . esc_url( admin_url( 'admin.php?page=' . JJU_SLUG ) ) . '"><img src="' . esc_attr( jju_menu_icon() ) . '" alt="" width="16" height="16"> Jupiter</a> <span class="sep">›</span> <strong>' . esc_html( $top['title'] ) . '</strong>';
+	echo '<div class="jju-crumb" style="--app:' . esc_attr( $color ) . '"><a href="' . esc_url( admin_url( 'admin.php?page=' . JJU_SLUG ) ) . '"><img src="' . esc_attr( jju_menu_icon() ) . '" alt="" width="16" height="16"> Jupiter</a> <span class="sep">›</span> <strong>' . esc_html( jju_short( $top['title'] ) ) . '</strong>';
 	if ( count( $top['subs'] ) > 1 ) {
 		echo '<nav aria-label="' . esc_attr( $top['title'] ) . '">';
 		foreach ( $top['subs'] as $s ) {

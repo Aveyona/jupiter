@@ -25,6 +25,11 @@ function jju_clean_title( $t ) {
 	return trim( wp_strip_all_tags( $t ) );
 }
 
+/** Názov pod Jupiterom bez predpony „J-“ (J-Sklad → Sklad). */
+function jju_short( $t ) {
+	return preg_replace( '/^J-\s*/u', '', (string) $t );
+}
+
 /** Počítadlo z názvu položky menu (napr. „J-Účtovníctvo 8“). */
 function jju_badge( $raw ) {
 	return preg_match( '#<span[^>]*class="[^"]*(update-plugins|awaiting-mod|count)[^"]*"[^>]*>.*?(\d+).*?</span>#is', (string) $raw, $m ) ? (int) $m[2] : 0;

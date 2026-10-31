@@ -22,7 +22,7 @@ function jju_render_settings() {
 		. '<label class="jju-switchrow"><input type="checkbox" name="merge" value="1" ' . checked( ! empty( $s['merge'] ), true, false ) . '><span class="jju-switch" aria-hidden="true"></span><span><strong>Zlúčiť doplnky do položky Jupiter</strong><small>Zapnuté: v ľavom menu je len Jupiter, doplnky sa ukážu po prejdení myšou a na nástenke Jupiter. Vypnuté: každý doplnok J- má v menu vlastnú položku.</small></span></label>';
 	echo '<h2>Farby doplnkov</h2><p class="description">Farba dlaždice na nástenke a navigácie na stránke doplnku.</p><table class="widefat striped jju-colors"><thead><tr><th>Doplnok</th><th>Farba</th></tr></thead><tbody>';
 	foreach ( $items as $slug => $it ) {
-		echo '<tr><td><span class="jju-dot" style="background:' . esc_attr( $colors[ $slug ] ) . '"></span> ' . esc_html( $it['title'] ) . '</td><td><input type="color" name="colors[' . esc_attr( $slug ) . ']" value="' . esc_attr( $colors[ $slug ] ) . '" aria-label="' . esc_attr( 'Farba: ' . $it['title'] ) . '"></td></tr>';
+		echo '<tr><td><span class="jju-dot" style="background:' . esc_attr( $colors[ $slug ] ) . '"></span> ' . esc_html( jju_short( $it['title'] ) ) . '</td><td><input type="color" name="colors[' . esc_attr( $slug ) . ']" value="' . esc_attr( $colors[ $slug ] ) . '" aria-label="' . esc_attr( 'Farba: ' . $it['title'] ) . '"></td></tr>';
 	}
 	echo '</tbody></table>';
 	submit_button( 'Uložiť' );

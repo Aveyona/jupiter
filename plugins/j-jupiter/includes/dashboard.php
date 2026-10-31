@@ -26,7 +26,7 @@ function jju_tile( $slug, $it, $color, $pinned ) {
 	$h     = '<div class="jju-tile' . ( $pinned ? ' is-pinned' : '' ) . '" style="--app:' . esc_attr( $color ) . '">'
 		. '<a class="jju-pin" href="' . esc_url( $pin ) . '" title="' . ( $pinned ? 'Odopnúť' : 'Pripnúť – zobrazí sa vždy hore' ) . '" aria-label="' . esc_attr( ( $pinned ? 'Odopnúť ' : 'Pripnúť ' ) . $it['title'] ) . '"><span class="dashicons dashicons-admin-post" aria-hidden="true"></span></a>'
 		. '<a class="jju-main" href="' . esc_url( jju_page_url( $slug ) ) . '">' . jju_icon( $it['icon'] )
-		. '<strong>' . esc_html( $it['title'] ) . '</strong>' . ( $badge ? '<i class="jju-badge" title="Čaká na vybavenie">' . (int) $badge . '</i>' : '' )
+		. '<strong>' . esc_html( jju_short( $it['title'] ) ) . '</strong>' . ( $badge ? '<i class="jju-badge" title="Čaká na vybavenie">' . (int) $badge . '</i>' : '' )
 		. '<span class="jju-desc">' . esc_html( jju_desc( $slug ) ) . '</span>'
 		. ( $ver ? '<span class="jju-ver">Verzia ' . esc_html( $ver ) . '</span>' : '' ) . '</a>';
 	$subs = array_values( array_filter( $it['subs'], function ( $s ) use ( $slug ) {
