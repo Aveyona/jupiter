@@ -8,10 +8,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Je platba dobierkou? */
+/**
+ * Je platba dobierkou? Rozhoduje spôsob platby – objednávka na dobierku je v stave Spracováva sa, ktorý WooCommerce
+ * považuje za „zaplatený“, hoci peniaze vyberie až dopravca. Dobierka sa preto neodvodzuje od is_paid().
+ */
 function jdp_is_cod( $order ) {
 	$m = array_filter( array_map( 'trim', explode( ',', (string) jdp_opt( 'cod_methods' ) ) ) );
-	return in_array( $order->get_payment_method(), $m, true ) && ! $order->is_paid();
+	return in_array( $order->get_payment_method(), $m, true ) && ! $order->has_status( array( 'refunded', 'cancelled', 'failed' ) );
+}
+
+/**
+ * Je objednávka pripravená na odoslanie? Spracováva sa (zaplatená alebo dobierka), Pozastavené len pri dobierke –
+ * nezaplatený prevod (Pozastavené / Čaká na platbu) sa neposiela.
+ */
+function jdp_ready_to_ship( $order ) {
+	return $order->has_status( 'processing' ) || ( $order->has_status( 'on-hold' ) && jdp_is_cod( $order ) );
 }
 
 /** Hmotnosť objednávky (kg). */
@@ -93,8 +104,20 @@ function jdp_create_packet( $order, array $over = array() ) {
 	if ( 'pp' === jdp_order_kind( $order ) && ! $order->get_meta( '_jdp_point' ) ) {
 		return new WP_Error( 'jdp', 'Objednávka nemá vybrané výdajné miesto.' );
 	}
+	// Poistka proti dvojkliku / súbežnému podaniu: jedna objednávka sa podáva len raz naraz.
+	$lock = 'jdp_creating_' . $order->get_id();
+	if ( get_transient( $lock ) ) {
+		return new WP_Error( 'jdp', 'Zásielka sa práve podáva – počkajte chvíľu a obnovte stránku.' );
+	}
+	set_transient( $lock, 1, 60 );
+	$fresh = wc_get_order( $order->get_id() );
+	if ( $fresh && $fresh->get_meta( '_jdp_packet_id' ) && 11 !== (int) $fresh->get_meta( '_jdp_status' ) ) {
+		delete_transient( $lock );
+		return new WP_Error( 'jdp', 'Zásielka je už podaná (' . $fresh->get_meta( '_jdp_barcode' ) . ').' );
+	}
 	$attr = jdp_packet_attributes( $order, $over );
 	$r    = jdp_api( 'createPacket', array( 'packetAttributes' => $attr ) );
+	delete_transient( $lock );
 	if ( is_wp_error( $r ) ) {
 		jdp_log( $order, 'zásielku sa nepodarilo podať – ' . $r->get_error_message() );
 		$order->save();
@@ -164,7 +187,18 @@ add_action( 'jdp_tracking', function () {
 	if ( ! jdp_ready() ) {
 		return;
 	}
-	$orders = wc_get_orders( array( 'limit' => 100, 'meta_key' => '_jdp_packet_id', 'meta_compare' => 'EXISTS', 'date_created' => '>' . ( time() - 60 * DAY_IN_SECONDS ) ) );
+	// Len zásielky, ktoré ešte nie sú v konečnom stave (doručená, vrátená, zrušená) – najstaršie kontrolované ako prvé.
+	$orders = wc_get_orders( array(
+		'limit'        => 200,
+		'type'         => 'shop_order',
+		'date_created' => '>' . ( time() - 60 * DAY_IN_SECONDS ),
+		'meta_query'   => array( // phpcs:ignore
+			array( 'key' => '_jdp_packet_id', 'compare' => 'EXISTS' ),
+			array( 'key' => '_jdp_status', 'value' => array( 7, 10, 11 ), 'compare' => 'NOT IN' ),
+		),
+		'orderby'      => 'date',
+		'order'        => 'ASC',
+	) );
 	foreach ( $orders as $o ) {
 		if ( ! jdp_status_final( (int) $o->get_meta( '_jdp_status' ) ) ) {
 			jdp_refresh_status( $o );
@@ -215,6 +249,14 @@ add_action( 'admin_post_jdp_action', function () {
 		if ( is_wp_error( $pdf ) ) {
 			wp_die( esc_html( $pdf->get_error_message() ), 'Štítky Packeta', array( 'back_link' => true ) );
 		}
+		// Poznačiť vytlačené štítky (filter Na tlač na stránke Zásielky).
+		foreach ( $ids as $id ) {
+			$o = wc_get_order( $id );
+			if ( $o && in_array( (string) $o->get_meta( '_jdp_packet_id' ), $pids, true ) ) {
+				$o->update_meta_data( '_jdp_label_at', current_time( 'mysql' ) );
+				$o->save_meta_data();
+			}
+		}
 		nocache_headers();
 		header( 'Content-Type: application/pdf' );
 		header( 'Content-Disposition: inline; filename="packeta-stitky-' . gmdate( 'Ymd-His' ) . '.pdf"' );
@@ -237,12 +279,14 @@ add_action( 'admin_post_jdp_action', function () {
 			$r = jdp_create_packet( $o, $over );
 		} elseif ( 'cancel' === $act ) {
 			$r = jdp_cancel_packet( $o );
+		} elseif ( 'claim' === $act ) {
+			$r = jdp_create_claim( $o );
 		} else {
 			$r = jdp_refresh_status( $o );
 		}
 		is_wp_error( $r ) ? $err[] = '#' . $o->get_order_number() . ': ' . $r->get_error_message() : $ok++;
 	}
-	$names = array( 'create' => 'Podané zásielky', 'cancel' => 'Zrušené zásielky', 'status' => 'Aktualizovaný stav' );
+	$names = array( 'create' => 'Podané zásielky', 'cancel' => 'Zrušené zásielky', 'status' => 'Aktualizovaný stav', 'claim' => 'Spätné zásielky' );
 	set_transient( 'jdp_msg_' . get_current_user_id(), ( $names[ $act ] ?? 'Hotovo' ) . ': ' . $ok . ( $err ? '. Chyby: ' . implode( ' · ', $err ) : '.' ), 120 );
 	wp_safe_redirect( add_query_arg( 'jdp_msg', 1, $back ) );
 	exit;
@@ -284,9 +328,13 @@ function jdp_order_box( $post_or_order ) {
 		$bar = (string) $o->get_meta( '_jdp_barcode' );
 		echo '<p>Zásielka <a href="' . esc_url( jdp_tracking_url( $bar ) ) . '" target="_blank">' . esc_html( $bar ) . '</a><br>Stav: <strong>' . esc_html( (string) $o->get_meta( '_jdp_status_text' ) ) . '</strong>' . ( (float) $o->get_meta( '_jdp_cod' ) > 0 ? '<br>Dobierka: ' . wp_kses_post( wc_price( $o->get_meta( '_jdp_cod' ) ) ) : '' ) . '</p>';
 		echo '<p><a class="button button-primary" target="_blank" href="' . esc_url( jdp_action_url( 'labels', $o->get_id() ) ) . '">Štítok PDF</a> <a class="button" href="' . esc_url( jdp_action_url( 'status', $o->get_id() ) ) . '">Obnoviť stav</a></p>';
+		if ( $o->get_meta( '_jdp_label_at' ) ) {
+			echo '<p class="description">Štítok vytlačený ' . esc_html( date_i18n( 'j. n. H:i', strtotime( (string) $o->get_meta( '_jdp_label_at' ) ) ) ) . '.</p>';
+		}
 		if ( (int) $o->get_meta( '_jdp_status' ) <= 1 ) {
 			echo '<p><a href="' . esc_url( jdp_action_url( 'cancel', $o->get_id() ) ) . '" onclick="return confirm(\'Zrušiť zásielku v Packete?\')" style="color:#b32d2e">Zrušiť zásielku</a></p>';
 		}
+		jdp_claim_box( $o );
 		return;
 	}
 	$cod = jdp_is_cod( $o ) ? (float) $o->get_total() : 0;
@@ -324,3 +372,81 @@ add_action( 'admin_notices', function () {
 		echo '<div class="notice notice-' . ( false !== strpos( $m, 'Chyby' ) || false !== strpos( $m, 'zlyhalo' ) ? 'warning' : 'success' ) . ' is-dismissible"><p>' . esc_html( $m ) . '</p></div>';
 	}
 } );
+
+/* ---------------------------------------------------------------- Automatické podanie zásielky */
+
+// Objednávka prešla do stavu Spracováva sa (zaplatená kartou, prevod, dobierka) → podanie na pozadí (nezdržiava pokladňu).
+add_action( 'woocommerce_order_status_processing', function ( $order_id ) {
+	if ( ! jdp_opt( 'auto_create' ) || ! jdp_ready() ) {
+		return;
+	}
+	$o = wc_get_order( $order_id );
+	if ( ! $o || ! jdp_order_kind( $o ) || $o->get_meta( '_jdp_packet_id' ) ) {
+		return;
+	}
+	if ( function_exists( 'as_enqueue_async_action' ) ) {
+		as_enqueue_async_action( 'jdp_auto_create', array( 'order_id' => (int) $order_id ), 'j-doprava' );
+	} else {
+		wp_schedule_single_event( time(), 'jdp_auto_create', array( (int) $order_id ) );
+	}
+} );
+add_action( 'jdp_auto_create', function ( $order_id ) {
+	$o = wc_get_order( absint( $order_id ) );
+	if ( ! $o || $o->get_meta( '_jdp_packet_id' ) || ! $o->has_status( 'processing' ) ) {
+		return;
+	}
+	$r = jdp_create_packet( $o );
+	if ( ! is_wp_error( $r ) ) {
+		$o->add_order_note( 'Packeta: zásielka podaná automaticky (J-Doprava → Nastavenia → Automatické podanie).' );
+	}
+} );
+
+/* ---------------------------------------------------------------- Spätná zásielka (vrátenie / reklamácia) */
+
+/**
+ * Spätná zásielka cez Packetu (reklamačný asistent): zákazník povie na ľubovoľnom výdajnom mieste kód
+ * a zásielku pošle späť bez tlače štítku. Meta _jdp_claim = [ id, barcode, password, at ].
+ */
+function jdp_create_claim( $order ) {
+	if ( ! jdp_order_kind( $order ) && ! $order->get_meta( '_jdp_packet_id' ) ) {
+		return new WP_Error( 'jdp', 'Objednávka nemá dopravu Packeta.' );
+	}
+	$c = $order->get_meta( '_jdp_claim' );
+	if ( is_array( $c ) && ! empty( $c['id'] ) ) {
+		return new WP_Error( 'jdp', 'Spätná zásielka už existuje (' . $c['barcode'] . ').' );
+	}
+	$phone = preg_replace( '/[^\d+]/', '', (string) ( $order->get_shipping_phone() ? $order->get_shipping_phone() : $order->get_billing_phone() ) );
+	$r     = jdp_api( 'createPacketClaimWithPassword', array(
+		'claimWithPasswordAttributes' => array(
+			'number'           => 'R' . $order->get_order_number(),
+			'email'            => $order->get_billing_email(),
+			'phone'            => $phone,
+			'value'            => number_format( (float) $order->get_total(), 2, '.', '' ),
+			'currency'         => $order->get_currency(),
+			'eshop'            => (string) jdp_opt( 'sender' ),
+			'sendLabelToEmail' => false,
+		),
+	) );
+	if ( is_wp_error( $r ) ) {
+		jdp_log( $order, 'spätnú zásielku sa nepodarilo vytvoriť – ' . $r->get_error_message() );
+		$order->save();
+		return $r;
+	}
+	$c = array( 'id' => (string) $r->id, 'barcode' => (string) ( $r->barcode ? $r->barcode : 'Z' . $r->id ), 'password' => (string) $r->password, 'at' => current_time( 'mysql' ) );
+	$order->update_meta_data( '_jdp_claim', $c );
+	jdp_log( $order, 'spätná zásielka ' . $c['barcode'] . ' vytvorená, kód pre zákazníka: ' . $c['password'] . '.' );
+	$order->save();
+	return true;
+}
+
+/** Spätná zásielka v boxe Packeta (doručená alebo podaná zásielka). */
+function jdp_claim_box( $o ) {
+	$c = $o->get_meta( '_jdp_claim' );
+	if ( is_array( $c ) && ! empty( $c['id'] ) ) {
+		echo '<p><strong>Spätná zásielka</strong> <a href="' . esc_url( jdp_tracking_url( $c['barcode'] ) ) . '" target="_blank">' . esc_html( $c['barcode'] ) . '</a><br>Kód pre zákazníka: <code>' . esc_html( $c['password'] ) . '</code><br><small>Zákazník kód povie na ľubovoľnom výdajnom mieste Packety – štítok netlačí.</small></p>';
+		return;
+	}
+	if ( 7 === (int) $o->get_meta( '_jdp_status' ) ) {
+		echo '<p><a href="' . esc_url( jdp_action_url( 'claim', $o->get_id() ) ) . '" onclick="return confirm(\'Vytvoriť spätnú zásielku (vrátenie / reklamácia)? Zákazník dostane kód, s ktorým tovar pošle späť z výdajného miesta Packety.\')">Spätná zásielka (vrátenie / reklamácia)</a></p>';
+	}
+}

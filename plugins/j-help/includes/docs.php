@@ -41,6 +41,16 @@ function jhelp_docs_list() {
 			'hero_w'    => 1200,
 			'hero_h'    => 620,
 		),
+		'j-doprava' => array(
+			'name'      => 'J-Doprava',
+			'title'     => 'J-Doprava',
+			'fn'        => 'jhelp_doc_j_doprava',
+			'ver_const' => 'JDP_VERSION',
+			'badge'     => 'Packeta, pošta a osobný odber',
+			'hero'      => 'img/j-doprava-schema.svg',
+			'hero_w'    => 1200,
+			'hero_h'    => 620,
+		),
 		'j-sklad'  => array(
 			'name'      => 'J-Sklad',
 			'title'     => 'J-Sklad',

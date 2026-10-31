@@ -166,6 +166,25 @@ function jhelp_roadmap() {
 			),
 		),
 		array(
+			'title'  => 'J-Doprava 0.3 – opravy, pošta, osobný odber, príručka',
+			'state'  => 'done',
+			'points' => array(
+				'Oprava dobierky (objednávka v stave Spracováva sa sa posielala bez dobierky), upozornenie na nečitateľné API heslo, spoľahlivejšie sledovanie, poistka proti dvojitému podaniu.',
+				'Automatické podanie zásielky Packeta, záložka Na tlač, spätná zásielka (vrátenie / reklamácia) s kódom pre zákazníka.',
+				'Slovenská pošta – export do ePodacieho hárku; osobný odber – e-mail „pripravené na odber“; výdajné miesto a stav zásielky v J-Objednávkach.',
+				'Podrobná príručka J-Doprava v J-Pomocníkovi.',
+			),
+		),
+		array(
+			'title'  => 'J-Doprava – ďalej',
+			'state'  => 'next',
+			'points' => array(
+				'Výplaty dobierok od Packety a ich párovanie s platbami v banke (J-Fakturácia).',
+				'Slovenská pošta cez API (podanie bez súboru, sledovanie zásielok).',
+				'Ďalší prepravcovia (napr. kuriérske spoločnosti).',
+			),
+		),
+		array(
 			'title'  => 'J-Sklad a ďalšie doplnky',
 			'state'  => 'next',
 			'points' => array(

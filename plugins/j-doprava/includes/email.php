@@ -10,7 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Stavy Packety, ktoré znamenajú „zásielka je na ceste“ (odovzdaná Packete). */
 function jdp_shipped_codes() {
-	return apply_filters( 'jdp_shipped_codes', array( 2, 3, 4, 6, 12, 31 ) );
+	// Aj „pripravená na výdaj“ (5) – zásielka môže medzi hodinovými kontrolami preskočiť stavy „na ceste“.
+	return apply_filters( 'jdp_shipped_codes', array( 2, 3, 4, 5, 6, 12, 25, 31 ) );
 }
 
 add_filter( 'woocommerce_email_classes', function ( $emails ) {
