@@ -51,6 +51,16 @@ function jhelp_docs_list() {
 			'hero_w'    => 1200,
 			'hero_h'    => 620,
 		),
+		'j-platby' => array(
+			'name'      => 'J-Platby',
+			'title'     => 'J-Platby',
+			'fn'        => 'jhelp_doc_j_platby',
+			'ver_const' => 'JPL_VERSION',
+			'badge'     => 'Platby kartou cez Stripe',
+			'hero'      => 'img/j-platby-schema.svg',
+			'hero_w'    => 1200,
+			'hero_h'    => 620,
+		),
 		'j-sklad'  => array(
 			'name'      => 'J-Sklad',
 			'title'     => 'J-Sklad',

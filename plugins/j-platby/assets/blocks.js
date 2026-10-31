@@ -21,7 +21,12 @@
 		ariaLabel: title,
 		content: el( Content ),
 		edit: el( Content ),
-		canMakePayment: function () { return true; },
+		// Stripe prijme najmenej 0,50 €.
+		canMakePayment: function ( a ) {
+			var t = a && a.cartTotals;
+			if ( ! t || ! t.total_price ) { return true; }
+			return parseInt( t.total_price, 10 ) / Math.pow( 10, t.currency_minor_unit || 2 ) >= 0.5;
+		},
 		placeOrderButtonLabel: dec( d.button || 'Zaplatiť kartou' ),
 		supports: { features: d.supports || [ 'products' ] }
 	} );

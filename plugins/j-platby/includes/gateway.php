@@ -125,8 +125,26 @@ function jpl_gw_opt( $k, $def = '' ) {
 	return isset( $s[ $k ] ) && '' !== $s[ $k ] ? $s[ $k ] : $def;
 }
 
-/** Vytvorí Stripe Checkout Session pre objednávku a vráti URL platobnej stránky. */
-function jpl_create_session( WC_Order $order ) {
+/**
+ * Platnosť platobnej stránky (s). Pokladňa: kým WooCommerce nezruší nezaplatenú objednávku (Držať zásoby, min.),
+ * najmenej 36 minút (Stripe vyžaduje aspoň 30 minút, čas sa zaokrúhľuje na 5 minút). Odkaz na platbu z administrácie: 24 hodín (maximum Stripe).
+ */
+function jpl_session_ttl( $link = false ) {
+	if ( $link ) {
+		return 23 * HOUR_IN_SECONDS + 55 * MINUTE_IN_SECONDS;
+	}
+	$hold = (int) get_option( 'woocommerce_hold_stock_minutes', 60 );
+	if ( 'yes' !== get_option( 'woocommerce_manage_stock' ) || $hold <= 0 ) {
+		return 23 * HOUR_IN_SECONDS + 55 * MINUTE_IN_SECONDS;
+	}
+	return max( 36 * MINUTE_IN_SECONDS, min( 23 * HOUR_IN_SECONDS + 55 * MINUTE_IN_SECONDS, ( $hold - 2 ) * MINUTE_IN_SECONDS ) );
+}
+
+/**
+ * Vytvorí Stripe Checkout Session pre objednávku a vráti URL platobnej stránky.
+ * $link = odkaz na platbu z administrácie (objednávka môže mať inú platobnú metódu, napr. prevod).
+ */
+function jpl_create_session( WC_Order $order, $link = false ) {
 	if ( ! jpl_ready() ) {
 		return new WP_Error( 'jpl_nokey', 'Platba kartou nie je nastavená.' );
 	}
@@ -167,14 +185,24 @@ function jpl_create_session( WC_Order $order ) {
 		),
 		'success_url'          => $success,
 		'cancel_url'           => $order->get_checkout_payment_url(),
+		// Zaokrúhlené na 5 minút – rovnaké parametre (a idempotentný kľúč) pri opakovanom odoslaní v tom istom okne.
+		'expires_at'           => (int) ( floor( time() / 300 ) * 300 ) + jpl_session_ttl( $link ),
 	);
 	$params = apply_filters( 'jpl_session_params', $params, $order );
-	$s      = jpl_stripe( 'POST', 'checkout/sessions', $params, 'jpl-' . $order->get_id() . '-' . md5( jpl_build_query( $params ) . wp_date( 'YmdH' ) ) );
+	$s      = jpl_stripe( 'POST', 'checkout/sessions', $params, 'jpl-' . $order->get_id() . ( $link ? '-link' : '' ) . '-' . md5( jpl_build_query( $params ) ) );
 	if ( is_wp_error( $s ) ) {
 		return $s;
 	}
 	$order->update_meta_data( '_jpl_session', $s['id'] );
+	$order->update_meta_data( '_jpl_session_exp', (int) ( $s['expires_at'] ?? 0 ) );
 	$order->update_meta_data( '_jpl_mode', jpl_mode() );
+	if ( $link ) {
+		$order->update_meta_data( '_jpl_link', $s['url'] );
+		$order->add_order_note( 'Stripe: vytvorený odkaz na platbu kartou (platí do ' . wp_date( 'j. n. Y H:i', (int) ( $s['expires_at'] ?? 0 ) ) . ')' . ( jpl_is_test() ? ' – TESTOVACÍ REŽIM' : '' ) . '.' );
+		$order->save();
+		return $s['url'];
+	}
+	$order->delete_meta_data( '_jpl_link' );
 	if ( ! $order->has_status( 'pending' ) ) {
 		$order->set_status( 'pending' );
 	}
@@ -222,6 +250,12 @@ function jpl_mark_paid( WC_Order $order, array $session ) {
 	}
 	$order->update_meta_data( '_jpl_pi', $pi );
 	$order->update_meta_data( '_jpl_session', $session['id'] );
+	if ( 'jpl_stripe' !== $order->get_payment_method() ) {
+		// Zaplatené cez odkaz na platbu kartou – objednávka mala inú platobnú metódu (napr. prevod).
+		$order->add_order_note( 'Stripe: objednávka zaplatená kartou cez odkaz na platbu (pôvodne ' . $order->get_payment_method_title() . ').' );
+		$order->set_payment_method( 'jpl_stripe' );
+		$order->set_payment_method_title( jpl_gw_opt( 'title', 'Platba kartou' ) );
+	}
 	$amount = isset( $session['amount_total'] ) ? (int) $session['amount_total'] / 100 : (float) $order->get_total();
 	if ( abs( $amount - (float) $order->get_total() ) >= 0.01 ) {
 		$order->add_order_note( sprintf( 'Stripe: POZOR – zaplatená suma %s sa líši od sumy objednávky %s. Skontrolujte objednávku.', wc_price( $amount ), wc_price( $order->get_total() ) ) );
@@ -273,7 +307,7 @@ add_action( 'template_redirect', function () {
 	$order = wc_get_order( absint( $wp->query_vars['order-received'] ?? 0 ) );
 	$key   = sanitize_text_field( wp_unslash( $_GET['key'] ?? '' ) ); // phpcs:ignore
 	$sid   = sanitize_text_field( wp_unslash( $_GET['jpl_session'] ) ); // phpcs:ignore
-	if ( ! $order || ! hash_equals( $order->get_order_key(), $key ) || 'jpl_stripe' !== $order->get_payment_method() || $order->is_paid() ) {
+	if ( ! $order || ! hash_equals( $order->get_order_key(), $key ) || ( 'jpl_stripe' !== $order->get_payment_method() && ! $order->get_meta( '_jpl_link' ) ) || $order->is_paid() ) {
 		return;
 	}
 	if ( $sid !== (string) $order->get_meta( '_jpl_session' ) ) {
@@ -289,3 +323,11 @@ add_action( 'woocommerce_thankyou_jpl_stripe', function ( $order_id ) {
 		echo '<p class="woocommerce-info">Platbu kartou ešte overujeme. Potvrdenie vám príde e-mailom. Ak ste platbu nedokončili, môžete <a href="' . esc_url( $order->get_checkout_payment_url() ) . '">zaplatiť znova</a>.</p>';
 	}
 } );
+
+// Nezaplatenú objednávku nerušiť, kým zákazník ešte môže zaplatiť na platobnej stránke Stripe (Držať zásoby).
+add_filter( 'woocommerce_cancel_unpaid_order', function ( $cancel, $order = null ) {
+	if ( $cancel && $order instanceof WC_Order && 'jpl_stripe' === $order->get_payment_method() && (int) $order->get_meta( '_jpl_session_exp' ) > time() ) {
+		return false;
+	}
+	return $cancel;
+}, 10, 2 );

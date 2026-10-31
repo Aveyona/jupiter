@@ -185,6 +185,23 @@ function jhelp_roadmap() {
 			),
 		),
 		array(
+			'title'  => 'J-Platby 0.2 – opravy, odkaz na platbu, export, príručka',
+			'state'  => 'done',
+			'points' => array(
+				'Upozornenie na nečitateľný kľúč Stripe a odmietnutý webhook, platobná stránka zladená s rušením nezaplatených objednávok, čistá suma po vrátení, bloková pokladňa pod 0,50 €.',
+				'Odkaz na platbu kartou z detailu nezaplatenej objednávky, export platieb do CSV, stav webhooku na nástenke Jupiter.',
+				'Podrobná príručka J-Platby v J-Pomocníkovi.',
+			),
+		),
+		array(
+			'title'  => 'J-Platby – ďalej',
+			'state'  => 'next',
+			'points' => array(
+				'Výplaty zo Stripe v administrácii a ich párovanie s pohybom v banke (J-Fakturácia).',
+				'Upozornenie správcovi e-mailom pri platbe s inou sumou, ako má objednávka.',
+			),
+		),
+		array(
 			'title'  => 'J-Sklad a ďalšie doplnky',
 			'state'  => 'next',
 			'points' => array(
