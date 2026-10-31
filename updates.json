@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.12.1",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.12.1/j-help-v1.12.1.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.12.1",
+      "version": "1.12.2",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.12.2/j-help-v1.12.2.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.12.2",
       "published": "2026-10-31",
-      "notes": "Podpísané vydania – aktualizácie sa inštalujú len s platným podpisom. Overenie balíkov pred inštaláciou (SHA-256, podpis), len doplnky z rodiny Jupiter. Príručka Jupiter (10 kapitol, schéma) – príručku majú všetky doplnky. Príručka J-Notes (12 kapitol, schéma) a plán vývoja J-Notes. Príručka J-Kupóny (12 kapitol, schéma) a plán vývoja J-Kupónov. Príručka J-Účtovníctvo (16 kapitol, schéma) a plán vývoja J-Účtovníctva. Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Príručka J-Účtovníctvo: kapitola Daňové priznanie a účtovná závierka (XML). Podpísané vydania – aktualizácie sa inštalujú len s platným podpisom. Overenie balíkov pred inštaláciou (SHA-256, podpis), len doplnky z rodiny Jupiter. Príručka Jupiter (10 kapitol, schéma) – príručku majú všetky doplnky. Príručka J-Notes (12 kapitol, schéma) a plán vývoja J-Notes. Príručka J-Kupóny (12 kapitol, schéma) a plán vývoja J-Kupónov. Príručka J-Účtovníctvo (16 kapitol, schéma) a plán vývoja J-Účtovníctva. Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
       "version": "0.12.0",
@@ -37,11 +37,11 @@
       "notes": "Storno dokladu sa hneď prejaví v účtovníctve. Merné jednotky pri produkte (kus, hodina, kg, mesiac, licencia… aj vlastné), zobrazené pri zásobe, v dokladoch, pohyboch a balíčkoch, voliteľne aj pri cene v obchode. Balíčky (zostavy): k produktu sa v košíku automaticky pridajú súčasti (napr. členstvo a hodiny poradenstva) za bežnú alebo vlastnú cenu; prehľad J-Sklad → Balíčky. Akcie a novinky: hromadné zľavy s dátumom od – do a názvom akcie, novinky ručne alebo automaticky, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky]. Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
     },
     "j-uctovnictvo": {
-      "version": "0.7.1",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-uctovnictvo-v0.7.1/j-uctovnictvo-v0.7.1.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-uctovnictvo-v0.7.1",
+      "version": "0.8.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-uctovnictvo-v0.8.0/j-uctovnictvo-v0.8.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-uctovnictvo-v0.8.0",
       "published": "2026-10-31",
-      "notes": "Dobierka na peniaze na ceste, výplaty Packety a Stripe, vrátenie peňazí prevodom, okamžité storno, upozornenie na ručné zmeny zásob. Termíny a daň (kalendár povinností, pracovný list DPPO, rozdelenie výsledku hospodárenia), odsúhlasenie banky, prehľad pre majiteľa, pravidlá banky podľa názvu a textu, vylúčenie dokladu z automatického účtovania, rozpis počiatočného saldokonta po faktúrach a desiatky opráv automatického účtovania, uzávierky a výkazov. Majetok a odpisy (karty majetku, odpisový plán, zaradenie, mesačné odpisy, vyradenie) a uzávierka (mesiac, ročná uzávierka s daňou z príjmov a minimálnou daňou, uzavretie kníh 710/702, otvorenie roka 701, poznámky Úč MÚJ 3-01). Na riešenie: úlohy, rozhodnutia, otázky pre účtovníka a automatické kontroly. Pokladňa: pokladničné doklady a kniha. Import účtovníctva z OBERON-u (Exalogic) po rokoch. Podvojné účtovníctvo pre s. r. o.: sprievodca založením, overený účtový rozvrh, účtovné doklady so stornom, denník, hlavná kniha, obratová predvaha, saldokonto, automatické účtovanie a účtovná závierka mikro účtovnej jednotky (Úč MÚJ)."
+      "notes": "Daňové priznanie DPPO a účtovná závierka Úč MÚJ ako súbory XML na portál Finančnej správy, výpočet riadkov priznania z účtovníctva a kontroly pred podaním. Dobierka na peniaze na ceste, výplaty Packety a Stripe, vrátenie peňazí prevodom, okamžité storno, upozornenie na ručné zmeny zásob. Termíny a daň (kalendár povinností, pracovný list DPPO, rozdelenie výsledku hospodárenia), odsúhlasenie banky, prehľad pre majiteľa, pravidlá banky podľa názvu a textu, vylúčenie dokladu z automatického účtovania, rozpis počiatočného saldokonta po faktúrach a desiatky opráv automatického účtovania, uzávierky a výkazov. Majetok a odpisy (karty majetku, odpisový plán, zaradenie, mesačné odpisy, vyradenie) a uzávierka (mesiac, ročná uzávierka s daňou z príjmov a minimálnou daňou, uzavretie kníh 710/702, otvorenie roka 701, poznámky Úč MÚJ 3-01). Na riešenie: úlohy, rozhodnutia, otázky pre účtovníka a automatické kontroly. Pokladňa: pokladničné doklady a kniha. Import účtovníctva z OBERON-u (Exalogic) po rokoch. Podvojné účtovníctvo pre s. r. o.: sprievodca založením, overený účtový rozvrh, účtovné doklady so stornom, denník, hlavná kniha, obratová predvaha, saldokonto, automatické účtovanie a účtovná závierka mikro účtovnej jednotky (Úč MÚJ)."
     },
     "j-notes": {
       "version": "0.2.1",
