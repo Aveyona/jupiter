@@ -36,6 +36,16 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		'J-Sklad',
 	);
 	$guides[] = array(
+		'Merné jednotky',
+		array(
+			'Úprava produktu → Zásoby → Jednotka: kus (predvolené), hodina, minúta, deň, týždeň, mesiac, rok, kg, g, l, ml, m, m², m³, balenie, sada, pár, licencia, osoba, strana. Varianty preberajú jednotku hlavného produktu.',
+			'Jednotka sa zobrazí pri zásobe (Prehľad, box Sklad v produkte), v dokladoch, v Pohyboch a v balíčkoch („IT poradenstvo – 8 h“).',
+			'J-Sklad → Nastavenia → Vlastné jednotky: jedna na riadok v tvare skratka | názov | za … (napr. porc. | porcia | za porciu).',
+			'Voľba Jednotka pri cene pridá v obchode za cenu text podľa jednotky („· za hodinu“, „· za kg“); pri kusoch sa nepridá nič.',
+		),
+		'J-Sklad',
+	);
+	$guides[] = array(
 		'Obrázky produktov',
 		array(
 			'J-Sklad → Nastavenia → Obrázky produktov spravuje J-Sklad (predvolene vypnuté).',

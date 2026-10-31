@@ -56,9 +56,9 @@ function jsk_bundle_total( $product ) {
 
 /** Text „8 h“ / „1 ks“ podľa produktu. */
 function jsk_bundle_qty_label( $qty, $product ) {
-	$unit = $product ? (string) $product->get_meta( '_jsk_unit' ) : '';
-	if ( '' === $unit ) {
-		$unit = $product && preg_match( '/poraden|hodin|konzult/iu', $product->get_name() ) ? 'h' : 'ks';
+	$unit = $product ? jsk_unit( $product ) : 'ks';
+	if ( 'ks' === $unit && $product && '' === (string) $product->get_meta( '_jsk_unit' ) && preg_match( '/poraden|hodin|konzult/iu', $product->get_name() ) ) {
+		$unit = 'h'; // staršie produkty bez nastavenej jednotky
 	}
 	if ( 'ks' === $unit && 1.0 === (float) $qty ) {
 		return ''; // „1 ks“ je zbytočné – pri jednom kuse sa množstvo neuvádza.

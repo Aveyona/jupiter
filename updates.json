@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.2.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.2.0/j-help-v1.2.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.2.0",
+      "version": "1.3.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.3.0/j-help-v1.3.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.3.0",
       "published": "2026-10-31",
-      "notes": "Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
       "version": "0.10.2",
@@ -30,11 +30,11 @@
       "notes": "Prepojenie s J-Fakturáciou: stĺpec Doklady (zálohová faktúra aj faktúra so stavom a PDF), Vystaviť faktúru a Pregenerovať pri riadku, filter Na fakturáciu (vybavené bez faktúry), hromadne Vybaviť a vystaviť faktúry."
     },
     "j-sklad": {
-      "version": "0.5.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.5.0/j-sklad-v0.5.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.5.0",
-      "published": "2026-10-30",
-      "notes": "Balíčky (zostavy): k produktu sa v košíku automaticky pridajú súčasti (napr. členstvo a hodiny poradenstva) za bežnú alebo vlastnú cenu; prehľad J-Sklad → Balíčky. Akcie a novinky: hromadné zľavy s dátumom od – do a názvom akcie, novinky ručne alebo automaticky, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky]. Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
+      "version": "0.6.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.6.0/j-sklad-v0.6.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.6.0",
+      "published": "2026-10-31",
+      "notes": "Merné jednotky pri produkte (kus, hodina, kg, mesiac, licencia… aj vlastné), zobrazené pri zásobe, v dokladoch, pohyboch a balíčkoch, voliteľne aj pri cene v obchode. Balíčky (zostavy): k produktu sa v košíku automaticky pridajú súčasti (napr. členstvo a hodiny poradenstva) za bežnú alebo vlastnú cenu; prehľad J-Sklad → Balíčky. Akcie a novinky: hromadné zľavy s dátumom od – do a názvom akcie, novinky ručne alebo automaticky, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky]. Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
     },
     "j-uctovnictvo": {
       "version": "0.6.0",

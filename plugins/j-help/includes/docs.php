@@ -21,6 +21,16 @@ function jhelp_docs() {
 			'hero_w'    => 1200,
 			'hero_h'    => 620,
 		),
+		'j-sklad'  => array(
+			'name'      => 'J-Sklad',
+			'title'     => 'J-Sklad',
+			'fn'        => 'jhelp_doc_j_sklad',
+			'ver_const' => 'JSK_VERSION',
+			'badge'     => 'Sklad nad produktmi WooCommerce',
+			'hero'      => 'img/j-sklad-schema.svg',
+			'hero_w'    => 1200,
+			'hero_h'    => 620,
+		),
 	);
 }
 
