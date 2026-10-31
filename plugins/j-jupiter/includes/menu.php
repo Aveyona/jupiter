@@ -23,7 +23,7 @@ add_action( 'admin_menu', function () {
 	global $menu, $submenu, $jju_items, $jju_child;
 	$jju_items = array();
 	$jju_child = array();
-	$order     = function_exists( 'jhelp_menu_order' ) ? jhelp_menu_order() : array();
+	$order     = jju_menu_order();
 	foreach ( (array) $menu as $k => $item ) {
 		if ( ! jju_is_j_item( $item ) || ! current_user_can( $item[1] ) ) {
 			continue;
@@ -32,7 +32,7 @@ add_action( 'admin_menu', function () {
 		$subs = array();
 		foreach ( (array) ( $submenu[ $slug ] ?? array() ) as $s ) {
 			if ( isset( $s[2] ) && current_user_can( $s[1] ) ) {
-				$subs[]                       = array( 'title' => jju_clean_title( $s[0] ), 'slug' => (string) $s[2] );
+				$subs[]                       = array( 'title' => jju_clean_title( $s[0] ), 'slug' => (string) $s[2], 'badge' => jju_badge( $s[0] ) );
 				$jju_child[ (string) $s[2] ] = $slug;
 			}
 		}
@@ -61,11 +61,11 @@ add_action( 'admin_menu', function () {
 		$subs = array_values( array_filter( $it['subs'], function ( $sb ) use ( $slug ) {
 			return $sb['slug'] !== $slug;
 		} ) );
-		$entries[] = array( jju_short( $it['title'] ) . ( $b ? ' <span class="awaiting-mod count-' . $b . '"><span class="pending-count">' . $b . '</span></span>' : '' ), $it['cap'], 'admin.php?page=' . $slug, $it['title'], 'jju-app' . ( $subs ? ' jju-has-subs' : '' ) . ' jju-app-' . sanitize_html_class( $slug ) );
+		$entries[] = array( jju_short( $it['title'] ) . jju_count_html( $b ), $it['cap'], 'admin.php?page=' . $slug, $it['title'], 'jju-app' . ( $subs ? ' jju-has-subs' : '' ) . ' jju-app-' . sanitize_html_class( $slug ) );
 		// Podpoložky doplnku (rozbaľujú sa pod ním; pri otvorenom doplnku sú rozbalené).
 		foreach ( $subs as $sb ) {
 			$url       = false !== strpos( $sb['slug'], '.php' ) ? $sb['slug'] : 'admin.php?page=' . $sb['slug'];
-			$entries[] = array( $sb['title'], $it['cap'], $url, $sb['title'], 'jju-sub jju-of-' . sanitize_html_class( $slug ) );
+			$entries[] = array( $sb['title'] . jju_count_html( $sb['badge'] ?? 0 ), $it['cap'], $url, $sb['title'], 'jju-sub jju-of-' . sanitize_html_class( $slug ) );
 		}
 	}
 	// Pod Jupiterom: Prehľad, doplnky, Nastavenia.

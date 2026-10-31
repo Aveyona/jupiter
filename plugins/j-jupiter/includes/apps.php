@@ -13,10 +13,26 @@ function jju_merged() {
 	return ! empty( jju_settings()['merge'] );
 }
 
-/** Je položka menu doplnkom Jupiter (slug j-…), okrem samotného Jupitera? */
+/** Je položka menu doplnkom Jupiter (stránka patrí doplnku z rodiny Jupiter), okrem samotného Jupitera? */
 function jju_is_j_item( $item ) {
 	$slug = isset( $item[2] ) ? (string) $item[2] : '';
-	return JJU_SLUG !== $slug && ( 0 === strpos( $slug, 'j-' ) || 0 === strpos( $slug, 'j_' ) );
+	return JJU_SLUG !== $slug && ( 0 === strpos( $slug, 'j-' ) || 0 === strpos( $slug, 'j_' ) ) && '' !== jju_plugin_for( $slug );
+}
+
+/** Poradie doplnkov pod Jupiterom (slug → poradie) – rovnaké ako v J-Pomocníkovi, funguje aj bez neho. */
+function jju_menu_order() {
+	if ( function_exists( 'jhelp_menu_order' ) ) {
+		return jhelp_menu_order();
+	}
+	return (array) apply_filters( 'jupiter_menu_order', array(
+		'j-emails'      => 5,
+		'j-sklad'       => 10,
+		'j-orders'      => 20,
+		'j-invoices'    => 30,
+		'j-uctovnictvo' => 35,
+		'j-notes'       => 45,
+		'j-help'        => 1000,
+	) );
 }
 
 /** Čistý názov (bez počítadiel). */
@@ -33,6 +49,12 @@ function jju_short( $t ) {
 /** Počítadlo z názvu položky menu (napr. „J-Účtovníctvo 8“). */
 function jju_badge( $raw ) {
 	return preg_match( '#<span[^>]*class="[^"]*(update-plugins|awaiting-mod|count)[^"]*"[^>]*>.*?(\d+).*?</span>#is', (string) $raw, $m ) ? (int) $m[2] : 0;
+}
+
+/** Počítadlo v štýle menu WordPressu (prázdne pri 0). */
+function jju_count_html( $n ) {
+	$n = (int) $n;
+	return $n ? ' <span class="awaiting-mod count-' . $n . '"><span class="pending-count">' . $n . '</span></span>' : '';
 }
 
 function jju_page_url( $slug ) {
@@ -62,7 +84,9 @@ function jju_headers() {
 	$h = array();
 	foreach ( get_plugins() as $file => $d ) {
 		$dir = dirname( $file );
-		if ( 0 === strpos( $dir, 'j-' ) ) {
+		// Len doplnky z rodiny Jupiter (adresa Aveyona/jupiter alebo „Súčasť rodiny Jupiter“), nie cudzie s predponou j-.
+		$own = false !== stripos( (string) $d['PluginURI'], 'aveyona/jupiter' ) || false !== stripos( (string) $d['Description'], 'rodiny Jupiter' );
+		if ( 0 === strpos( $dir, 'j-' ) && $own ) {
 			$h[ $dir ] = array(
 				'file'    => $file,
 				'name'    => (string) $d['Name'],

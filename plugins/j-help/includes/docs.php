@@ -21,6 +21,16 @@ function jhelp_docs() {
 
 function jhelp_docs_list() {
 	return array(
+		'j-jupiter' => array(
+			'name'      => 'Jupiter',
+			'title'     => 'Jupiter',
+			'fn'        => 'jhelp_doc_j_jupiter',
+			'ver_const' => 'JJU_VERSION',
+			'badge'     => 'Nástenka a menu doplnkov',
+			'hero'      => 'img/j-jupiter-schema.svg',
+			'hero_w'    => 1200,
+			'hero_h'    => 620,
+		),
 		'j-emails' => array(
 			'name'      => 'J-Pošta',
 			'title'     => 'Jupiter Pošta',

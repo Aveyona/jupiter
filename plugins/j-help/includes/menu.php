@@ -35,7 +35,8 @@ function jhelp_menu_order() {
 /** Je položka menu doplnkom Jupiter? */
 function jhelp_is_j_item( $item ) {
 	$slug = isset( $item[2] ) ? (string) $item[2] : '';
-	return 0 === strpos( $slug, 'j-' ) || 0 === strpos( $slug, 'j_' );
+	// S doplnkom Jupiter len stránky doplnkov z rodiny Jupiter (nie cudzie doplnky s predponou j-).
+	return ( 0 === strpos( $slug, 'j-' ) || 0 === strpos( $slug, 'j_' ) ) && ( ! function_exists( 'jju_plugin_for' ) || '' !== jju_plugin_for( $slug ) );
 }
 
 // Presun až po zostavení celého menu (keď už všetky doplnky pridali svoje položky).
