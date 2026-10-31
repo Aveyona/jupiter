@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" width="1200" height="620" font-family="Arial, Helvetica, sans-serif">
+  <title>J-Kupóny – schéma: nový kupón alebo séria, pokladňa so zľavou a dopravou zadarmo, evidencia, detail a štatistika</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f7fc"/><stop offset="1" stop-color="#e8eef8"/></linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+    <marker id="arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
+    <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#15803d"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+  </defs>
+  <rect width="1200" height="620" fill="url(#bg)"/>
+
+  <!-- Vytvorenie -->
+  <rect x="40" y="60" width="270" height="290" rx="18" fill="#fff" stroke="#cbd5e1"/>
+  <text x="175" y="94" text-anchor="middle" font-size="13" font-weight="700" fill="#64748b" letter-spacing="1.5">VYTVORENIE</text>
+  <text x="175" y="122" text-anchor="middle" font-size="20" font-weight="800" fill="#0f172a">Nový kupón</text>
+  <rect x="62" y="140" width="226" height="56" rx="12" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="175" y="164" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">Jeden kód</text>
+  <text x="175" y="184" text-anchor="middle" font-size="12" fill="#475569">K7MX alebo vlastný LETO10</text>
+  <rect x="62" y="206" width="226" height="56" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="175" y="230" text-anchor="middle" font-size="14" font-weight="700" fill="#166534">Séria</text>
+  <text x="175" y="250" text-anchor="middle" font-size="12" fill="#475569">až 500 kódov, CSV a tlač</text>
+  <rect x="62" y="272" width="226" height="56" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="175" y="296" text-anchor="middle" font-size="14" font-weight="700" fill="#334155">Podmienky</text>
+  <text x="175" y="316" text-anchor="middle" font-size="12" fill="#475569">platnosť, použitia, e-mail, kategórie</text>
+
+  <!-- Jadro -->
+  <rect x="400" y="40" width="400" height="330" rx="22" fill="url(#core)"/>
+  <text x="600" y="82" text-anchor="middle" font-size="13" font-weight="700" fill="#bfdbfe" letter-spacing="1.5">ADMINISTRÁCIA WORDPRESSU</text>
+  <text x="600" y="118" text-anchor="middle" font-size="30" font-weight="800" fill="#fff">J-Kupóny</text>
+  <g font-size="14" fill="#e0e7ff">
+    <rect x="428" y="140" width="344" height="38" rx="10" fill="#ffffff" fill-opacity=".18"/><text x="600" y="164" text-anchor="middle" font-weight="700">Evidencia: platný · vyčerpaný · po platnosti · vypnutý</text>
+    <rect x="428" y="188" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="511" y="212" text-anchor="middle">Detail kupónu</text>
+    <rect x="606" y="188" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="689" y="212" text-anchor="middle">Štatistika mesiaca</text>
+    <rect x="428" y="236" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="511" y="260" text-anchor="middle">Série</text>
+    <rect x="606" y="236" width="166" height="38" rx="10" fill="#ffffff" fill-opacity=".12"/><text x="689" y="260" text-anchor="middle">Duplikovať</text>
+  </g>
+  <text x="600" y="314" text-anchor="middle" font-size="13" fill="#bfdbfe">bežné kupóny WooCommerce</text>
+  <text x="600" y="336" text-anchor="middle" font-size="13" fill="#bfdbfe">vypnutie jedným kliknutím aj pre celú sériu</text>
+
+  <!-- Obchod -->
+  <rect x="890" y="60" width="270" height="290" rx="18" fill="#fff" stroke="#cbd5e1"/>
+  <text x="1025" y="94" text-anchor="middle" font-size="13" font-weight="700" fill="#64748b" letter-spacing="1.5">OBCHOD</text>
+  <text x="1025" y="122" text-anchor="middle" font-size="20" font-weight="800" fill="#0f172a">Košík a pokladňa</text>
+  <rect x="912" y="140" width="226" height="56" rx="12" fill="#fff7ed" stroke="#fed7aa"/>
+  <text x="1025" y="164" text-anchor="middle" font-size="14" font-weight="700" fill="#9a3412">Zľava</text>
+  <text x="1025" y="184" text-anchor="middle" font-size="12" fill="#475569">% alebo € z košíka</text>
+  <rect x="912" y="206" width="226" height="56" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="1025" y="230" text-anchor="middle" font-size="14" font-weight="700" fill="#166534">Doprava zadarmo</text>
+  <text x="1025" y="250" text-anchor="middle" font-size="12" fill="#475569">aj Packeta (J-Doprava)</text>
+  <rect x="912" y="272" width="226" height="56" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="1025" y="296" text-anchor="middle" font-size="14" font-weight="700" fill="#334155">Objednávka</text>
+  <text x="1025" y="316" text-anchor="middle" font-size="12" fill="#475569">kód a zľava v objednávke</text>
+
+  <path d="M312 205 H396" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arb)"/>
+  <text x="354" y="195" text-anchor="middle" font-size="12" fill="#1e3a8a" font-weight="700">kódy</text>
+  <path d="M802 205 H886" stroke="#15803d" stroke-width="3" fill="none" marker-end="url(#arg)"/>
+  <text x="844" y="195" text-anchor="middle" font-size="12" fill="#166534" font-weight="700">zákazník</text>
+  <path d="M886 300 H802" stroke="#475569" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#ar)"/>
+  <text x="844" y="322" text-anchor="middle" font-size="12" fill="#334155" font-weight="700">použitie</text>
+
+  <g font-size="14">
+    <rect x="160" y="430" width="260" height="100" rx="16" fill="#fff" stroke="#cbd5e1"/>
+    <text x="290" y="464" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">J-Fakturácia</text>
+    <text x="290" y="490" text-anchor="middle" fill="#475569">zľava v cenách položiek</text>
+    <rect x="470" y="430" width="260" height="100" rx="16" fill="#fff" stroke="#cbd5e1"/>
+    <text x="600" y="464" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">J-Účtovníctvo</text>
+    <text x="600" y="490" text-anchor="middle" fill="#475569">tržby po zľave</text>
+    <rect x="780" y="430" width="260" height="100" rx="16" fill="#fff" stroke="#cbd5e1"/>
+    <text x="910" y="464" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">Nástenka Jupiter</text>
+    <text x="910" y="490" text-anchor="middle" fill="#475569">platné kupóny, koniec platnosti</text>
+  </g>
+  <path d="M1025 352 V400 H290 V426" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+  <path d="M600 400 V426" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+  <path d="M600 372 V400 H910 V426" stroke="#475569" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#ar)"/>
+  <text x="600" y="584" text-anchor="middle" font-size="13" fill="#64748b">zákazník zadá kód v košíku alebo v pokladni – na veľkosti písmen nezáleží</text>
+</svg>

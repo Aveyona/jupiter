@@ -81,6 +81,16 @@ function jhelp_docs_list() {
 			'hero_w'    => 1200,
 			'hero_h'    => 620,
 		),
+		'j-kupony' => array(
+			'name'      => 'J-Kupóny',
+			'title'     => 'J-Kupóny',
+			'fn'        => 'jhelp_doc_j_kupony',
+			'ver_const' => 'JKP_VERSION',
+			'badge'     => 'Zľavové kódy',
+			'hero'      => 'img/j-kupony-schema.svg',
+			'hero_w'    => 1200,
+			'hero_h'    => 620,
+		),
 		'j-sklad'  => array(
 			'name'      => 'J-Sklad',
 			'title'     => 'J-Sklad',

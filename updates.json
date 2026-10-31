@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.8.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.8.0/j-help-v1.8.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.8.0",
+      "version": "1.9.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.9.0/j-help-v1.9.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.9.0",
       "published": "2026-10-31",
-      "notes": "Príručka J-Účtovníctvo (16 kapitol, schéma) a plán vývoja J-Účtovníctva. Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Príručka J-Kupóny (12 kapitol, schéma) a plán vývoja J-Kupónov. Príručka J-Účtovníctvo (16 kapitol, schéma) a plán vývoja J-Účtovníctva. Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
       "version": "0.11.0",
@@ -65,11 +65,11 @@
       "notes": "Opravy: upozornenie na nečitateľný kľúč a odmietnutý webhook, platobná stránka zladená s rušením nezaplatených objednávok, čistá suma po vrátení, bloková pokladňa pod 0,50 €. Nové: odkaz na platbu kartou z objednávky, export CSV, stav webhooku na nástenke."
     },
     "j-kupony": {
-      "version": "0.1.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-kupony-v0.1.0/j-kupony-v0.1.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-kupony-v0.1.0",
-      "published": "2026-10-30",
-      "notes": "Prvá verzia: evidencia zľavových kódov, automaticky generovaný kód (4 znaky), hromadné vytvorenie, stav a použitie kódov s objednávkami, vypnutie a zapnutie."
+      "version": "0.2.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-kupony-v0.2.0/j-kupony-v0.2.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-kupony-v0.2.0",
+      "published": "2026-10-31",
+      "notes": "Doprava zadarmo pri každom spôsobe dopravy, série s exportom a tlačou kódov, detail kupónu s objednávkami a poskytnutou zľavou, štatistika, duplikovanie, kategórie a produkty, nastavenia dĺžky a predpony kódu, opravy (neplatný e-mail, platnosť, stránkovanie). Prvá verzia: evidencia zľavových kódov, automaticky generovaný kód (4 znaky), hromadné vytvorenie, stav a použitie kódov s objednávkami, vypnutie a zapnutie."
     },
     "j-doprava": {
       "version": "0.3.0",
