@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" width="1200" height="620" font-family="Arial, Helvetica, sans-serif">
+  <title>Jupiter – schéma: doplnky J- pod jednou položkou menu, nástenka s dlaždicami, Čaká na vás, hľadanie a aktualizácie</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f7fc"/><stop offset="1" stop-color="#e8eef8"/></linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+    <marker id="arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
+    <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#15803d"/></marker>
+  </defs>
+  <rect width="1200" height="620" fill="url(#bg)"/>
+
+  <!-- Menu -->
+  <rect x="40" y="40" width="250" height="540" rx="18" fill="#1d2327"/>
+  <text x="165" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#9ca3af" letter-spacing="1.5">MENU ADMINISTRÁCIE</text>
+  <rect x="58" y="94" width="214" height="40" rx="8" fill="#2563eb"/>
+  <circle cx="80" cy="114" r="9" fill="none" stroke="#fff" stroke-width="2"/><ellipse cx="80" cy="114" rx="15" ry="4" fill="none" stroke="#fff" stroke-width="1.5"/>
+  <text x="102" y="119" font-size="15" font-weight="700" fill="#fff">Jupiter</text>
+  <rect x="232" y="104" width="28" height="20" rx="10" fill="#d63638"/><text x="246" y="118" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">8</text>
+  <g font-size="13" fill="#e5e7eb">
+    <text x="78" y="160">Prehľad</text>
+    <text x="78" y="186">Pošta</text>
+    <text x="78" y="212">Sklad</text>
+    <text x="78" y="238">Objednávky</text>
+    <text x="78" y="264">Doprava</text>
+    <text x="78" y="290">Platby</text>
+    <text x="78" y="316">Fakturácia</text>
+    <text x="78" y="342">Účtovníctvo</text>
+    <text x="96" y="366" fill="#9ca3af" font-size="12">Na zaúčtovanie</text><rect x="196" y="355" width="24" height="16" rx="8" fill="#d63638"/><text x="208" y="367" text-anchor="middle" font-size="10" fill="#fff">8</text>
+    <text x="96" y="388" fill="#9ca3af" font-size="12">Na riešenie</text><rect x="172" y="377" width="28" height="16" rx="8" fill="#d63638"/><text x="186" y="389" text-anchor="middle" font-size="10" fill="#fff">20</text>
+    <text x="78" y="414">Kupóny</text>
+    <text x="78" y="440">Notes</text>
+    <text x="78" y="466">Pomocník</text>
+    <text x="78" y="492">Nastavenia</text>
+  </g>
+  <text x="165" y="548" text-anchor="middle" font-size="12" fill="#9ca3af">jedna položka namiesto desiatich</text>
+
+  <!-- Nástenka -->
+  <rect x="360" y="40" width="800" height="540" rx="22" fill="#fff" stroke="#cbd5e1"/>
+  <rect x="360" y="40" width="800" height="70" rx="22" fill="url(#core)"/>
+  <rect x="360" y="90" width="800" height="20" fill="url(#core)"/>
+  <text x="392" y="84" font-size="26" font-weight="800" fill="#fff">Nástenka Jupiter</text>
+  <text x="1128" y="84" text-anchor="end" font-size="13" fill="#bfdbfe">pripnuté · všetky doplnky · vypnuté</text>
+
+  <rect x="384" y="128" width="752" height="40" rx="10" fill="#fff" stroke="#f1aeb5"/>
+  <text x="400" y="153" font-size="14" font-weight="700" fill="#b32d2e">🔔 Čaká na vás</text>
+  <g font-size="12">
+    <rect x="530" y="138" width="150" height="22" rx="11" fill="#fcf0f1"/><text x="605" y="153" text-anchor="middle" fill="#1d2327">Fakturácia › Banka 54</text>
+    <rect x="692" y="138" width="200" height="22" rx="11" fill="#fcf0f1"/><text x="792" y="153" text-anchor="middle" fill="#1d2327">Účtovníctvo › Na zaúčtovanie 8</text>
+    <rect x="904" y="138" width="180" height="22" rx="11" fill="#fcf0f1"/><text x="994" y="153" text-anchor="middle" fill="#1d2327">Účtovníctvo › Na riešenie 20</text>
+  </g>
+  <rect x="384" y="182" width="420" height="34" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="400" y="204" font-size="13" fill="#64748b">🔎 Hľadať doplnok alebo stránku…</text>
+
+  <!-- Dlaždice -->
+  <g font-size="13">
+    <rect x="384" y="236" width="230" height="300" rx="14" fill="#fff" stroke="#dcdcde"/>
+    <rect x="384" y="236" width="230" height="6" rx="3" fill="#7c3aed"/>
+    <rect x="402" y="258" width="40" height="40" rx="10" fill="#ede9fe"/>
+    <text x="402" y="324" font-size="16" font-weight="800" fill="#4c1d95">Účtovníctvo</text>
+    <rect x="566" y="258" width="28" height="20" rx="10" fill="#d63638"/><text x="580" y="272" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">8</text>
+    <text x="402" y="348" fill="#475569">popis doplnku</text>
+    <text x="402" y="372" fill="#1e7e34" font-weight="700">● stav doplnku</text>
+    <text x="402" y="396" fill="#64748b" font-size="12">Verzia 0.7.0</text>
+    <rect x="384" y="410" width="230" height="34" fill="#fcf9e8"/><text x="400" y="432" fill="#8a5a00" font-size="12">Dostupná verzia 0.8.0 · Aktualizovať</text>
+    <rect x="400" y="456" width="96" height="22" rx="11" fill="#f5f3ff"/><text x="448" y="471" text-anchor="middle" fill="#6d28d9" font-size="11">Hlavná kniha</text>
+    <rect x="502" y="456" width="96" height="22" rx="11" fill="#f5f3ff"/><text x="550" y="471" text-anchor="middle" fill="#6d28d9" font-size="11">Saldokonto</text>
+    <text x="400" y="506" fill="#64748b" font-size="11">+ ďalšie (7)</text>
+  </g>
+  <g font-size="13">
+    <rect x="636" y="236" width="230" height="300" rx="14" fill="#fff" stroke="#dcdcde"/>
+    <rect x="636" y="236" width="230" height="6" rx="3" fill="#0891b2"/>
+    <rect x="654" y="258" width="40" height="40" rx="10" fill="#cffafe"/>
+    <text x="654" y="324" font-size="16" font-weight="800" fill="#155e75">Fakturácia</text>
+    <text x="654" y="348" fill="#475569">popis doplnku</text>
+    <text x="654" y="396" fill="#64748b" font-size="12">Verzia 0.11.0</text>
+    <rect x="652" y="456" width="90" height="22" rx="11" fill="#ecfeff"/><text x="697" y="471" text-anchor="middle" fill="#0e7490" font-size="11">Banka 54</text>
+  </g>
+  <g font-size="13">
+    <rect x="888" y="236" width="248" height="300" rx="14" fill="#fff" stroke="#dcdcde"/>
+    <text x="1012" y="276" text-anchor="middle" font-size="15" font-weight="800" fill="#0f172a">Na každej dlaždici</text>
+    <text x="906" y="310" fill="#334155">📌 pripnutie navrch</text>
+    <text x="906" y="338" fill="#334155">📖 príručka doplnku</text>
+    <text x="906" y="366" fill="#334155">● stav (ok / pozor / chyba)</text>
+    <text x="906" y="394" fill="#334155">⟳ dostupná aktualizácia</text>
+    <text x="906" y="422" fill="#334155">podstránky s počítadlami</text>
+    <text x="906" y="450" fill="#334155">vlastná farba doplnku</text>
+  </g>
+  <text x="760" y="562" text-anchor="middle" font-size="13" fill="#64748b">na stránke doplnku: lišta Jupiter › doplnok a jeho podstránky</text>
+
+  <path d="M292 114 C 330 114, 330 150, 380 150" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arb)"/>
+  <path d="M292 360 C 330 360, 330 320, 380 320" stroke="#15803d" stroke-width="3" fill="none" marker-end="url(#arg)"/>
+</svg>

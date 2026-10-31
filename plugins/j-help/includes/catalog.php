@@ -284,6 +284,24 @@ function jhelp_roadmap() {
 			),
 		),
 		array(
+			'title'  => 'Jupiter 0.2 – Čaká na vás, hľadanie, aktualizácie, príručka',
+			'state'  => 'done',
+			'points' => array(
+				'Súhrn Čaká na vás a hľadanie doplnku alebo stránky na nástenke.',
+				'Dlaždica: aktualizácia s tlačidlom, príručka, všetky podstránky s počítadlami; zapnutie vypnutého doplnku.',
+				'Počítadlá podstránok v zlúčenom menu, len doplnky z rodiny Jupiter, poradie aj bez J-Pomocníka.',
+				'Podrobná príručka Jupiter v J-Pomocníkovi – príručku majú všetky doplnky.',
+			),
+		),
+		array(
+			'title'  => 'Jupiter – ďalej',
+			'state'  => 'next',
+			'points' => array(
+				'Poradie a skrytie doplnkov na nástenke podľa používateľa.',
+				'Rýchle akcie na dlaždici (Nová faktúra, Nový kupón…).',
+			),
+		),
+		array(
 			'title'  => 'J-Sklad a ďalšie doplnky',
 			'state'  => 'next',
 			'points' => array(

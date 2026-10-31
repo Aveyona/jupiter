@@ -79,3 +79,25 @@
 .jju-st-ok { color: #1e7e34; }
 .jju-st-warn { color: #9a6700; }
 .jju-st-err { color: #b32d2e; }
+
+/* Čaká na vás, hľadanie, aktualizácie, príručka (0.2.0) */
+.jju-wait { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0 4px; padding: 10px 14px; background: #fff; border: 1px solid #dcdcde; border-left: 4px solid #d63638; border-radius: 12px; }
+.jju-wait > strong { display: inline-flex; align-items: center; gap: 4px; margin-right: 4px; }
+.jju-wait > strong .dashicons { color: #d63638; }
+.jju-wait a { padding: 3px 10px; border-radius: 999px; background: #fcf0f1; color: #1d2327; text-decoration: none; font-size: 12.5px; }
+.jju-wait a b { display: inline-block; min-width: 18px; margin-left: 2px; padding: 0 5px; border-radius: 9px; background: #d63638; color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.jju-search input { width: 100%; max-width: 520px; padding: 6px 12px; border-radius: 8px; }
+.jju-none { color: #646970; }
+.jju-subs a.jju-hit { background: var(--app); color: #fff; }
+.jju-sb { display: inline-block; min-width: 16px; padding: 0 4px; border-radius: 8px; background: #d63638; color: #fff; font-size: 10.5px; line-height: 16px; text-align: center; font-weight: 600; }
+.jju-more { width: 100%; }
+.jju-more summary { cursor: pointer; color: #646970; font-size: 12px; }
+.jju-more[open] { display: flex; flex-wrap: wrap; gap: 6px; }
+.jju-more[open] summary { width: 100%; }
+.jju-upd { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-top: 1px solid #f0f0f1; background: #fcf9e8; color: #8a5a00; font-size: 12.5px; }
+.jju-upd .button { margin-left: auto; }
+.jju-doc { position: absolute; top: 12px; right: 46px; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: #8c8f94; text-decoration: none; opacity: 0; transition: opacity .15s, background .15s, color .15s; }
+.jju-doc .dashicons { font-size: 17px; width: 17px; height: 17px; }
+.jju-tile:hover .jju-doc, .jju-doc:focus { opacity: 1; }
+.jju-doc:hover { background: color-mix(in srgb, var(--app) 12%, #fff); color: var(--app); }
+.jju-tile .jju-badge { right: 84px; }

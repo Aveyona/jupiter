@@ -3,7 +3,7 @@
  * Plugin Name:       Jupiter
  * Plugin URI:        https://github.com/Aveyona/jupiter
  * Description:       Hlavný doplnok rodiny Jupiter: jedna položka Jupiter v menu administrácie s nástenkou všetkých doplnkov J- (farebné dlaždice s popisom, verziou, počítadlami a odkazmi na podstránky, pripnutie), zlúčenie doplnkov do jednej položky menu a navigácia na stránkach doplnkov. Súčasť rodiny Jupiter.
- * Version:           0.1.1
+ * Version:           0.2.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            Aveyona, s. r. o.
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'JJU_VERSION', '0.1.1' );
+define( 'JJU_VERSION', '0.2.0' );
 define( 'JJU_FILE', __FILE__ );
 define( 'JJU_DIR', plugin_dir_path( __FILE__ ) );
 define( 'JJU_URL', plugin_dir_url( __FILE__ ) );
@@ -52,6 +52,7 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'V ľavom menu je položka Jupiter. Po prejdení myšou sa ukážu všetky doplnky J-, kliknutím sa otvorí nástenka Jupiter s dlaždicami doplnkov.',
 			'Dlaždica: farebná ikona, názov, popis, verzia, počítadlo (napr. úlohy v J-Účtovníctve) a odkazy na podstránky. Špendlík pripne doplnok hore (každý používateľ má vlastné pripnuté).',
 			'Na stránke doplnku je hore navigácia: Jupiter › doplnok a jeho podstránky.',
+			'Hore na nástenke je súhrn Čaká na vás (počítadlá doplnkov a ich stránok) a pole na hľadanie doplnku alebo stránky – Enter otvorí prvú nájdenú. Na dlaždici je ikona knihy (príručka) a pri novej verzii tlačidlo Aktualizovať.',
 			'Jupiter → Nastavenia: Zlúčiť doplnky do položky Jupiter (zapnuté = v menu je len Jupiter; vypnuté = každý doplnok má vlastnú položku ako doteraz) a farba každého doplnku.',
 		),
 		'Jupiter',
