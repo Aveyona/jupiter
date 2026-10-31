@@ -14,6 +14,7 @@ function jinv_pay_methods() {
 		'bank'   => 'Prevodom',
 		'cash'   => 'V hotovosti',
 		'card'   => 'Kartou',
+		'cod'    => 'Dobierkou',
 		'offset' => 'Zápočtom',
 		'other'  => 'Iné',
 	) );
@@ -102,7 +103,7 @@ function jinv_delete_payment( $payment_id ) {
 		$wpdb->delete( jinv_table( 'payments' ), array( 'id' => (int) $payment_id ) );
 		// Pohyb v banke, z ktorého úhrada vznikla, sa znova ponúkne na spárovanie.
 		$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'new', 'doc_id' => 0, 'payment_id' => 0, 'matched_by' => '' ), array( 'payment_id' => (int) $payment_id ) );
-		wp_cache_delete( 'jinv_bank_unmatched', 'jinv' );
+		delete_transient( 'jinv_bank_unmatched' );
 		jinv_sync_paid( $doc_id );
 		do_action( 'jinv_payment_deleted', $payment_id, $doc_id );
 	}
@@ -158,7 +159,7 @@ function jinv_render_payments_box( array $doc, $back ) {
 	$paid = jinv_paid_sum( $doc );
 	$rest = max( 0, round( (float) $doc['total'] - $paid, 2 ) );
 	$m    = jinv_pay_methods();
-	$src  = array( 'manual' => 'ručne', 'bank' => 'banka', 'cash' => 'pokladňa', 'woo' => 'objednávka' );
+	$src  = array( 'manual' => 'ručne', 'bank' => 'banka', 'cash' => 'pokladňa', 'woo' => 'objednávka', 'cod' => 'dobierka', 'stripe' => 'Stripe', 'refund' => 'vrátenie' );
 	?>
 	<div class="jinv-panel jinv-pays">
 		<h3>Úhrady <small>uhradené <?php echo esc_html( jinv_money( $paid, $doc['currency'] ) ); ?> z <?php echo esc_html( jinv_money( $doc['total'], $doc['currency'] ) ); ?><?php echo $rest > 0 && 'cancelled' !== $doc['status'] ? ' · zostáva <strong>' . esc_html( jinv_money( $rest, $doc['currency'] ) ) . '</strong>' : ''; ?></small></h3>

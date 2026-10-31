@@ -13,6 +13,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'JHELP_REPO', 'Aveyona/jupiter' );
 
+/*
+ * Verejný kľúč Ed25519 (base64) na overenie podpisu vydaní. Keď je zadaný, nainštaluje sa len balík s platným
+ * podpisom (<balík>.zip.sig, podpisuje ho GitHub Actions tajným kľúčom JUPITER_SIGNING_KEY). Prázdny = podpis sa
+ * neoveruje, overí sa len kontrolný súčet SHA-256 (<balík>.zip.sha256), ak ho vydanie má.
+ */
+if ( ! defined( 'JHELP_SIGN_PUBKEY' ) ) {
+	define( 'JHELP_SIGN_PUBKEY', '' );
+}
+
 /**
  * Bezpečnostná kontrola vydania: verzia v tvare 1.2.3 a balík len z vydaní repozitára Jupiter
  * (https://github.com/Aveyona/jupiter/releases/download/<doplnok>-v<verzia>/<doplnok>-v<verzia>.zip).
@@ -95,7 +104,9 @@ function jhelp_installed_j_plugins() {
 	$out = array();
 	foreach ( get_plugins() as $file => $data ) {
 		$slug = dirname( $file );
-		if ( 0 === strpos( $slug, 'j-' ) ) {
+		// Len doplnky z rodiny Jupiter – cudzí doplnok s priečinkom j-… sa nesmie prepísať balíkom Jupiter.
+		$own = false !== stripos( (string) $data['PluginURI'], 'aveyona/jupiter' );
+		if ( 0 === strpos( $slug, 'j-' ) && $own ) {
 			$out[ $slug ] = array( 'file' => $file, 'version' => $data['Version'], 'name' => $data['Name'] );
 		}
 	}
@@ -139,7 +150,7 @@ add_filter( 'plugins_api', function ( $res, $action, $args ) {
 	}
 	$remote = jhelp_remote_versions();
 	$inst   = jhelp_installed_j_plugins();
-	if ( empty( $remote[ $args->slug ] ) ) {
+	if ( empty( $remote[ $args->slug ] ) || empty( $inst[ $args->slug ] ) ) {
 		return $res;
 	}
 	$r = $remote[ $args->slug ];
@@ -157,6 +168,47 @@ add_filter( 'plugins_api', function ( $res, $action, $args ) {
 		),
 	);
 }, 10, 3 );
+
+/**
+ * Overenie balíka pred inštaláciou: stiahne ZIP vydania Jupiter, porovná kontrolný súčet SHA-256 (príloha .sha256)
+ * a pri zadanom verejnom kľúči aj podpis Ed25519 (príloha .sig). Pri nezhode sa aktualizácia zastaví.
+ */
+add_filter( 'upgrader_pre_download', function ( $reply, $package ) {
+	if ( false !== $reply || ! preg_match( '#^https://github\.com/' . preg_quote( JHELP_REPO, '#' ) . '/releases/download/(j-[a-z0-9-]+-v[0-9.]+)/\1\.zip$#', (string) $package ) ) {
+		return $reply;
+	}
+	if ( ! function_exists( 'download_url' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+	}
+	$file = download_url( $package, 300 );
+	if ( is_wp_error( $file ) ) {
+		return $file;
+	}
+	$fail = function ( $msg ) use ( $file ) {
+		@unlink( $file ); // phpcs:ignore
+		return new WP_Error( 'jhelp_verify', 'Balík Jupiter neprešiel kontrolou: ' . $msg . ' Aktualizácia sa nenainštalovala.' );
+	};
+	$args = array( 'timeout' => 20, 'headers' => array( 'User-Agent' => 'Jupiter-WordPress/' . JHELP_VERSION ) );
+	$sum  = wp_remote_get( $package . '.sha256', $args );
+	if ( ! is_wp_error( $sum ) && 200 === (int) wp_remote_retrieve_response_code( $sum ) ) {
+		$want = strtolower( (string) strtok( trim( (string) wp_remote_retrieve_body( $sum ) ), " \t\n" ) );
+		if ( ! hash_equals( $want, (string) hash_file( 'sha256', $file ) ) ) {
+			return $fail( 'kontrolný súčet SHA-256 nesedí.' );
+		}
+	}
+	if ( '' !== JHELP_SIGN_PUBKEY ) {
+		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
+			return $fail( 'server nemá rozšírenie sodium na overenie podpisu.' );
+		}
+		$sig = wp_remote_get( $package . '.sig', $args );
+		$raw = ! is_wp_error( $sig ) && 200 === (int) wp_remote_retrieve_response_code( $sig ) ? base64_decode( trim( (string) wp_remote_retrieve_body( $sig ) ), true ) : false;
+		$pub = base64_decode( JHELP_SIGN_PUBKEY, true );
+		if ( ! $raw || ! $pub || SODIUM_CRYPTO_SIGN_BYTES !== strlen( $raw ) || ! sodium_crypto_sign_verify_detached( $raw, (string) file_get_contents( $file ), $pub ) ) {
+			return $fail( 'podpis vydania chýba alebo je neplatný.' );
+		}
+	}
+	return $file;
+}, 10, 2 );
 
 // Po aktualizácii obnoviť zoznam vydaní.
 add_action( 'upgrader_process_complete', function () {

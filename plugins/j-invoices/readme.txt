@@ -4,7 +4,7 @@ Tags: woocommerce, faktúry, faktúra, slovensko, jupiter
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.11.0
+Stable tag: 0.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,6 +21,13 @@ Faktúry pre slovenské e-shopy na WooCommerce. Súčasť rodiny doplnkov Jupite
 Pripravuje sa: PDF s QR kódom PAY by square, odoslanie zákazníkovi e-mailom po potvrdení, ručné faktúry, dobropisy, prijaté faktúry, export pre účtovníka.
 
 == Changelog ==
+
+= 0.12.0 =
+* Dobierka sa zapisuje spôsobom „Dobierkou“ (nie „V hotovosti“) – J-Účtovníctvo ju účtuje na peniaze na ceste, nie do pokladne; doterajšie úhrady dobierkou sa opravia.
+* Nová faktúra po stornovanej prevezme úhrady z platobnej brány a dobierky – platba sa už nezapíše dvakrát.
+* Vrátenie peňazí: dobropis z vrátenia cez Stripe má úhradu kartou; pri ručnom vrátení a napojenej banke čaká dobropis na odchádzajúcu platbu a dá sa s ňou spárovať.
+* Položky dobropisu majú druh (tovar, služba) podľa faktúry.
+* Token Fio API je v databáze zašifrovaný. Udalosť jinv_document_cancelled pri storne. Odinštalovanie zmaže token; deaktivácia zruší plánovanú úlohu banky.
 
 = 0.11.0 =
 * Bezpečnosť: prílohy prijatých faktúr len PDF a obrázky (kontrola obsahu, nie len prípony), ukladajú sa s príponou .jinv a otvárajú len cez administráciu; iný súbor sa nikdy nezobrazí v prehliadači.

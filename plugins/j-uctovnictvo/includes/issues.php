@@ -112,7 +112,7 @@ function juc_issue_save( array $in, $id = 0 ) {
 	}
 	$row += array( 'kind' => 'task', 'owner' => 'me', 'status' => 'open', 'priority' => 2, 'link_type' => '', 'link_id' => '', 'auto_key' => '', 'body' => '', 'user_id' => get_current_user_id(), 'created_at' => current_time( 'mysql' ) );
 	$wpdb->insert( juc_t( 'issues' ), $row );
-	wp_cache_delete( 'juc_issues_n', 'juc' );
+	delete_transient( 'juc_issues_n' );
 	return (int) $wpdb->insert_id;
 }
 
@@ -257,7 +257,7 @@ function juc_issues_refresh() {
 		++$closed;
 	}
 	juc_unlock( 'juc_issues' );
-	wp_cache_delete( 'juc_issues_n', 'juc' );
+	delete_transient( 'juc_issues_n' );
 	update_option( 'juc_issues_last', current_time( 'mysql' ), false );
 	return array( $new, $closed );
 }
@@ -265,14 +265,14 @@ function juc_issues_refresh() {
 /** Počty otvorených položiek: [ open, overdue ]. */
 function juc_issues_count() {
 	global $wpdb;
-	$n = wp_cache_get( 'juc_issues_n', 'juc' );
-	if ( false === $n ) {
+	$n = get_transient( 'juc_issues_n' );
+	if ( ! is_array( $n ) ) {
 		$t = juc_t( 'issues' );
 		$n = array(
 			(int) $wpdb->get_var( "SELECT COUNT(*) FROM $t WHERE status IN ('open','doing')" ), // phpcs:ignore
 			(int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE status IN ('open','doing') AND due IS NOT NULL AND due < %s", current_time( 'Y-m-d' ) ) ), // phpcs:ignore
 		);
-		wp_cache_set( 'juc_issues_n', $n, 'juc', 120 );
+		set_transient( 'juc_issues_n', $n, 2 * MINUTE_IN_SECONDS );
 	}
 	return $n;
 }
@@ -345,7 +345,7 @@ add_action( 'admin_post_juc_issue_save', function () {
 	if ( ! $old ) {
 		juc_issue_log( $id, 'Založené.' );
 	}
-	wp_cache_delete( 'juc_issues_n', 'juc' );
+	delete_transient( 'juc_issues_n' );
 	$back = ! empty( $in['back'] ) ? esc_url_raw( $in['back'] ) : juc_url( 'j-uctovnictvo-issues', array( 'issue' => $id ) );
 	wp_safe_redirect( add_query_arg( 'juc_msg', 'issue', $back ) );
 	exit;
@@ -361,7 +361,7 @@ add_action( 'admin_post_juc_issue_status', function () {
 	if ( juc_issue( $id ) && isset( juc_issue_statuses()[ $st ] ) ) {
 		juc_issue_save( array( 'status' => $st ), $id );
 	}
-	wp_cache_delete( 'juc_issues_n', 'juc' );
+	delete_transient( 'juc_issues_n' );
 	wp_safe_redirect( wp_get_referer() ? wp_get_referer() : juc_url( 'j-uctovnictvo-issues' ) );
 	exit;
 } );

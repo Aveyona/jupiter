@@ -17,6 +17,12 @@ function jdp_is_cod( $order ) {
 	return in_array( $order->get_payment_method(), $m, true ) && ! $order->has_status( array( 'refunded', 'cancelled', 'failed' ) );
 }
 
+// J-Fakturácia: dobierka sú rovnaké platobné metódy ako v nastavení J-Dopravy (jedna definícia pre obe).
+add_filter( 'jinv_cod_methods', function ( $methods ) {
+	$m = array_filter( array_map( 'trim', explode( ',', (string) jdp_opt( 'cod_methods' ) ) ) );
+	return array_values( array_unique( array_merge( (array) $methods, $m ) ) );
+} );
+
 /**
  * Je objednávka pripravená na odoslanie? Spracováva sa (zaplatená alebo dobierka), Pozastavené len pri dobierke –
  * nezaplatený prevod (Pozastavené / Čaká na platbu) sa neposiela.

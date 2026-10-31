@@ -354,6 +354,7 @@ add_action( 'admin_post_jinv_received_action', function () {
 				jinv_delete_payment( (int) $pay['id'] );
 			}
 			$wpdb->update( jinv_table( 'banktx' ), array( 'status' => 'new', 'doc_id' => 0, 'payment_id' => 0, 'matched_by' => '' ), array( 'doc_id' => $id ) );
+			delete_transient( 'jinv_bank_unmatched' );
 			$wpdb->delete( jinv_table(), array( 'id' => $id ) );
 			if ( function_exists( 'jsk_t' ) ) {
 				$wpdb->update( jsk_t( 'docs' ), array( 'invoice_id' => 0 ), array( 'invoice_id' => $id ) );

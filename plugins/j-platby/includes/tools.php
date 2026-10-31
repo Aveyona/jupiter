@@ -150,7 +150,7 @@ add_action( 'admin_post_jpl_csv', function () {
 		fputcsv( $out, array(
 			$o->get_order_number(),
 			$o->get_date_paid() ? $o->get_date_paid()->date_i18n( 'j. n. Y' ) : '',
-			$o->get_formatted_billing_full_name(),
+			preg_replace( '/^([=+\-@\t\r])/', "'$1", (string) $o->get_formatted_billing_full_name() ), // ochrana pred vzorcom v Exceli
 			$num( $o->get_total() ),
 			$ref > 0 ? $num( $ref ) : '',
 			$num( $o->get_meta( '_jpl_fee' ) ),

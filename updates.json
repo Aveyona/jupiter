@@ -2,53 +2,53 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.11.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.11.0/j-help-v1.11.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.11.0",
+      "version": "1.12.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.12.0/j-help-v1.12.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.12.0",
       "published": "2026-10-31",
-      "notes": "Príručka Jupiter (10 kapitol, schéma) – príručku majú všetky doplnky. Príručka J-Notes (12 kapitol, schéma) a plán vývoja J-Notes. Príručka J-Kupóny (12 kapitol, schéma) a plán vývoja J-Kupónov. Príručka J-Účtovníctvo (16 kapitol, schéma) a plán vývoja J-Účtovníctva. Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Overenie balíkov pred inštaláciou (SHA-256, podpis), len doplnky z rodiny Jupiter. Príručka Jupiter (10 kapitol, schéma) – príručku majú všetky doplnky. Príručka J-Notes (12 kapitol, schéma) a plán vývoja J-Notes. Príručka J-Kupóny (12 kapitol, schéma) a plán vývoja J-Kupónov. Príručka J-Účtovníctvo (16 kapitol, schéma) a plán vývoja J-Účtovníctva. Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
-      "version": "0.11.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.11.0/j-invoices-v0.11.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.11.0",
+      "version": "0.12.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-invoices-v0.12.0/j-invoices-v0.12.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-invoices-v0.12.0",
       "published": "2026-10-31",
-      "notes": "Bezpečnosť príloh, spoľahlivé párovanie banky (žiadne dvojité spárovanie, dvojité platby na kontrolu, mena), upozornenia na banku, opravy číslovania, upomienky a stav Po splatnosti, dobierka uhradená po doručení, dobropis pri zrušenej objednávke, zostávajúca suma v PDF a QR."
+      "notes": "Dobierka na peniaze na ceste, úhrady pri novej faktúre po storne sa nezdvoja, vrátenie peňazí (karta aj banka ↔ dobropis), druh položiek dobropisu, zašifrovaný token Fio API. Bezpečnosť príloh, spoľahlivé párovanie banky (žiadne dvojité spárovanie, dvojité platby na kontrolu, mena), upozornenia na banku, opravy číslovania, upomienky a stav Po splatnosti, dobierka uhradená po doručení, dobropis pri zrušenej objednávke, zostávajúca suma v PDF a QR."
     },
     "j-emails": {
-      "version": "0.5.2",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-emails-v0.5.2/j-emails-v0.5.2.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-emails-v0.5.2",
+      "version": "0.5.3",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-emails-v0.5.3/j-emails-v0.5.3.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-emails-v0.5.3",
       "published": "2026-10-31",
-      "notes": "E-maily webu: odosielateľ, ktorý nie je adresou schránky ani aliasom (aj predvolená wordpress@), sa nahradí adresou schránky – server ho inak odmietol („Údaje neboli akceptované“); pôvodná adresa ide do Odpovedať."
+      "notes": "Odinštalovanie zmaže tajné údaje. E-maily webu: odosielateľ, ktorý nie je adresou schránky ani aliasom (aj predvolená wordpress@), sa nahradí adresou schránky – server ho inak odmietol („Údaje neboli akceptované“); pôvodná adresa ide do Odpovedať."
     },
     "j-orders": {
-      "version": "0.3.1",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-orders-v0.3.1/j-orders-v0.3.1.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-orders-v0.3.1",
+      "version": "0.3.2",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-orders-v0.3.2/j-orders-v0.3.2.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-orders-v0.3.2",
       "published": "2026-10-31",
-      "notes": "Stĺpec Doprava s výdajným miestom a stavom zásielky Packeta. Opravy číslovania (bloková pokladňa nemíňa čísla, objednávky z REST API, staršie objednávky si ponechajú číslo), zoznam bez konceptov z pokladne, rýchly filter Na fakturáciu, filter len zapnutých platieb. Príručka v J-Pomocníku."
+      "notes": "Na fakturáciu aj objednávky Vybavená. Stĺpec Doprava s výdajným miestom a stavom zásielky Packeta. Opravy číslovania (bloková pokladňa nemíňa čísla, objednávky z REST API, staršie objednávky si ponechajú číslo), zoznam bez konceptov z pokladne, rýchly filter Na fakturáciu, filter len zapnutých platieb. Príručka v J-Pomocníku."
     },
     "j-sklad": {
-      "version": "0.6.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.6.0/j-sklad-v0.6.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.6.0",
+      "version": "0.6.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.6.1/j-sklad-v0.6.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.6.1",
       "published": "2026-10-31",
-      "notes": "Merné jednotky pri produkte (kus, hodina, kg, mesiac, licencia… aj vlastné), zobrazené pri zásobe, v dokladoch, pohyboch a balíčkoch, voliteľne aj pri cene v obchode. Balíčky (zostavy): k produktu sa v košíku automaticky pridajú súčasti (napr. členstvo a hodiny poradenstva) za bežnú alebo vlastnú cenu; prehľad J-Sklad → Balíčky. Akcie a novinky: hromadné zľavy s dátumom od – do a názvom akcie, novinky ručne alebo automaticky, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky]. Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
+      "notes": "Storno dokladu sa hneď prejaví v účtovníctve. Merné jednotky pri produkte (kus, hodina, kg, mesiac, licencia… aj vlastné), zobrazené pri zásobe, v dokladoch, pohyboch a balíčkoch, voliteľne aj pri cene v obchode. Balíčky (zostavy): k produktu sa v košíku automaticky pridajú súčasti (napr. členstvo a hodiny poradenstva) za bežnú alebo vlastnú cenu; prehľad J-Sklad → Balíčky. Akcie a novinky: hromadné zľavy s dátumom od – do a názvom akcie, novinky ručne alebo automaticky, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky]. Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
     },
     "j-uctovnictvo": {
-      "version": "0.7.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-uctovnictvo-v0.7.0/j-uctovnictvo-v0.7.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-uctovnictvo-v0.7.0",
+      "version": "0.7.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-uctovnictvo-v0.7.1/j-uctovnictvo-v0.7.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-uctovnictvo-v0.7.1",
       "published": "2026-10-31",
-      "notes": "Termíny a daň (kalendár povinností, pracovný list DPPO, rozdelenie výsledku hospodárenia), odsúhlasenie banky, prehľad pre majiteľa, pravidlá banky podľa názvu a textu, vylúčenie dokladu z automatického účtovania, rozpis počiatočného saldokonta po faktúrach a desiatky opráv automatického účtovania, uzávierky a výkazov. Majetok a odpisy (karty majetku, odpisový plán, zaradenie, mesačné odpisy, vyradenie) a uzávierka (mesiac, ročná uzávierka s daňou z príjmov a minimálnou daňou, uzavretie kníh 710/702, otvorenie roka 701, poznámky Úč MÚJ 3-01). Na riešenie: úlohy, rozhodnutia, otázky pre účtovníka a automatické kontroly. Pokladňa: pokladničné doklady a kniha. Import účtovníctva z OBERON-u (Exalogic) po rokoch. Podvojné účtovníctvo pre s. r. o.: sprievodca založením, overený účtový rozvrh, účtovné doklady so stornom, denník, hlavná kniha, obratová predvaha, saldokonto, automatické účtovanie a účtovná závierka mikro účtovnej jednotky (Úč MÚJ)."
+      "notes": "Dobierka na peniaze na ceste, výplaty Packety a Stripe, vrátenie peňazí prevodom, okamžité storno, upozornenie na ručné zmeny zásob. Termíny a daň (kalendár povinností, pracovný list DPPO, rozdelenie výsledku hospodárenia), odsúhlasenie banky, prehľad pre majiteľa, pravidlá banky podľa názvu a textu, vylúčenie dokladu z automatického účtovania, rozpis počiatočného saldokonta po faktúrach a desiatky opráv automatického účtovania, uzávierky a výkazov. Majetok a odpisy (karty majetku, odpisový plán, zaradenie, mesačné odpisy, vyradenie) a uzávierka (mesiac, ročná uzávierka s daňou z príjmov a minimálnou daňou, uzavretie kníh 710/702, otvorenie roka 701, poznámky Úč MÚJ 3-01). Na riešenie: úlohy, rozhodnutia, otázky pre účtovníka a automatické kontroly. Pokladňa: pokladničné doklady a kniha. Import účtovníctva z OBERON-u (Exalogic) po rokoch. Podvojné účtovníctvo pre s. r. o.: sprievodca založením, overený účtový rozvrh, účtovné doklady so stornom, denník, hlavná kniha, obratová predvaha, saldokonto, automatické účtovanie a účtovná závierka mikro účtovnej jednotky (Úč MÚJ)."
     },
     "j-notes": {
-      "version": "0.2.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-notes-v0.2.0/j-notes-v0.2.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-notes-v0.2.0",
+      "version": "0.2.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-notes-v0.2.1/j-notes-v0.2.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-notes-v0.2.1",
       "published": "2026-10-31",
-      "notes": "Ochrana pred prepísaním pri súbežnej úprave, bezpečné načítanie súborov .md, presné prepínanie úloh, kôš, stránkovanie, chránené priečinky s náhodným názvom a denná kontrola. Prvá verzia: plány s úlohami a stavom, dokumentácia v Markdowne, prehľad „Teraz robím“, denník zmien, nahrávanie a sťahovanie súborov .md."
+      "notes": "Deaktivácia zruší plánovanú úlohu. Ochrana pred prepísaním pri súbežnej úprave, bezpečné načítanie súborov .md, presné prepínanie úloh, kôš, stránkovanie, chránené priečinky s náhodným názvom a denná kontrola. Prvá verzia: plány s úlohami a stavom, dokumentácia v Markdowne, prehľad „Teraz robím“, denník zmien, nahrávanie a sťahovanie súborov .md."
     },
     "j-jupiter": {
       "version": "0.2.0",
@@ -58,11 +58,11 @@
       "notes": "Súhrn Čaká na vás, hľadanie na nástenke, aktualizácie a príručka na dlaždici, zapnutie vypnutého doplnku, počítadlá podstránok v zlúčenom menu, len doplnky z rodiny Jupiter. Stav doplnku na dlaždici nástenky (napr. webhook J-Platieb)."
     },
     "j-platby": {
-      "version": "0.2.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-platby-v0.2.0/j-platby-v0.2.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-platby-v0.2.0",
+      "version": "0.2.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-platby-v0.2.1/j-platby-v0.2.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-platby-v0.2.1",
       "published": "2026-10-31",
-      "notes": "Opravy: upozornenie na nečitateľný kľúč a odmietnutý webhook, platobná stránka zladená s rušením nezaplatených objednávok, čistá suma po vrátení, bloková pokladňa pod 0,50 €. Nové: odkaz na platbu kartou z objednávky, export CSV, stav webhooku na nástenke."
+      "notes": "Bez dvojitej úhrady po storne faktúry, testové platby nie sú úhrady, kontrola sumy/meny/režimu, CSV bez vzorcov. Opravy: upozornenie na nečitateľný kľúč a odmietnutý webhook, platobná stránka zladená s rušením nezaplatených objednávok, čistá suma po vrátení, bloková pokladňa pod 0,50 €. Nové: odkaz na platbu kartou z objednávky, export CSV, stav webhooku na nástenke."
     },
     "j-kupony": {
       "version": "0.2.0",
@@ -72,11 +72,11 @@
       "notes": "Doprava zadarmo pri každom spôsobe dopravy, série s exportom a tlačou kódov, detail kupónu s objednávkami a poskytnutou zľavou, štatistika, duplikovanie, kategórie a produkty, nastavenia dĺžky a predpony kódu, opravy (neplatný e-mail, platnosť, stránkovanie). Prvá verzia: evidencia zľavových kódov, automaticky generovaný kód (4 znaky), hromadné vytvorenie, stav a použitie kódov s objednávkami, vypnutie a zapnutie."
     },
     "j-doprava": {
-      "version": "0.3.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-doprava-v0.3.0/j-doprava-v0.3.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-doprava-v0.3.0",
+      "version": "0.3.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-doprava-v0.3.1/j-doprava-v0.3.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-doprava-v0.3.1",
       "published": "2026-10-31",
-      "notes": "Oprava dobierky pri stave Spracováva sa, upozornenie na nečitateľné API heslo, spoľahlivejšie sledovanie. Nové: automatické podanie zásielky, záložka Na tlač, spätná zásielka, Slovenská pošta – ePodací hárok, e-mail Pripravené na osobný odber."
+      "notes": "Jedna definícia dobierky pre J-Fakturáciu, odinštalovanie. Oprava dobierky pri stave Spracováva sa, upozornenie na nečitateľné API heslo, spoľahlivejšie sledovanie. Nové: automatické podanie zásielky, záložka Na tlač, spätná zásielka, Slovenská pošta – ePodací hárok, e-mail Pripravené na osobný odber."
     }
   }
 }

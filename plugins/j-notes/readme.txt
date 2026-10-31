@@ -2,9 +2,9 @@
 Contributors: aveyona
 Tags: notes, markdown, plans, documentation, jupiter
 Requires at least: 6.5
-Tested up to: 6.9
+Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 
 Poznámky k projektom v administrácii WordPressu. Súčasť rodiny Jupiter.
@@ -23,6 +23,9 @@ Poznámky k projektom v administrácii WordPressu. Súčasť rodiny Jupiter.
 Rovnaký kód používa doplnok My Notes (rodina My) – generuje sa skriptom.
 
 == Changelog ==
+
+= 0.2.1 =
+* Deaktivácia zruší plánovanú úlohu načítania súborov.
 
 = 0.2.0 =
 * Úprava neprepíše zmeny urobené medzitým (odškrtnutá úloha, záznam v denníku, načítanie zo súboru) – formulár ukáže vašu aj aktuálnu verziu.
