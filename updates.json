@@ -49,6 +49,13 @@
       "url": "https://github.com/Aveyona/jupiter/releases/tag/j-notes-v0.1.0",
       "published": "2026-10-29",
       "notes": "Prvá verzia: plány s úlohami a stavom, dokumentácia v Markdowne, prehľad „Teraz robím“, denník zmien, nahrávanie a sťahovanie súborov .md."
+    },
+    "j-jupiter": {
+      "version": "0.1.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-jupiter-v0.1.0/j-jupiter-v0.1.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-jupiter-v0.1.0",
+      "published": "2026-10-31",
+      "notes": "Prvá verzia: hlavný doplnok Jupiter – nástenka doplnkov J-, zlúčenie do jednej položky menu, navigácia na stránkach doplnkov, farby."
     }
   }
 }
