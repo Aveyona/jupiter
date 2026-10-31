@@ -30,7 +30,8 @@ function jhelp_doc_url( $slug ) {
 
 add_action( 'admin_menu', function () {
 	foreach ( jhelp_docs() as $slug => $d ) {
-		add_submenu_page( 'j-help', 'Príručka ' . $d['name'], 'Príručka ' . $d['name'], 'manage_woocommerce', 'j-help-doc-' . $slug, 'jhelp_render_doc' );
+		// V menu len názov doplnku bez predpony J- (Pošta), titulok stránky ostáva Príručka J-Pošta.
+		add_submenu_page( 'j-help', 'Príručka ' . $d['name'], preg_replace( '/^J-\s*/u', '', $d['name'] ), 'manage_woocommerce', 'j-help-doc-' . $slug, 'jhelp_render_doc' );
 	}
 }, 11 );
 
