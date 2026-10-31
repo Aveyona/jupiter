@@ -6,6 +6,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_filter( 'jupiter_guides', function ( $guides ) {
 	$guides[] = array(
+		'Balíčky (zostavy)',
+		array(
+			'Úprava produktu → záložka Balíček: vyberte produkty, ktoré sa pridajú do košíka spolu s ním, a ich počet (napr. IT poradenstvo × 8). Cena v balíčku prázdna = bežná cena súčasti.',
+			'Zákazník vidí na stránke produktu rámček „V balíčku dostanete“ s cenou spolu; v košíku sú súčasti ako samostatné riadky označené „Súčasť balíčka“. Počet sa mení len pri balíčku, odobratie odoberie celý balíček.',
+			'Súčasti sú bežné riadky objednávky a faktúry – sklad sa odpisuje, členstvo sa zapne ako pri samostatnom nákupe. Prehľad: J-Sklad → Balíčky.',
+		),
+		'J-Sklad',
+	);
+	$guides[] = array(
 		'Ako funguje J-Sklad',
 		array(
 			'Zásoba ostáva v produktoch WooCommerce (Zásoby → Spravovať zásoby, Množstvo na sklade). J-Sklad k nej pridáva doklady a úplnú históriu pohybov.',
@@ -57,6 +66,16 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'Zaúčtovať inventúru – doklad dostane číslo (IN2026001) a zásoba každej spočítanej položky sa nastaví na spočítané množstvo; rozdiel sa zapíše do Pohybov. Predaje počas inventúry sa nezapočítajú dvakrát – rozdiel sa počíta voči zásobe v okamihu zaúčtovania („teraz X“ pri riadku upozorní na zmenu).',
 			'Nespočítané položky ostanú bez zmeny; voľba „nespočítané nastaviť na 0 ks“ ich vynuluje.',
 			'Zaúčtovaná inventúra má protokol na tlač (manko, prebytok, hodnoty, podpis). Chyba: Stornovať – rozdiely sa vrátia späť.',
+		),
+		'J-Sklad',
+	);
+	$guides[] = array(
+		'Akcie a novinky',
+		array(
+			'J-Sklad → Akcie a novinky: označ produkty (filter podľa názvu, kategórie, v akcii, novinky), vyber Nastaviť zľavu a zadaj percento, sumu alebo novú cenu. Voliteľne dátum od – do (cena sa zmení a vráti sama), názov akcie (napr. Black Friday) a zaokrúhlenie na ,90 alebo ,99.',
+			'Zrušiť zľavu vráti bežnú cenu. Zľava je akciová cena WooCommerce – platí v košíku, v objednávkach aj na faktúre.',
+			'Novinka: produkt je novinkou automaticky N dní od pridania (nastavenie v záložke Štítky a zobrazenie), alebo ho označíš ručne s dátumom „do“; Zrušiť novinku ho vyradí aj z automatických noviniek. To isté nastavíš aj v úprave produktu (Všeobecné → Novinka).',
+			'V obchode sa pri produkte zobrazí štítok Akcia −20 % (alebo názov akcie) a Novinka. Stránky s akciami a novinkami: krátke kódy [jsk_akcie] a [jsk_novinky], alebo odkaz do menu na obchod s ?jsk=akcie a ?jsk=novinky.',
 		),
 		'J-Sklad',
 	);
