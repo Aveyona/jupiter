@@ -234,10 +234,19 @@ function jhelp_roadmap() {
 			),
 		),
 		array(
+			'title'  => 'J-Účtovníctvo 0.8 – daňové priznanie a účtovná závierka v XML',
+			'state'  => 'done',
+			'points' => array(
+				'Stránka Daňové priznanie: DPPO a Úč MÚJ ako súbory XML na portál Finančnej správy (štruktúra overená kontrolou elektronického formulára).',
+				'Riadky priznania z účtovníctva (tab. A, B, D, F), odpočet straty, minimálna daň, preddavky a kontroly pred podaním.',
+			),
+		),
+		array(
 			'title'  => 'J-Účtovníctvo – ďalej',
 			'state'  => 'next',
 			'points' => array(
-				'Daňové priznanie DPPO a účtovná závierka ako XML na podanie cez eDane.',
+				'Formulár DPPO za rok 2026 (DPPOv26) hneď po zverejnení Finančnou správou.',
+				'Podiel zaplatenej dane (2 %) a tab. I (kontrolované transakcie) priamo v priznaní.',
 				'Mzdy a odvody konateľa (odmena, poistné, daň zo závislej činnosti) a ich účtovanie.',
 				'Platiteľ DPH: kontrolný výkaz, priznanie k DPH a súhrnný výkaz.',
 				'Cestovné náhrady a vyúčtovanie služobných ciest.',

@@ -2,7 +2,7 @@
 /**
  * Príručka doplnku J-Účtovníctvo (podstránka J-Pomocník → J-Účtovníctvo).
  * Každá kapitola: id (kotva), názov, ikona (dashicons), HTML obsah. {ASSETS} = priečinok assets/ J-Pomocníka.
- * Pri zmene doplnku J-Účtovníctvo sem doplň, čo sa zmenilo (aktuálne podľa verzie 0.7.0).
+ * Pri zmene doplnku J-Účtovníctvo sem doplň, čo sa zmenilo (aktuálne podľa verzie 0.8.0).
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -45,6 +45,7 @@ HTML
 <tr><td><strong>Majetok</strong></td><td>Karty majetku, odpisy, vyradenie.</td></tr>
 <tr><td><strong>Uzávierka</strong></td><td>Kontroly a uzamknutie mesiaca, ročná uzávierka, poznámky.</td></tr>
 <tr><td><strong>Termíny a daň</strong></td><td>Kalendár povinností, pracovný list DPPO, rozdelenie výsledku.</td></tr>
+<tr><td><strong>Daňové priznanie</strong></td><td>Daňové priznanie PO a účtovná závierka Úč MÚJ ako súbory XML na portál Finančnej správy.</td></tr>
 <tr><td><strong>Odsúhlasenie banky</strong></td><td>Zostatok účtu 221 oproti výpisu za každý mesiac.</td></tr>
 <tr><td><strong>Účtovná závierka</strong></td><td>Súvaha a výkaz ziskov a strát Úč MÚJ.</td></tr>
 <tr><td><strong>Na riešenie</strong></td><td>Úlohy, rozhodnutia, otázky pre účtovníka a automatické kontroly.</td></tr>
@@ -195,6 +196,37 @@ HTML
 <li><strong>Uzavrieť rok</strong> – uzávierkové doklady <code>UZ</code> (710, 702), uzamknutie roka a v novom roku počiatočné stavy cez 701 vrátane saldokonta po VS a partneroch. Výsledok hospodárenia ide na 431.</li>
 </ol>
 <p class="jhelp-warn"><strong>Zrušenie uzávierky</strong> stornuje doklady UZ a počiatočné stavy nového roka a vráti pôvodné uzamknutie mesiacov. Použite ho len na opravy pred podaním závierky.</p>
+HTML
+	);
+
+	$s[] = array( 'dppo', 'Daňové priznanie a účtovná závierka (XML)', 'dashicons-media-code', <<<'HTML'
+<p>Stránka <em>Daňové priznanie</em> pripraví z účtovníctva dva súbory na podanie cez portál Finančnej správy:</p>
+<ul>
+<li><strong>DPPO</strong> – daňové priznanie k dani z príjmov právnickej osoby (štruktúra elektronického formulára DPPOv25).</li>
+<li><strong>Úč MÚJ</strong> – účtovná závierka mikro účtovnej jednotky: súvaha a výkaz ziskov a strát (UZMUJv14). Poznámky k závierke pripojíte na portáli ako PDF.</li>
+</ul>
+<p>J-Účtovníctvo nič neodosiela. Súbor stiahnete, na portáli ho nahráte (<em>Podanie → Nahrať XML</em>), skontrolujete a podpíšete.</p>
+<h3>Čo sa vypĺňa samo</h3>
+<ul>
+<li><strong>Tab. F a r. 100</strong> – výnosy, náklady (bez dane z príjmov) a výsledok hospodárenia pred zdanením.</li>
+<li><strong>Tab. A r. 16 → r. 130</strong> – náklady na účtoch označených ako nedaňové (513, 543, 545…) a pripočítateľné položky z Uzávierky.</li>
+<li><strong>Tab. B → r. 150 / r. 250</strong> – odpisy z kariet majetku (účtovné = daňové).</li>
+<li><strong>r. 210</strong> – výnosy na účtoch označených ako nedaňové.</li>
+<li><strong>Odpočet straty (tab. D)</strong> – daňová strata minulého roka sa predvyplní z jeho priznania; mikrodaňovník do 100 %, ostatní do 50 % základu dane, najviac 5 rokov.</li>
+<li><strong>Sadzba, daň, minimálna daň, daň na úhradu</strong> a daň na výpočet preddavkov (r. 1110).</li>
+<li>Firma (názov, IČO, DIČ, sídlo, zápis v registri) z nastavení, oprávnená osoba zo „Štatutár“.</li>
+</ul>
+<h3>Čo doplníte</h3>
+<ul>
+<li>SK NACE hlavnej činnosti (napr. 47.91.0) a trvalý pobyt oprávnenej osoby.</li>
+<li>Mikrodaňovník a transakcie so závislými osobami – <strong>pôžička od konateľa alebo konateľovi</strong> je kontrolovaná transakcia, vtedy firma nie je mikrodaňovník.</li>
+<li>Výdavky platené až po zaplatení (§ 17 ods. 19 – nájom, účtovník, licencie) – nezaplatené (r. 140) a zaplatené z minulého roka (r. 270).</li>
+<li>Zaplatené preddavky na daň za tento rok (platby na 341 obsahujú aj doplatok dane za minulý rok, preto sa neberú automaticky).</li>
+<li>Pri preplatku žiadosť o vrátenie a IBAN; dátumy zostavenia a schválenia závierky.</li>
+</ul>
+<h3>Kontroly</h3>
+<p>Stránka upozorní, ak rok nie je uzavretý, výsledok nesedí s účtovníctvom alebo výkazom, chýba NACE či oprávnená osoba, zaúčtovaná daň (591) sa líši od dane v priznaní, príjmy prekročia hranicu mikrodaňovníka alebo vznikla daňová strata.</p>
+<p class="jhelp-warn"><strong>Podiel zaplatenej dane (2 %)</strong> – v súbore je vyznačené „neuplatňujem“. Prijímateľa doplníte na portáli pri podaní. <strong>Formulár za rok 2026</strong> (DPPOv26) Finančná správa zverejní začiatkom roka 2027 – pred podaním aktualizujte J-Účtovníctvo a súbor vytvorte znova.</p>
 HTML
 	);
 
