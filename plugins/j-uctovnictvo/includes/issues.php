@@ -156,10 +156,25 @@ function juc_issues_detect() {
 			$out[ 'overdue:' . $d['id'] ] = array( 'kind' => 'check', 'title' => ( 'issued' === $d['kind'] ? 'Neuhradená vydaná faktúra ' : 'Neuhradená prijatá faktúra ' ) . $d['number'] . ' – ' . $d['customer_name'] . ' ' . juc_money( $d['total'] ) . ' €, splatná ' . juc_date( $d['due_date'] ), 'body' => 'issued' === $d['kind'] ? 'Pripomenúť odberateľovi alebo spárovať platbu v Banke.' : 'Uhradiť alebo spárovať platbu v Banke.', 'priority' => 1, 'link_type' => 'doc', 'link_id' => (string) $d['id'] );
 		}
 	}
+	// 3b) Úhrady bez určenia účtu (zápočet, iné) – čakajú v „Na zaúčtovanie“.
+	if ( function_exists( 'juc_queue_payments' ) ) {
+		foreach ( juc_queue_payments() as $p ) {
+			$out[ 'pay:' . $p['id'] ] = array(
+				'kind'      => 'decision',
+				'title'     => 'Nezaúčtovaná úhrada (' . ( function_exists( 'jinv_pay_methods' ) ? ( jinv_pay_methods()[ $p['method'] ] ?? $p['method'] ) : $p['method'] ) . '): ' . $p['doc_number'] . ' – ' . juc_money( $p['amount'] ) . ' € (' . juc_date( $p['pay_date'] ) . ')',
+				'body'      => trim( $p['note'] . "\nÚhradu zápočtom alebo iným spôsobom program nevie zaúčtovať sám. Zaúčtujte ju v „Na zaúčtovanie“ zadaním protiúčtu (napr. 321 pri zápočte s dodávateľom, 211 pokladňa, 355 konateľ)." ),
+				'priority'  => 2,
+				'link_type' => 'doc',
+				'link_id'   => (string) $p['doc_id'],
+			);
+		}
+	}
 	// 4) Banka: zostatok v účtovníctve vs. výpis.
 	if ( function_exists( 'jinv_bank_accounts' ) && function_exists( 'jinv_bank_balance_at' ) ) {
+		$map = (array) juc_opt( 'bank_map' );
 		foreach ( jinv_bank_accounts() as $aid => $a ) {
-			$acc = juc_bank_account( $aid );
+			// Len čítanie: analytický účet banky založí až účtovanie prvého pohybu (juc_bank_account).
+			$acc = (string) ( $map[ $aid ] ?? '' );
 			$y   = juc_year_of( $today );
 			if ( ! $acc || ! $y ) {
 				continue;

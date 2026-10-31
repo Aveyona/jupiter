@@ -4,7 +4,7 @@ Tags: woocommerce, accounting, double-entry, slovakia, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.6.0
+Stable tag: 0.7.0
 License: GPLv2 or later
 
 Podvojné účtovníctvo pre slovenské s. r. o. Súčasť rodiny Jupiter.
@@ -32,6 +32,18 @@ Pripravuje sa: DPH (pri registrácii).
 Program nenahrádza odborné posúdenie – pred podaním účtovnej závierky a daňového priznania odporúčame kontrolu účtovníkom.
 
 == Changelog ==
+
+= 0.7.0 =
+* Termíny a daň: kalendár povinností (daňové priznanie, závierka, registrácia, preddavky na daň), predĺženie lehoty, pracovný list DPPO s výpočtom dane a rozdelenie výsledku hospodárenia (zisk do 421 / 364 / 428, úhrada straty).
+* Odsúhlasenie banky: porovnanie zostatku účtu 221 so stavom podľa výpisu za každý mesiac a zoznam rozdielov.
+* Prehľad pre majiteľa: najbližšie termíny, výsledok roka, neuhradené faktúry po splatnosti a kontroly mesiaca (banka, pokladňa, doklady na zaúčtovanie) s uzamknutím mesiaca jedným klikom.
+* Pravidlá pre banku podľa názvu protiúčtu alebo textu platby (názov: … = 518, text: … = 518) a voľba „zapamätať“ priamo pri zaúčtovaní pohybu; podobné pohyby vo fronte sa zaúčtujú hneď.
+* Vylúčenie dokladu z automatického účtovania (faktúra, pohyb v banke, sklad, platba) priamo v detaile dokladu.
+* Sprievodca: počiatočné pohľadávky a záväzky (311, 321) sa dajú rozpísať po faktúrach – saldokonto potom ukazuje každú faktúru zvlášť.
+* Úhrady bez určenia účtu: nový zoznam vo fronte Na zaúčtovanie.
+* Opravy automatického účtovania: priebežný beh s kurzorom a dennou úplnou kontrolou, zámky proti dvojitému zaúčtovaniu, storno dokladov, ktorých zdroj bol zmazaný, ručné storno sa už znova nezaúčtuje, uzamknuté mesiace sa neprepisujú, chyby sa nestrácajú.
+* Opravy uzávierky a výkazov: poradie krokov ročnej uzávierky, bezpečné zrušenie uzávierky, saldokonto pri otvorení roka podľa VS a partnera, pásmo minimálnej dane podľa zdaniteľných výnosov, riadok 32 pre účet 431, karta účtu s oddelenými obratmi MD a Dal, ochrana CSV exportu.
+* Opravy majetku, pokladne (výdavkové doklady VD), číslovania (storno, prijaté faktúry DF) a sprievodcu (oprava počiatočných stavov s obnovou pri chybe).
 
 = 0.6.0 =
 * Majetok: karta dlhodobého hmotného a nehmotného majetku a drobného majetku, odpisové skupiny 0 – 6, rovnomerné (§ 27), zrýchlené (§ 28) a vlastný plán mikrodaňovníka, pomerná časť v roku zaradenia, zaokrúhlenie ročného odpisu nahor.

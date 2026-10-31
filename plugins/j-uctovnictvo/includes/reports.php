@@ -28,10 +28,104 @@ function juc_csv( $name, array $head, array $rows ) {
 	fwrite( $f, "\xEF\xBB\xBF" ); // phpcs:ignore
 	fputcsv( $f, $head, ';' );
 	foreach ( $rows as $r ) {
-		fputcsv( $f, array_map( fn( $v ) => is_float( $v ) ? number_format( $v, 2, ',', '' ) : $v, $r ), ';' );
+		fputcsv( $f, array_map( 'juc_csv_cell', $r ), ';' );
 	}
 	fclose( $f ); // phpcs:ignore
 	exit;
+}
+
+/** Bunka CSV: čísla s desatinnou čiarkou, text začínajúci = + - @ (vzorec v Exceli) s apostrofom na začiatku. */
+function juc_csv_cell( $v ) {
+	if ( is_float( $v ) ) {
+		return number_format( $v, 2, ',', '' );
+	}
+	if ( is_string( $v ) && '' !== $v && in_array( $v[0], array( '=', '+', '-', '@', "\t", "\r" ), true ) ) {
+		return "'" . $v;
+	}
+	return $v;
+}
+
+/**
+ * Dá sa účtovať k dátumu? Ako juc_can_post(), ale chýbajúce účtové obdobie nezakladá (kontroly, rušenie kariet).
+ * Neexistujúce obdobie nemá žiadne zápisy ani uzávierku – vráti true. Vráti true alebo WP_Error.
+ */
+function juc_period_check( $date, $respect_lock = true ) {
+	if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $date ) ) {
+		return new WP_Error( 'juc_date', 'Neplatný dátum.' );
+	}
+	$y = juc_year_of( $date );
+	if ( $y && 'closed' === $y['status'] ) {
+		return new WP_Error( 'juc_closed', 'Účtové obdobie ' . substr( $y['start_date'], 0, 4 ) . ' je uzavreté.' );
+	}
+	$lock = (string) juc_opt( 'lock_date' );
+	if ( $respect_lock && $lock && $date <= $lock && empty( $GLOBALS['juc_importing'] ) ) {
+		return new WP_Error( 'juc_locked', 'Účtovníctvo je uzavreté do ' . juc_date( $lock ) . ' – zápis s dátumom ' . juc_date( $date ) . ' nie je možný.' );
+	}
+	return true;
+}
+
+/** Má účtové obdobie aspoň jeden zápis? */
+function juc_year_has_lines( $year_id ) {
+	global $wpdb;
+	return (bool) $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM ' . juc_t( 'lines' ) . ' WHERE year_id = %d LIMIT 1', $year_id ) ); // phpcs:ignore
+}
+
+/**
+ * Párovanie saldokonta – rovnaké pre zostavu saldokonta aj ročnú uzávierku.
+ * Vstup: riadky [ 'acc', 'pid', 'vs', 'bal' ] zoskupené po účte, partnerovi a VS. Vráti kľúč skupiny pre každý riadok (rovnaké indexy):
+ *  - s partnerom: účet + VS + partner (rôzni partneri s rovnakým VS sa nezlúčia), bez VS účet + partner,
+ *  - bez partnera (napr. úhrada z banky) s VS: pripojí sa k jedinej skupine s rovnakým účtom a VS; ak je ich viac,
+ *    k tej s opačným zostatkom najbližším k sume; ak žiadna nie je, ostane samostatne (účet + VS),
+ *  - bez partnera aj VS: účet + partner 0.
+ */
+function juc_saldo_keys( array $rows ) {
+	$keys  = array();
+	$by_vs = array();
+	foreach ( $rows as $i => $r ) {
+		$pid = (int) $r['pid'];
+		$vs  = (string) $r['vs'];
+		if ( ! $pid ) {
+			continue;
+		}
+		$keys[ $i ] = $r['acc'] . '|' . ( '' !== $vs ? 'vs:' . $vs . '|' : '' ) . 'p:' . $pid;
+		if ( '' !== $vs ) {
+			$g                          = $r['acc'] . '|' . $vs;
+			$by_vs[ $g ][ $keys[ $i ] ] = round( ( $by_vs[ $g ][ $keys[ $i ] ] ?? 0 ) + (float) $r['bal'], 2 );
+		}
+	}
+	foreach ( $rows as $i => $r ) {
+		if ( isset( $keys[ $i ] ) ) {
+			continue;
+		}
+		$vs = (string) $r['vs'];
+		if ( '' === $vs ) {
+			$keys[ $i ] = $r['acc'] . '|p:0';
+			continue;
+		}
+		$g    = $r['acc'] . '|' . $vs;
+		$cand = $by_vs[ $g ] ?? array();
+		if ( ! $cand ) {
+			$keys[ $i ] = $r['acc'] . '|vs:' . $vs . '|p:0';
+			continue;
+		}
+		$bal  = (float) $r['bal'];
+		$pick = array_key_first( $cand );
+		if ( count( $cand ) > 1 ) {
+			$best = null;
+			foreach ( $cand as $k => $b ) {
+				if ( $b * $bal < 0 ) {
+					$diff = abs( abs( $b ) - abs( $bal ) );
+					if ( null === $best || $diff < $best ) {
+						$best = $diff;
+						$pick = $k;
+					}
+				}
+			}
+		}
+		$keys[ $i ]           = $pick;
+		$by_vs[ $g ][ $pick ] = round( $cand[ $pick ] + $bal, 2 );
+	}
+	return $keys;
 }
 
 // CSV zostáv sa generuje pred výstupom administrácie (inak by už boli odoslané hlavičky).
@@ -112,8 +206,10 @@ function juc_page_ledger() {
 		$out = array();
 		foreach ( (array) $rows as $r ) {
 			$is_md = 0 === strpos( $r['md'], $acc );
-			$bal  += $is_md ? (float) $r['amount'] : -1 * (float) $r['amount'];
-			$out[] = array( $r['entry_date'], $r['number'], $r['text'] ? $r['text'] : $r['descr'], $is_md ? $r['d'] : $r['md'], $is_md ? (float) $r['amount'] : '', $is_md ? '' : (float) $r['amount'], $bal );
+			$is_d  = 0 === strpos( $r['d'], $acc );
+			$both  = $is_md && $is_d; // presun medzi analytikami toho istého účtu – na oboch stranách (netto 0)
+			$bal  += ( $is_md ? (float) $r['amount'] : 0 ) - ( $is_d ? (float) $r['amount'] : 0 );
+			$out[] = array( $r['entry_date'], $r['number'], $r['text'] ? $r['text'] : $r['descr'], $both ? $r['md'] . ' / ' . $r['d'] : ( $is_md ? $r['d'] : $r['md'] ), $is_md ? (float) $r['amount'] : '', $is_d ? (float) $r['amount'] : '', $bal );
 		}
 		juc_csv( 'ucet-' . $acc . '-' . substr( $y['start_date'], 0, 4 ), array( 'Dátum', 'Doklad', 'Text', 'Protiúčet', 'MD', 'Dal', 'Zostatok' ), $out );
 	}
@@ -126,18 +222,21 @@ function juc_page_ledger() {
 		<?php
 		foreach ( (array) $rows as $r ) :
 			$is_md = 0 === strpos( $r['md'], $acc );
+			$is_d  = 0 === strpos( $r['d'], $acc );
+			$both  = $is_md && $is_d; // presun medzi analytikami toho istého účtu – na oboch stranách (netto 0)
 			$amt   = (float) $r['amount'];
-			$bal  += $is_md ? $amt : -$amt;
+			$bal  += ( $is_md ? $amt : 0 ) - ( $is_d ? $amt : 0 );
 			$tmd  += $is_md ? $amt : 0;
-			$td   += $is_md ? 0 : $amt;
+			$td   += $is_d ? $amt : 0;
+			$cp    = $both ? $r['md'] . ' / ' . $r['d'] : ( $is_md ? $r['d'] : $r['md'] );
 			?>
 			<tr class="<?php echo (int) $r['opening'] ? 'juc-ps' : ''; ?>">
 				<td><?php echo esc_html( juc_date( $r['entry_date'] ) ); ?></td>
 				<td><a href="<?php echo esc_url( juc_url( 'j-uctovnictvo-entries', array( 'entry' => $r['eid'] ) ) ); ?>"><?php echo esc_html( $r['number'] ); ?></a></td>
 				<td><?php echo esc_html( $r['text'] ? $r['text'] : $r['descr'] ); ?></td>
-				<td title="<?php echo esc_attr( juc_account_name( $is_md ? $r['d'] : $r['md'] ) ); ?>"><?php echo esc_html( $is_md ? $r['d'] : $r['md'] ); ?><?php echo strlen( $acc ) === 3 && strlen( $is_md ? $r['md'] : $r['d'] ) > 3 ? ' <small>(' . esc_html( $is_md ? $r['md'] : $r['d'] ) . ')</small>' : ''; ?></td>
+				<td title="<?php echo esc_attr( $both ? 'Presun medzi analytickými účtami' : juc_account_name( $cp ) ); ?>"><?php echo esc_html( $cp ); ?><?php echo ! $both && strlen( $acc ) === 3 && strlen( $is_md ? $r['md'] : $r['d'] ) > 3 ? ' <small>(' . esc_html( $is_md ? $r['md'] : $r['d'] ) . ')</small>' : ''; ?></td>
 				<td class="n"><?php echo $is_md ? esc_html( juc_money( $amt ) ) : ''; ?></td>
-				<td class="n"><?php echo $is_md ? '' : esc_html( juc_money( $amt ) ); ?></td>
+				<td class="n"><?php echo $is_d ? esc_html( juc_money( $amt ) ) : ''; ?></td>
 				<td class="n"><?php echo esc_html( juc_money( $bal ) ); ?></td>
 			</tr>
 		<?php endforeach; ?>
@@ -253,6 +352,28 @@ function juc_page_saldo() {
 		' GROUP BY l.partner_id, l.vs ORDER BY pname, d1',
 		ARRAY_A
 	); // phpcs:ignore
+	// Párovanie rovnako ako pri ročnej uzávierke: úhrada bez partnera sa pripojí k faktúre s rovnakým VS.
+	$rows = (array) $rows;
+	$keys = juc_saldo_keys( array_map( fn( $r ) => array( 'acc' => $acc, 'pid' => (int) $r['partner_id'], 'vs' => (string) $r['vs'], 'bal' => (float) $r['md'] - (float) $r['dal'] ), $rows ) );
+	$grp  = array();
+	foreach ( $rows as $i => $r ) {
+		$k = $keys[ $i ];
+		if ( ! isset( $grp[ $k ] ) ) {
+			$grp[ $k ] = array( 'partner_id' => 0, 'vs' => (string) $r['vs'], 'pname' => '', 'd1' => $r['d1'], 'd2' => $r['d2'], 'md' => 0.0, 'dal' => 0.0 );
+		}
+		if ( (int) $r['partner_id'] ) {
+			$grp[ $k ]['partner_id'] = (int) $r['partner_id'];
+			$grp[ $k ]['pname']      = (string) $r['pname'];
+		} elseif ( '' === $grp[ $k ]['pname'] ) {
+			$grp[ $k ]['pname'] = (string) $r['pname'];
+		}
+		$grp[ $k ]['d1']   = min( $grp[ $k ]['d1'], $r['d1'] );
+		$grp[ $k ]['d2']   = max( $grp[ $k ]['d2'], $r['d2'] );
+		$grp[ $k ]['md']  += (float) $r['md'];
+		$grp[ $k ]['dal'] += (float) $r['dal'];
+	}
+	$rows = array_values( $grp );
+	usort( $rows, fn( $a, $b ) => array( $a['pname'], $a['d1'] ) <=> array( $b['pname'], $b['d1'] ) );
 	juc_head( 'Saldokonto ' . $acc . ' – ' . juc_account_name( $acc ) );
 	if ( juc_print_mode() ) {
 		juc_print_header( 'Saldokonto ' . $acc . ( $to ? ' k ' . juc_date( $to ) : '' ), $y );
@@ -299,7 +420,7 @@ function juc_page_saldo() {
 		</tbody>
 		<tfoot><tr><th colspan="6">Zostatok účtu (otvorené položky)</th><th class="n"><?php echo esc_html( juc_money( $sum ) ); ?></th></tr></tfoot>
 	</table>
-	<p class="description">Položky sa párujú podľa partnera a párovacieho symbolu (variabilný symbol faktúry). Zostatok MD na 311 = pohľadávka, zostatok Dal na 321 (záporné číslo) = záväzok.</p>
+	<p class="description">Položky sa párujú podľa partnera a párovacieho symbolu (variabilný symbol faktúry); úhrada bez partnera (napr. z banky) sa pripojí k položke s rovnakým VS – rovnako ako pri ročnej uzávierke. Zostatok MD na 311 = pohľadávka, zostatok Dal na 321 (záporné číslo) = záväzok.</p>
 	</div>
 	<?php
 }

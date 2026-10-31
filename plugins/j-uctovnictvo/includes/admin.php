@@ -127,6 +127,7 @@ function juc_page_overview() {
 		<?php endif; ?>
 		<div class="<?php echo $q ? 'is-warn' : ''; ?>"><span>Na zaúčtovanie</span><strong><?php echo (int) $q; ?></strong><?php if ( $q ) : ?><a href="<?php echo esc_url( juc_url( 'j-uctovnictvo-queue' ) ); ?>">Otvoriť →</a><?php endif; ?></div>
 	</div>
+	<?php if ( function_exists( 'juc_render_owner_summary' ) ) { juc_render_owner_summary(); } ?>
 	<?php if ( function_exists( 'juc_render_autopost_box' ) ) { juc_render_autopost_box(); } ?>
 	<h2>Posledné doklady</h2>
 	<?php juc_entries_table( array( 'year_id' => (int) $y['id'], 'limit' => 15 ) ); ?>
@@ -279,6 +280,16 @@ function juc_render_entry( $id ) {
 				</form>
 				<?php if ( ! $e['source'] ) : ?><a class="button" href="<?php echo esc_url( juc_url( 'j-uctovnictvo-new', array( 'copy' => $e['id'] ) ) ); ?>">Kopírovať do nového dokladu</a><?php endif; ?>
 			<?php endif; ?>
+			<?php
+			// Automaticky zaúčtovaný doklad: vylúčiť zo synchronizácie („zaúčtujem ručne“) alebo vylúčenie zrušiť.
+			if ( function_exists( 'juc_excluded' ) && in_array( (string) $e['source'], array( 'jinv', 'bank', 'jsk', 'jpl' ), true ) && (int) $e['source_id'] && 'storno' !== $e['status'] ) :
+				$ex = juc_excluded( $e['source'], $e['source_type'], $e['source_id'] );
+				?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="juc-inline" onsubmit="return confirm('<?php echo esc_js( $ex ? 'Zrušiť vylúčenie? Zdrojový doklad sa pri ďalšom behu zaúčtuje automaticky.' : 'Vylúčiť zdrojový doklad z automatického účtovania? Zaúčtovaný doklad sa stornuje a zdroj sa už nebude účtovať automaticky – zaúčtujete ho ručne (Nový doklad).' ); ?>');">
+					<?php wp_nonce_field( 'juc_exclude_' . $e['id'] ); ?><input type="hidden" name="action" value="juc_exclude"><input type="hidden" name="id" value="<?php echo (int) $e['id']; ?>"><input type="hidden" name="on" value="<?php echo $ex ? 0 : 1; ?>">
+					<button class="button"><?php echo $ex ? 'Zrušiť vylúčenie z automatického účtovania' : 'Vylúčiť z automatického účtovania (zaúčtujem ručne)'; ?></button>
+				</form>
+			<?php endif; ?>
 			<?php if ( (int) $e['storno_of'] ) : ?><a class="button" href="<?php echo esc_url( juc_url( 'j-uctovnictvo-entries', array( 'entry' => $e['storno_of'] ) ) ); ?>">Pôvodný doklad</a><?php endif; ?>
 		</p>
 	</div>
@@ -292,11 +303,46 @@ add_action( 'admin_post_juc_storno', function () {
 	}
 	$id = (int) ( $_POST['id'] ?? 0 );
 	check_admin_referer( 'juc_storno_' . $id );
+	$e = juc_entry( $id );
 	$r = juc_storno( $id, sanitize_text_field( wp_unslash( $_POST['reason'] ?? '' ) ) ); // phpcs:ignore
 	if ( is_wp_error( $r ) ) {
 		juc_back_err( juc_url( 'j-uctovnictvo-entries', array( 'entry' => $id ) ), $r->get_error_message() );
 	}
+	// Ručné storno automaticky zaúčtovaného dokladu: ďalší beh ho nezaúčtuje znova, kým sa zdrojový doklad nezmení.
+	if ( $e && function_exists( 'juc_user_storno_mark' ) ) {
+		juc_user_storno_mark( $e );
+	}
+	if ( function_exists( 'juc_queue_count_reset' ) ) {
+		juc_queue_count_reset();
+	}
 	wp_safe_redirect( juc_url( 'j-uctovnictvo-entries', array( 'entry' => $r, 'juc_msg' => 'storno' ) ) );
+	exit;
+} );
+
+add_action( 'admin_post_juc_exclude', function () {
+	if ( ! current_user_can( JUC_CAP ) ) {
+		wp_die( 'Nemáte oprávnenie.' );
+	}
+	$id = (int) ( $_POST['id'] ?? 0 );
+	check_admin_referer( 'juc_exclude_' . $id );
+	$e    = juc_entry( $id );
+	$back = juc_url( 'j-uctovnictvo-entries', array( 'entry' => $id ) );
+	if ( ! $e || ! (int) $e['source_id'] ) {
+		juc_back_err( $back, 'Doklad nemá zdrojový doklad.' );
+	}
+	$on = ! empty( $_POST['on'] );
+	if ( $on && 'posted' === $e['status'] ) {
+		$r = juc_storno( $id, 'vylúčené z automatického účtovania – účtuje sa ručne' );
+		if ( is_wp_error( $r ) ) {
+			juc_back_err( $back, $r->get_error_message() );
+		}
+	}
+	juc_exclude_set( $e['source'], $e['source_type'], $e['source_id'], $on );
+	if ( function_exists( 'juc_queue_count_reset' ) ) {
+		juc_queue_count_reset();
+	}
+	set_transient( 'juc_err_' . get_current_user_id(), $on ? 'Zdrojový doklad je vylúčený z automatického účtovania' . ( 'posted' === $e['status'] ? ' a jeho zápis stornovaný' : '' ) . '. Zaúčtujte ho ručne v Nový doklad.' : 'Vylúčenie je zrušené – doklad sa zaúčtuje pri ďalšom behu automatického účtovania.', 120 );
+	wp_safe_redirect( add_query_arg( 'juc_msg', 'auto', $back ) );
 	exit;
 } );
 
@@ -416,9 +462,23 @@ function juc_page_accounts() {
 
 /** Odkaz na zdrojový doklad (faktúra, pohyb v banke, doklad skladu). */
 function juc_source_link( array $e ) {
-	if ( 'jinv' === $e['source'] && function_exists( 'jinv_get' ) && ( $d = jinv_get( (int) $e['source_id'] ) ) ) {
-		$url = 'received' === $d['kind'] ? jinv_admin_url( array( 'tab' => 'received', 'edit' => $d['id'] ) ) : jinv_admin_url( array( 'view' => $d['id'] ) );
-		return '<a href="' . esc_url( $url ) . '">' . esc_html( $d['number'] ) . '</a>';
+	global $wpdb;
+	if ( 'jinv' === $e['source'] && function_exists( 'jinv_get' ) && in_array( $e['source_type'], array( 'doc', 'payment' ), true ) ) {
+		$doc_id = (int) $e['source_id'];
+		$pre    = '';
+		if ( 'payment' === $e['source_type'] ) {
+			// Úhrada → odkaz na jej doklad (ID úhrady nie je ID dokladu).
+			$doc_id = function_exists( 'jinv_table' ) ? (int) $wpdb->get_var( $wpdb->prepare( 'SELECT doc_id FROM ' . jinv_table( 'payments' ) . ' WHERE id = %d', $e['source_id'] ) ) : 0; // phpcs:ignore
+			if ( ! $doc_id ) {
+				return 'úhrada #' . (int) $e['source_id'] . ' (zmazaná)';
+			}
+			$pre = 'úhrada #' . (int) $e['source_id'] . ' k dokladu ';
+		}
+		$d = jinv_get( $doc_id );
+		if ( $d ) {
+			$url = 'received' === $d['kind'] ? jinv_admin_url( array( 'tab' => 'received', 'edit' => $d['id'] ) ) : jinv_admin_url( array( 'view' => $d['id'] ) );
+			return esc_html( $pre ) . '<a href="' . esc_url( $url ) . '">' . esc_html( $d['number'] ) . '</a>';
+		}
 	}
 	if ( 'jsk' === $e['source'] && 'doc' === $e['source_type'] && function_exists( 'jsk_url' ) ) {
 		return '<a href="' . esc_url( jsk_url( 'j-sklad-docs', array( 'view' => $e['source_id'] ) ) ) . '">doklad skladu #' . (int) $e['source_id'] . '</a>';

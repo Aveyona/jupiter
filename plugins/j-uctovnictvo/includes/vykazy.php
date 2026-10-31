@@ -104,6 +104,9 @@ function juc_muj_balance_rules() {
 		'412' => array( 29, 29 ), '413' => array( 29, 29 ), '417' => array( 29, 29 ), '418' => array( 29, 29 ),
 		'42' => array( 30, 30 ), '414' => array( 31, 31 ), '415' => array( 31, 31 ), '416' => array( 31, 31 ),
 		'428' => array( 32, 32 ), '429' => array( 32, 32 ),
+		// 431 – výsledok hospodárenia minulého roka v schvaľovaní (z otvorenia kníh) patrí medzi výsledky minulých rokov,
+		// inak by sa cez rozdielový r. 33 zlial s výsledkom bežného obdobia.
+		'431' => array( 32, 32 ),
 		// Záväzky.
 		'47' => array( 35, 35 ), '45' => array( 36, 36 ), '46' => array( 37, 37 ),
 		'32' => array( 39, 39 ), '323' => array( 43, 43 ),
@@ -121,7 +124,7 @@ function juc_muj_row_for( $acc, $bal ) {
 		$rules = juc_muj_balance_rules();
 		uksort( $rules, fn( $a, $b ) => strlen( $b ) <=> strlen( $a ) );
 	}
-	if ( in_array( ( (string) $acc )[0], array( '5', '6', '7', '8', '9' ), true ) || 0 === strpos( $acc, '431' ) ) {
+	if ( in_array( ( (string) $acc )[0], array( '5', '6', '7', '8', '9' ), true ) ) {
 		return 0;
 	}
 	foreach ( $rules as $p => $rows ) {
@@ -309,6 +312,10 @@ function juc_page_muj() {
 	$cur    = juc_muj_balances( (int) $y['id'], $to );
 	$prev_y = juc_year_of( gmdate( 'Y-m-d', strtotime( $y['start_date'] . ' -1 day' ) ) );
 	// Predchádzajúce obdobie: zostatky ku koncu minulého roka v J-Účtovníctve, inak otváracia súvaha (počiatočné stavy).
+	// Prázdny minulý rok (bez zápisov – napr. založený len kontrolou) sa berie ako neexistujúci.
+	if ( $prev_y && ! juc_year_has_lines( (int) $prev_y['id'] ) ) {
+		$prev_y = null;
+	}
 	$prev    = $prev_y ? juc_muj_balances( (int) $prev_y['id'], $prev_y['end_date'] ) : juc_muj_balances( (int) $y['id'], '', true );
 	$prev_pl = $prev_y ? juc_muj_balances( (int) $prev_y['id'], $prev_y['end_date'] ) : array();
 	list( $bs, $bs_det, $bs_warn ) = juc_muj_balance_sheet( $cur );
@@ -338,7 +345,7 @@ function juc_page_muj() {
 		$warn[] = 'Aktíva sa nerovnajú pasívam – skontrolujte obratovú predvahu.';
 	}
 	if ( abs( ( $pl[38] ?? 0 ) - ( $bs[33] ?? 0 ) ) > 1.5 ) {
-		$warn[] = sprintf( 'Výsledok hospodárenia vo výkaze ziskov a strát (%s €) sa líši od súvahy r. 33 (%s €) – rozdiel spôsobujú počiatočné stavy alebo účty 431/7xx; skontrolujte počiatočné stavy.', number_format( $pl[38] ?? 0, 0, ',', ' ' ), number_format( $bs[33] ?? 0, 0, ',', ' ' ) );
+		$warn[] = sprintf( 'Výsledok hospodárenia vo výkaze ziskov a strát (%s €) sa líši od súvahy r. 33 (%s €) – rozdiel spôsobujú počiatočné stavy alebo účty 7xx; skontrolujte počiatočné stavy (výsledok minulého roka patrí na 431 alebo 428/429).', number_format( $pl[38] ?? 0, 0, ',', ' ' ), number_format( $bs[33] ?? 0, 0, ',', ' ' ) );
 	}
 	if ( $warn ) {
 		echo '<div class="juc-panel juc-noprint"><strong>Upozornenia</strong><ul class="juc-errs">';

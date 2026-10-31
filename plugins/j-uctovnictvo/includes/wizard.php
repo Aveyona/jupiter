@@ -201,7 +201,20 @@ function juc_wiz_step_5( $w, $s ) {
 		<tfoot><tr><td><button type="button" class="button" id="wz-ps-add">+ Účet</button></td><td>Spolu</td><td class="n"><strong id="wz-smd">0,00</strong></td><td class="n"><strong id="wz-sd">0,00</strong></td></tr></tfoot>
 	</table>
 	<p id="wz-ps-ok" class="description"></p>
-	<p class="description">Neuhradené faktúry (311, 321) zadajte celkovou sumou; jednotlivé faktúry sa v saldokonte objavia, keď ich doplníte do J-Fakturácie s dátumom pred začiatkom účtovania a označíte úhrady. Hodnotu tovaru na sklade (132) navrhuje krok 6 podľa J-Skladu.</p>
+	<h3>Rozpis neuhradených faktúr (nepovinné)</h3>
+	<p class="description">Pohľadávky (311) a záväzky (321) môžete rozpísať po faktúrach – v saldokonte potom uvidíte každú faktúru zvlášť a úhrada s rovnakým variabilným symbolom ju uzavrie. Súčet rozpisu účtu sa musí rovnať jeho počiatočnému stavu vyššie. Bez rozpisu sa zaúčtuje jedna suma.</p>
+	<?php $sal = (array) ( $w['ps_saldo'] ?? array() ); $sal = $sal ? $sal : array( array( 'acc' => '311', 'partner' => '', 'vs' => '', 'amount' => '' ) ); ?>
+	<table class="widefat juc-table" id="wz-sal" style="max-width:760px">
+		<thead><tr><th>Účet</th><th>Odberateľ / dodávateľ</th><th>Variabilný symbol (č. faktúry)</th><th class="n">Neuhradená suma €</th></tr></thead>
+		<tbody>
+		<?php foreach ( $sal as $r ) : ?>
+			<tr><td><select name="sal_acc[]"><option value="311" <?php selected( $r['acc'], '311' ); ?>>311 pohľadávka</option><option value="321" <?php selected( $r['acc'], '321' ); ?>>321 záväzok</option></select></td><td><input name="sal_partner[]" value="<?php echo esc_attr( $r['partner'] ); ?>" class="regular-text"></td><td><input name="sal_vs[]" value="<?php echo esc_attr( $r['vs'] ); ?>" style="width:150px"></td><td class="n"><input name="sal_amount[]" value="<?php echo esc_attr( $r['amount'] ); ?>" inputmode="decimal" style="width:120px"></td></tr>
+		<?php endforeach; ?>
+		</tbody>
+		<tfoot><tr><td colspan="4"><button type="button" class="button" id="wz-sal-add">+ Faktúra</button></td></tr></tfoot>
+	</table>
+	<script>document.getElementById('wz-sal-add').addEventListener('click',function(){var tb=document.querySelector('#wz-sal tbody');var tr=tb.rows[tb.rows.length-1].cloneNode(true);tr.querySelectorAll('input').forEach(function(i){i.value='';});tb.appendChild(tr);});</script>
+	<p class="description">Hodnotu tovaru na sklade (132) navrhuje krok 6 podľa J-Skladu.</p>
 	<?php juc_accounts_datalist(); ?>
 	<script>
 	(function () {
@@ -391,6 +404,14 @@ add_action( 'admin_post_juc_wizard', function () {
 					}
 				}
 				$w['ps'] = $ps;
+				$sal     = array();
+				foreach ( (array) ( $in['sal_acc'] ?? array() ) as $i => $a ) {
+					$amt = round( (float) str_replace( array( ' ', ',' ), array( '', '.' ), (string) ( $in['sal_amount'][ $i ] ?? '' ) ), 2 );
+					if ( abs( $amt ) >= 0.005 && in_array( $a, array( '311', '321' ), true ) ) {
+						$sal[] = array( 'acc' => $a, 'partner' => sanitize_text_field( $in['sal_partner'][ $i ] ?? '' ), 'vs' => preg_replace( '/\D/', '', (string) ( $in['sal_vs'][ $i ] ?? '' ) ), 'amount' => $amt );
+					}
+				}
+				$w['ps_saldo'] = $sal;
 				if ( ! empty( $in['post_ps'] ) ) {
 					update_option( 'juc_wizard', $w, false );
 					$r = juc_wizard_post_ps();
@@ -484,8 +505,7 @@ function juc_wizard_launch() {
 	if ( ! defined( 'JUC_FORCE_RUN' ) ) {
 		define( 'JUC_FORCE_RUN', true );
 	}
-	$res = juc_autopost_run( 5000 );
-	update_option( 'juc_autopost_errors', $res['errors'], false );
+	juc_autopost_run( 5000 ); // chyby si beh ukladá sám (zlúčené s predchádzajúcimi)
 	return true;
 }
 
@@ -522,13 +542,56 @@ function juc_wizard_post_ps() {
 	if ( abs( $md - $d ) >= 0.005 ) {
 		return new WP_Error( 'juc_ps', sprintf( 'Počiatočné stavy sa nerovnajú: MD %s €, Dal %s € – aktíva sa musia rovnať pasívam.', juc_money( $md ), juc_money( $d ) ) );
 	}
-	$yr  = (int) substr( $start, 0, 4 );
-	$old = juc_entry_by_source( 'wizard', 'ps', $yr );
+	// Rozpis 311 / 321 po faktúrach (saldokonto): nahradí jednu sumu účtu riadkami s partnerom a VS.
+	$sal = (array) ( $w['ps_saldo'] ?? array() );
+	foreach ( array( '311' => 'md', '321' => 'd' ) as $sa => $side ) {
+		$rows = array_values( array_filter( $sal, fn( $r ) => $r['acc'] === $sa ) );
+		if ( ! $rows ) {
+			continue;
+		}
+		$want = 0.0;
+		foreach ( $lines as $i => $l ) {
+			if ( ( 'md' === $side ? $l['md'] : $l['d'] ) === $sa ) {
+				$want += (float) $l['amount'];
+			}
+		}
+		$sum = round( array_sum( wp_list_pluck( $rows, 'amount' ) ), 2 );
+		if ( abs( $sum - round( $want, 2 ) ) >= 0.005 ) {
+			return new WP_Error( 'juc_ps', sprintf( 'Rozpis faktúr na účte %s (%s €) sa nerovná jeho počiatočnému stavu (%s €).', $sa, juc_money( $sum ), juc_money( $want ) ) );
+		}
+		$lines = array_values( array_filter( $lines, fn( $l ) => ( 'md' === $side ? $l['md'] : $l['d'] ) !== $sa ) );
+		foreach ( $rows as $r ) {
+			$pid     = function_exists( 'jinv_partner_match' ) && '' !== $r['partner'] ? (int) jinv_partner_match( $r['partner'] ) : 0;
+			$text    = 'Počiatočný stav ' . $sa . ' – ' . trim( $r['partner'] . ( $r['vs'] ? ' (VS ' . $r['vs'] . ')' : '' ) );
+			$lines[] = 'md' === $side
+				? array( 'md' => $sa, 'd' => '701', 'amount' => $r['amount'], 'text' => $text, 'partner_id' => $pid, 'vs' => $r['vs'] )
+				: array( 'md' => '701', 'd' => $sa, 'amount' => $r['amount'], 'text' => $text, 'partner_id' => $pid, 'vs' => $r['vs'] );
+		}
+	}
+	$yr = (int) substr( $start, 0, 4 );
+	// Najprv overiť, že sa k dátumu začiatku dá účtovať – inak by storno pristálo v inom dni a nové stavy by sa nezaúčtovali.
+	$ok = juc_can_post( $start );
+	if ( is_wp_error( $ok ) ) {
+		return new WP_Error( 'juc_ps', 'Počiatočné stavy k ' . juc_date( $start ) . ' sa nedajú zaúčtovať ani opraviť – obdobie je uzavreté (zrušte uzávierku mesiaca alebo roka a skúste znova). ' . $ok->get_error_message() );
+	}
+	$old  = juc_entry_by_source( 'wizard', 'ps', $yr );
+	$prev =$old ? juc_entry( (int) $old['id'] ) : null;
 	if ( $old ) {
-		$r = juc_storno( (int) $old['id'], 'oprava počiatočných stavov' );
+		$r = juc_storno( (int) $old['id'], 'oprava počiatočných stavov', $start );
 		if ( is_wp_error( $r ) ) {
 			return $r;
 		}
 	}
-	return juc_post( array( 'series' => 'PS', 'number' => 'PS' . $yr . ( $old ? '-' . substr( md5( microtime() ), 0, 4 ) : '' ), 'entry_date' => $start, 'descr' => 'Otvorenie účtovných kníh – počiatočné stavy', 'source' => 'wizard', 'source_type' => 'ps', 'source_id' => $yr, 'opening' => 1 ), $lines );
+	$head = array( 'series' => 'PS', 'number' => 'PS' . $yr . ( $old ? '-' . substr( md5( microtime() ), 0, 4 ) : '' ), 'entry_date' => $start, 'descr' => 'Otvorenie účtovných kníh – počiatočné stavy', 'source' => 'wizard', 'source_type' => 'ps', 'source_id' => $yr, 'opening' => 1 );
+	$r    = juc_post( $head, $lines );
+	if ( is_wp_error( $r ) && $prev ) {
+		// Obnovenie pôvodných počiatočných stavov, aby sa po neúspešnej oprave nestratili.
+		$back = array();
+		foreach ( (array) $prev['lines'] as $l ) {
+			$back[] = array( 'md' => $l['md'], 'd' => $l['d'], 'amount' => (float) $l['amount'], 'text' => $l['text'], 'partner_id' => (int) $l['partner_id'], 'vs' => $l['vs'] );
+		}
+		$rr = juc_post( array( 'number' => 'PS' . $yr . '-' . substr( md5( microtime() . 'r' ), 0, 4 ), 'descr' => 'Obnovenie počiatočných stavov (neúspešná oprava)' ) + $head, $back );
+		return new WP_Error( 'juc_ps', 'Nové počiatočné stavy sa nepodarilo zaúčtovať: ' . $r->get_error_message() . ( is_wp_error( $rr ) ? ' Pôvodné stavy sa nepodarilo obnoviť: ' . $rr->get_error_message() . ' – zadajte ich ručne.' : ' Pôvodné počiatočné stavy boli obnovené.' ) );
+	}
+	return $r;
 }

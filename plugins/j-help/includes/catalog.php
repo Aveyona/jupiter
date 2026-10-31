@@ -223,6 +223,27 @@ function jhelp_roadmap() {
 			),
 		),
 		array(
+			'title'  => 'J-Účtovníctvo 0.7 – termíny, daň, kontroly, príručka',
+			'state'  => 'done',
+			'points' => array(
+				'Termíny a daň: kalendár povinností s predĺžením lehoty, preddavky na daň, pracovný list DPPO, rozdelenie výsledku hospodárenia.',
+				'Odsúhlasenie banky s výpisom po mesiacoch, kontroly mesiaca a uzamknutie jedným klikom, prehľad pre majiteľa.',
+				'Pravidlá banky podľa názvu a textu platby, „zapamätať“ pri zaúčtovaní, vylúčenie dokladu z automatického účtovania, rozpis počiatočného saldokonta po faktúrach.',
+				'Opravy automatického účtovania (zámky, priebežný beh, storno zmazaných zdrojov, uzamknuté mesiace), uzávierky, výkazov, majetku a pokladne.',
+				'Podrobná príručka J-Účtovníctvo v J-Pomocníkovi.',
+			),
+		),
+		array(
+			'title'  => 'J-Účtovníctvo – ďalej',
+			'state'  => 'next',
+			'points' => array(
+				'Daňové priznanie DPPO a účtovná závierka ako XML na podanie cez eDane.',
+				'Mzdy a odvody konateľa (odmena, poistné, daň zo závislej činnosti) a ich účtovanie.',
+				'Platiteľ DPH: kontrolný výkaz, priznanie k DPH a súhrnný výkaz.',
+				'Cestovné náhrady a vyúčtovanie služobných ciest.',
+			),
+		),
+		array(
 			'title'  => 'J-Sklad a ďalšie doplnky',
 			'state'  => 'next',
 			'points' => array(

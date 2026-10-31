@@ -188,8 +188,8 @@ function juc_page_settings() {
 		</table>
 		<?php juc_accounts_datalist(); ?>
 		<h2>Pravidlá pre pohyby v banke</h2>
-		<p class="description">Pohyby z / na tieto protiúčty sa zaúčtujú automaticky na zadaný účet (napr. súkromný účet konateľa → 355001 pohľadávka voči konateľovi). Jeden riadok = <code>IBAN = účet</code> (voliteľne <code># poznámka</code>).</p>
-		<textarea name="bank_rules" rows="4" class="large-text code"><?php foreach ( (array) $s['bank_rules'] as $iban => $acc ) { echo esc_textarea( $iban . ' = ' . $acc ) . "\n"; } ?></textarea>
+		<p class="description">Pohyby, ktoré zodpovedajú pravidlu, sa zaúčtujú automaticky na zadaný účet. Jeden riadok = <code>IBAN = účet</code> (napr. súkromný účet konateľa → 355001), <code>názov: Google = 518</code> (názov protistrany obsahuje text) alebo <code>text: nákup: google = 518</code> (správa alebo typ pohybu obsahuje text – napr. nákupy kartou bez IBAN); voliteľne <code># poznámka</code>. Pravidlo vytvorí aj voľba „zapamätať“ v Na zaúčtovanie.</p>
+		<textarea name="bank_rules" rows="5" class="large-text code"><?php foreach ( (array) $s['bank_rules'] as $iban => $acc ) { $iban = (string) $iban; echo esc_textarea( ( 0 === strpos( $iban, 'n:' ) ? 'názov: ' . substr( $iban, 2 ) : ( 0 === strpos( $iban, 't:' ) ? 'text: ' . substr( $iban, 2 ) : $iban ) ) . ' = ' . $acc ) . "\n"; } ?></textarea>
 		<p class="description">Kategórie prijatých faktúr a bankové účty sa nastavujú v sprievodcovi (kroky 6 a 7).</p>
 		<p><button class="button button-primary">Uložiť</button></p>
 	</form>
@@ -214,7 +214,9 @@ add_action( 'admin_post_juc_settings', function () {
 	$rules = array();
 	foreach ( preg_split( '/\R/', (string) ( $in['bank_rules'] ?? '' ) ) as $line ) {
 		$line = trim( preg_replace( '/#.*$/', '', $line ) );
-		if ( preg_match( '/^([A-Za-z]{2}[0-9A-Za-z ]{10,40})\s*=\s*(\d{3,9})$/', $line, $m ) ) {
+		if ( preg_match( '/^(názov|nazov|text)\s*:\s*(.+?)\s*=\s*(\d{3,9})$/iu', $line, $m ) ) {
+			$rules[ ( 'text' === mb_strtolower( $m[1] ) ? 't:' : 'n:' ) . mb_strtolower( trim( $m[2] ) ) ] = $m[3];
+		} elseif ( preg_match( '/^([A-Za-z]{2}[0-9A-Za-z ]{10,40})\s*=\s*(\d{3,9})$/', $line, $m ) ) {
 			$rules[ strtoupper( str_replace( ' ', '', $m[1] ) ) ] = $m[2];
 		}
 	}
