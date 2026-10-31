@@ -50,6 +50,13 @@
       "published": "2026-10-29",
       "notes": "Prvá verzia: plány s úlohami a stavom, dokumentácia v Markdowne, prehľad „Teraz robím“, denník zmien, nahrávanie a sťahovanie súborov .md."
     },
+    "j-doprava": {
+      "version": "0.2.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-doprava-v0.2.0/j-doprava-v0.2.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-doprava-v0.2.0",
+      "published": "2026-10-30",
+      "notes": "E-mail zákazníkovi „Objednávka odoslaná“ s odkazom na sledovanie, keď Packeta prevezme zásielku. Prvá verzia: Packeta – výdajné miesta a Z-BOXy s mapou v košíku (blokový aj klasický), doručenie na adresu, podanie zásielok cez API, štítky PDF, sledovanie stavu."
+    },
     "j-platby": {
       "version": "0.1.0",
       "package": "https://github.com/Aveyona/jupiter/releases/download/j-platby-v0.1.0/j-platby-v0.1.0.zip",
