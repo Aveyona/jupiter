@@ -49,6 +49,13 @@
       "url": "https://github.com/Aveyona/jupiter/releases/tag/j-notes-v0.1.0",
       "published": "2026-10-29",
       "notes": "Prvá verzia: plány s úlohami a stavom, dokumentácia v Markdowne, prehľad „Teraz robím“, denník zmien, nahrávanie a sťahovanie súborov .md."
+    },
+    "j-kupony": {
+      "version": "0.1.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-kupony-v0.1.0/j-kupony-v0.1.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-kupony-v0.1.0",
+      "published": "2026-10-30",
+      "notes": "Prvá verzia: evidencia zľavových kódov, automaticky generovaný kód (4 znaky), hromadné vytvorenie, stav a použitie kódov s objednávkami, vypnutie a zapnutie."
     }
   }
 }
