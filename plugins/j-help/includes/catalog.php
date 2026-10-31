@@ -264,6 +264,26 @@ function jhelp_roadmap() {
 			),
 		),
 		array(
+			'title'  => 'J-Notes 0.2 – ochrana pred prepísaním, kôš, príručka',
+			'state'  => 'done',
+			'points' => array(
+				'Úprava neprepíše zmeny urobené medzitým; súbor .md, ktorý sa nedá presunúť, sa nenačítava dokola; klik na úlohu overí text riadku.',
+				'Kôš s obnovením 30 dní, stránkovanie, priečinky súborov s náhodným názvom a denná kontrola ochrany.',
+				'Presné percento úloh (bez bloku kódu, aj číslované ☐), opravy odkazov a kotiev.',
+				'Podrobná príručka J-Notes v J-Pomocníkovi.',
+			),
+		),
+		array(
+			'title'  => 'J-Notes – ďalej',
+			'state'  => 'next',
+			'points' => array(
+				'História verzií (posledných 20) s porovnaním a obnovením.',
+				'Prehľad úloh naprieč poznámkami – rozpracované a otvorené, filter podľa projektu a sekcie (všetky „Na vás“ na jednom mieste).',
+				'Obsah pri dlhých dokumentoch, odkazy medzi poznámkami [[kľúč]], zmena kľúča v úprave.',
+				'Dlaždica na nástenke Jupiter: rozpracované plány a otvorené úlohy.',
+			),
+		),
+		array(
 			'title'  => 'J-Sklad a ďalšie doplnky',
 			'state'  => 'next',
 			'points' => array(

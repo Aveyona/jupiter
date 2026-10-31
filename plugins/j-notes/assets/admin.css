@@ -43,4 +43,7 @@
 .jno-tabs .is-on { background: #2271B1; border-color: #2271B1; color: #FFFFFF; }
 #jno-body { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; max-width: 980px; }
 .jno-danger { color: #A3121B !important; }
+/* Konflikt pri úprave */
+.jno-conflict { max-width: 980px; margin: 12px 0; padding: 8px 12px; background: #FFFFFF; border: 1px solid #D63638; border-radius: 8px; }
+.jno-conflict textarea { margin-top: 8px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
 @media print { #adminmenumain, #wpadminbar, #wpfooter, .jno-actions, .jno-log, .page-title-action, .notice { display: none !important; } #wpcontent { margin: 0 !important; } .jno-doc { border: 0; } }

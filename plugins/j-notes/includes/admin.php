@@ -47,9 +47,17 @@ function jno_page() {
 		echo '<div class="notice notice-info is-dismissible"><p>Zo súborov .md sa načítalo poznámok: ' . (int) $imp . '.</p></div>';
 	}
 	$msg = isset( $_GET['jno_msg'] ) ? sanitize_key( $_GET['jno_msg'] ) : ''; // phpcs:ignore
-	$msgs = array( 'saved' => 'Poznámka je uložená.', 'deleted' => 'Poznámka je zmazaná.', 'logged' => 'Záznam je pridaný do denníka zmien.', 'uploaded' => 'Súbory sú načítané.' );
+	$msgs = array( 'saved' => 'Poznámka je uložená.', 'deleted' => 'Poznámka je v koši – dá sa obnoviť ' . jno_trash_days() . ' dní.', 'restored' => 'Poznámka je obnovená z koša.', 'purged' => 'Poznámka je natrvalo zmazaná.', 'logged' => 'Záznam je pridaný do denníka zmien.', 'uploaded' => 'Súbory sú načítané.' );
 	if ( isset( $msgs[ $msg ] ) ) {
 		echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $msgs[ $msg ] ) . '</p></div>';
+	}
+	$stuck = array_keys( (array) get_option( 'jno_inbox_stuck', array() ) );
+	if ( $stuck ) {
+		echo '<div class="notice notice-warning"><p>Súbory v priečinku uploads/' . esc_html( JNO_SLUG ) . '/inbox sa nedajú presunúť ani zmazať (práva na súbory): <code>' . esc_html( implode( ', ', $stuck ) ) . '</code>. Načítali sa raz; znova sa načítajú až po zmene obsahu. Zmažte ich cez FTP.</p></div>';
+	}
+	$prot = (array) get_option( 'jno_protection', array() );
+	if ( 'exposed' === ( $prot['state'] ?? '' ) ) {
+		echo '<div class="notice notice-error"><p><strong>Súbory poznámok sa dajú stiahnuť z webu.</strong> Server nepoužíva .htaccess (napr. nginx). Priečinky export a processed majú náhodný názov, ale priečinok uploads/' . esc_html( JNO_SLUG ) . ' zakážte aj v nastavení servera (napr. <code>location ~ /uploads/' . esc_html( JNO_SLUG ) . '/ { deny all; }</code>).</p></div>';
 	}
 	if ( '' !== $edit ) {
 		jno_render_edit( 'new' === $edit ? 0 : (int) $edit );
@@ -70,9 +78,13 @@ function jno_render_list() {
 	$proj = sanitize_text_field( wp_unslash( $_GET['project'] ?? '' ) ); // phpcs:ignore
 	$type = sanitize_key( $_GET['type'] ?? '' ); // phpcs:ignore
 	$st   = sanitize_key( $_GET['status'] ?? 'active' ); // phpcs:ignore
+	$pg   = max( 1, (int) ( $_GET['paged'] ?? 1 ) ); // phpcs:ignore
+	$per  = 50;
 	$w    = '1=1';
 	if ( 'all' !== $st ) {
 		$w .= $wpdb->prepare( ' AND status = %s', $st );
+	} else {
+		$w .= " AND status <> 'trash'";
 	}
 	if ( $proj ) {
 		$w .= $wpdb->prepare( ' AND project = %s', $proj );
@@ -84,7 +96,11 @@ function jno_render_list() {
 		$like = '%' . $wpdb->esc_like( $q ) . '%';
 		$w   .= $wpdb->prepare( ' AND (title LIKE %s OR body LIKE %s OR project LIKE %s)', $like, $like, $like );
 	}
-	$rows  = (array) $wpdb->get_results( "SELECT id, slug, title, type, project, status, pinned, now, tasks_total, tasks_done, tasks_doing, updated_at FROM $t WHERE $w ORDER BY pinned DESC, now DESC, updated_at DESC LIMIT 500", ARRAY_A ); // phpcs:ignore
+	$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t WHERE $w" ); // phpcs:ignore
+	$pages = max( 1, (int) ceil( $total / $per ) );
+	$pg    = min( $pg, $pages );
+	$rows  = (array) $wpdb->get_results( $wpdb->prepare( "SELECT id, slug, title, type, project, status, pinned, now, tasks_total, tasks_done, tasks_doing, updated_at, trashed_at FROM $t WHERE $w ORDER BY pinned DESC, now DESC, updated_at DESC LIMIT %d OFFSET %d", $per, ( $pg - 1 ) * $per ), ARRAY_A ); // phpcs:ignore
+	$trash = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t WHERE status = 'trash'" ); // phpcs:ignore
 	$now   = (array) $wpdb->get_results( "SELECT * FROM $t WHERE now = 1 AND status = 'active' ORDER BY updated_at DESC", ARRAY_A ); // phpcs:ignore
 	$projs = (array) $wpdb->get_col( "SELECT DISTINCT project FROM $t WHERE project <> '' ORDER BY project" ); // phpcs:ignore
 	?>
@@ -118,7 +134,7 @@ function jno_render_list() {
 		<input type="search" name="s" value="<?php echo esc_attr( $q ); ?>" placeholder="Hľadať v poznámkach">
 		<select name="project"><option value="">Všetky projekty</option><?php foreach ( $projs as $p ) : ?><option <?php selected( $proj, $p ); ?>><?php echo esc_html( $p ); ?></option><?php endforeach; ?></select>
 		<select name="type"><option value="">Všetky druhy</option><?php foreach ( jno_types() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $type, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
-		<select name="status"><?php foreach ( jno_statuses() + array( 'all' => 'Všetky' ) as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $st, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
+		<select name="status"><?php foreach ( jno_statuses() + array( 'all' => 'Všetky' ) + ( $trash || 'trash' === $st ? array( 'trash' => 'Kôš (' . $trash . ')' ) : array() ) as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $st, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select>
 		<button class="button">Filtrovať</button>
 	</form>
 	<table class="widefat striped jno-list">
@@ -127,7 +143,7 @@ function jno_render_list() {
 		<?php if ( ! $rows ) : ?><tr><td colspan="5">Žiadne poznámky. Vytvorte plán alebo nahrajte súbor .md nižšie.</td></tr><?php endif; ?>
 		<?php foreach ( $rows as $n ) : ?>
 			<tr>
-				<td><?php echo (int) $n['pinned'] ? '📌 ' : ''; ?><?php echo (int) $n['now'] ? '<span class="jno-now-b">teraz</span> ' : ''; ?><a href="<?php echo esc_url( jno_url( array( 'note' => $n['id'] ) ) ); ?>"><strong><?php echo esc_html( $n['title'] ); ?></strong></a><?php echo 'active' !== $n['status'] ? ' <small class="jno-muted">(' . esc_html( jno_statuses()[ $n['status'] ] ?? '' ) . ')</small>' : ''; ?></td>
+				<td><?php echo (int) $n['pinned'] ? '📌 ' : ''; ?><?php echo (int) $n['now'] ? '<span class="jno-now-b">teraz</span> ' : ''; ?><a href="<?php echo esc_url( jno_url( array( 'note' => $n['id'] ) ) ); ?>"><strong><?php echo esc_html( $n['title'] ); ?></strong></a><?php echo 'active' !== $n['status'] ? ' <small class="jno-muted">(' . esc_html( jno_statuses()[ $n['status'] ] ?? ( 'trash' === $n['status'] ? 'v koši od ' . date_i18n( 'j. n. Y', strtotime( (string) $n['trashed_at'] ) ) : '' ) ) . ')</small>' : ''; ?></td>
 				<td><?php echo esc_html( $n['project'] ); ?></td>
 				<td><?php echo esc_html( jno_types()[ $n['type'] ] ?? $n['type'] ); ?></td>
 				<td><?php echo jno_progress( $n ); // phpcs:ignore ?></td>
@@ -136,6 +152,11 @@ function jno_render_list() {
 		<?php endforeach; ?>
 		</tbody>
 	</table>
+	<?php
+	if ( $pages > 1 ) {
+		echo '<div class="tablenav"><div class="tablenav-pages"><span class="displaying-num">' . (int) $total . ' poznámok</span> ' . paginate_links( array( 'base' => add_query_arg( 'paged', '%#%' ), 'format' => '', 'current' => $pg, 'total' => $pages ) ) . '</div></div>'; // phpcs:ignore
+	}
+	?>
 	<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="jno-upload">
 		<?php wp_nonce_field( 'jno_upload' ); ?><input type="hidden" name="action" value="<?php echo esc_attr( 'jno_upload_' . JNO_SLUG ); ?>">
 		<strong>Nahrať súbory .md</strong> <input type="file" name="files[]" accept=".md,text/markdown,text/plain" multiple> <button class="button">Nahrať</button>
@@ -168,6 +189,10 @@ function jno_render_view( $id ) {
 		<?php if ( (int) $n['tasks_total'] ) : ?><span id="jno-prog"><?php echo jno_progress( $n ); // phpcs:ignore ?></span><?php endif; ?>
 		<?php if ( $n['source'] ) : ?><span class="jno-muted">súbor: <?php echo esc_html( $n['source'] ); ?></span><?php endif; ?>
 	</p>
+	<?php if ( 'trash' === $n['status'] ) : ?>
+		<div class="notice notice-warning inline"><p>Poznámka je v koši od <?php echo esc_html( date_i18n( 'j. n. Y H:i', strtotime( (string) $n['trashed_at'] ) ) ); ?> – natrvalo sa zmaže po <?php echo (int) jno_trash_days(); ?> dňoch.
+			<?php echo $act( 'restore', 'Obnoviť' ); // phpcs:ignore ?> <?php echo $act( 'purge', 'Zmazať natrvalo', ' onclick="return confirm(\'Natrvalo zmazať poznámku? Nedá sa vrátiť.\');"' ); // phpcs:ignore ?></p></div>
+	<?php endif; ?>
 	<p class="jno-actions">
 		<a class="button" href="<?php echo esc_url( jno_url() ); ?>">← Poznámky</a>
 		<?php echo $act( 'now', (int) $n['now'] ? 'Už nerobím' : 'Teraz robím' ); // phpcs:ignore ?>
@@ -189,10 +214,11 @@ function jno_render_view( $id ) {
 	(function () {
 		var doc = document.getElementById('jno-doc'), ajax = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>, nonce = <?php echo wp_json_encode( $nonce ); ?>;
 		function toggle(el) {
-			var fd = new FormData(); fd.append('action', <?php echo wp_json_encode( 'jno_task_' . JNO_SLUG ); ?>); fd.append('_ajax_nonce', nonce); fd.append('id', doc.dataset.id); fd.append('line', el.dataset.line);
+			var fd = new FormData(); fd.append('action', <?php echo wp_json_encode( 'jno_task_' . JNO_SLUG ); ?>); fd.append('_ajax_nonce', nonce); fd.append('id', doc.dataset.id); fd.append('line', el.dataset.line); fd.append('h', el.dataset.h || '');
 			el.classList.add('is-busy');
 			fetch(ajax, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
 				el.classList.remove('is-busy'); if (!j.success) { alert(j.data || 'Nepodarilo sa uložiť.'); return; }
+				el.dataset.line = j.data.line; el.dataset.h = j.data.h;
 				['jno-todo', 'jno-doing', 'jno-done'].forEach(function (c) { el.classList.remove(c); }); el.classList.add('jno-' + j.data.state);
 				var st = el.querySelector('.jno-st'); if (st) { st.className = 'jno-st jno-st-' + j.data.state; st.textContent = { todo: '☐', doing: '◐', done: '☑' }[j.data.state]; }
 				var p = document.getElementById('jno-prog'); if (p) { p.innerHTML = j.data.progress; }
@@ -220,10 +246,19 @@ function jno_render_edit( $id ) {
 	$type  = $n ? $n['type'] : ( isset( jno_types()[ $_GET['type'] ?? '' ] ) ? sanitize_key( $_GET['type'] ) : 'note' ); // phpcs:ignore
 	$tpl   = 'plan' === $type ? "## Cieľ\n\n\n## Kroky\n\n- [ ] \n- [ ] \n\n## Otvorené otázky\n\n\n## Denník zmien\n" : '';
 	$projs = (array) $wpdb->get_col( 'SELECT DISTINCT project FROM ' . jno_table() . " WHERE project <> '' ORDER BY project" ); // phpcs:ignore
+	// Konflikt: poznámka sa zmenila, kým bola otvorená na úpravu – formulár sa vyplní vašou verziou a ukáže sa aktuálna.
+	$conf = $id ? get_transient( 'jno_conflict_' . get_current_user_id() . '_' . $id ) : false;
+	if ( $conf && $n ) {
+		delete_transient( 'jno_conflict_' . get_current_user_id() . '_' . $id );
+		echo '<div class="notice notice-error"><p><strong>Poznámka sa medzitým zmenila</strong> (napr. odškrtnutá úloha, záznam v denníku alebo načítanie zo súboru). Vaše úpravy nie sú uložené – sú vo formulári nižšie. Aktuálnu verziu nájdete pod formulárom; prevezmite z nej, čo chcete zachovať, a uložte znova (vtedy sa uloží vaša verzia).</p></div>';
+		$cur  = $n;
+		$n    = array_merge( $n, array_intersect_key( $conf, array_flip( array( 'title', 'type', 'project', 'status', 'now', 'pinned', 'body' ) ) ) );
+		$type = $n['type'];
+	}
 	?>
 	<h1><?php echo $n ? 'Upraviť: ' . esc_html( $n['title'] ) : 'Nová ' . esc_html( mb_strtolower( jno_types()[ $type ] ) ); ?></h1>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="jno-edit" id="jno-edit">
-		<?php wp_nonce_field( 'jno_save' ); ?><input type="hidden" name="action" value="<?php echo esc_attr( 'jno_save_' . JNO_SLUG ); ?>"><input type="hidden" name="id" value="<?php echo (int) $id; ?>">
+		<?php wp_nonce_field( 'jno_save' ); ?><input type="hidden" name="action" value="<?php echo esc_attr( 'jno_save_' . JNO_SLUG ); ?>"><input type="hidden" name="id" value="<?php echo (int) $id; ?>"><input type="hidden" name="base" value="<?php echo esc_attr( $id ? md5( (string) ( isset( $cur ) ? $cur['body'] : $n['body'] ) ) : '' ); ?>">
 		<div class="jno-edit-head">
 			<input name="title" class="jno-title" placeholder="Názov" required value="<?php echo esc_attr( $n['title'] ?? '' ); ?>">
 			<label>Druh <select name="type"><?php foreach ( jno_types() as $k => $l ) : ?><option value="<?php echo esc_attr( $k ); ?>" <?php selected( $type, $k ); ?>><?php echo esc_html( $l ); ?></option><?php endforeach; ?></select></label>
@@ -238,8 +273,13 @@ function jno_render_edit( $id ) {
 		<textarea name="body" id="jno-body" rows="28" class="large-text code" spellcheck="true"><?php echo esc_textarea( $n['body'] ?? $tpl ); ?></textarea>
 		<div id="jno-prev" class="jno-doc" hidden></div>
 		<p><button class="button button-primary">Uložiť</button> <a class="button" href="<?php echo esc_url( $n ? jno_url( array( 'note' => $id ) ) : jno_url() ); ?>">Zrušiť</a>
-		<?php if ( $n ) : ?><a class="button jno-danger" style="float:right" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=jno_act_' . JNO_SLUG . '&do=delete&id=' . $id ), 'jno_act_' . $id ) ); ?>" onclick="return confirm('Natrvalo zmazať poznámku?');">Zmazať</a><?php endif; ?></p>
+		<?php if ( $n ) : ?><a class="button jno-danger" style="float:right" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=jno_act_' . JNO_SLUG . '&do=delete&id=' . $id ), 'jno_act_' . $id ) ); ?>" onclick="return confirm('Presunúť poznámku do koša? Dá sa obnoviť <?php echo (int) jno_trash_days(); ?> dní.');">Do koša</a><?php endif; ?></p>
 	</form>
+	<?php if ( isset( $cur ) ) : ?>
+		<details open class="jno-conflict"><summary><strong>Aktuálna verzia poznámky</strong> (zmenené <?php echo esc_html( date_i18n( 'j. n. Y H:i', strtotime( $cur['updated_at'] ) ) ); ?>)</summary>
+			<textarea readonly rows="16" class="large-text code"><?php echo esc_textarea( $cur['body'] ); ?></textarea>
+		</details>
+	<?php endif; ?>
 	<script>
 	(function () {
 		var f = document.getElementById('jno-edit'), ta = document.getElementById('jno-body'), pv = document.getElementById('jno-prev'), dirty = false;
@@ -276,8 +316,8 @@ add_action( 'admin_post_jno_save_' . JNO_SLUG, function () {
 		wp_die( 'Nemáte oprávnenie.' );
 	}
 	check_admin_referer( 'jno_save' );
-	$in = wp_unslash( $_POST );
-	$id = jno_save( array(
+	$in   = wp_unslash( $_POST );
+	$data = array(
 		'title'   => $in['title'] ?? '',
 		'type'    => sanitize_key( $in['type'] ?? 'note' ),
 		'project' => $in['project'] ?? '',
@@ -285,7 +325,15 @@ add_action( 'admin_post_jno_save_' . JNO_SLUG, function () {
 		'now'     => ! empty( $in['now'] ),
 		'pinned'  => ! empty( $in['pinned'] ),
 		'body'    => str_replace( "\r\n", "\n", (string) ( $in['body'] ?? '' ) ),
-	), (int) ( $in['id'] ?? 0 ) );
+	);
+	$id   = (int) ( $in['id'] ?? 0 );
+	$cur  = $id ? jno_get( $id ) : null;
+	if ( $cur && isset( $in['base'] ) && md5( (string) $cur['body'] ) !== (string) $in['base'] && $data['body'] !== $cur['body'] ) {
+		set_transient( 'jno_conflict_' . get_current_user_id() . '_' . $id, $data, HOUR_IN_SECONDS );
+		wp_safe_redirect( jno_url( array( 'edit' => $id ) ) );
+		exit;
+	}
+	$id = jno_save( $data, $id );
 	wp_safe_redirect( jno_url( array( 'note' => $id, 'jno_msg' => 'saved' ) ) );
 	exit;
 } );
@@ -301,9 +349,18 @@ add_action( 'admin_post_jno_act_' . JNO_SLUG, function () {
 	$n = jno_get( $id );
 	if ( $n ) {
 		if ( 'delete' === $do ) {
-			$wpdb->delete( jno_table(), array( 'id' => $id ) );
-			@unlink( jno_files_dir( 'export' ) . '/' . $n['slug'] . '.md' ); // phpcs:ignore
+			jno_trash( $id );
 			wp_safe_redirect( jno_url( array( 'jno_msg' => 'deleted' ) ) );
+			exit;
+		}
+		if ( 'restore' === $do ) {
+			jno_restore( $id );
+			wp_safe_redirect( jno_url( array( 'note' => $id, 'jno_msg' => 'restored' ) ) );
+			exit;
+		}
+		if ( 'purge' === $do && 'trash' === $n['status'] ) {
+			jno_delete( $id );
+			wp_safe_redirect( jno_url( array( 'status' => 'trash', 'jno_msg' => 'purged' ) ) );
 			exit;
 		}
 		$map = array( 'now' => array( 'now' => ! (int) $n['now'] ), 'pin' => array( 'pinned' => ! (int) $n['pinned'] ), 'done' => array( 'status' => 'done', 'now' => false ), 'active' => array( 'status' => 'active' ), 'archive' => array( 'status' => 'archived', 'now' => false ) );
@@ -364,11 +421,11 @@ add_action( 'wp_ajax_jno_task_' . JNO_SLUG, function () {
 	if ( ! current_user_can( JNO_CAP ) || ! check_ajax_referer( 'jno_note_' . $id, '_ajax_nonce', false ) ) {
 		wp_send_json_error( 'Nemáte oprávnenie – obnovte stránku.', 403 );
 	}
-	$st = jno_set_task( $id, (int) ( $_POST['line'] ?? -1 ) );
-	if ( ! $st ) {
+	$r = jno_set_task( $id, (int) ( $_POST['line'] ?? -1 ), '', sanitize_key( wp_unslash( $_POST['h'] ?? '' ) ) ); // phpcs:ignore
+	if ( ! $r ) {
 		wp_send_json_error( 'Úloha sa nenašla – poznámka sa medzitým zmenila, obnovte stránku.' );
 	}
-	wp_send_json_success( array( 'state' => $st, 'progress' => jno_progress( jno_get( $id ) ) ) );
+	wp_send_json_success( array( 'state' => $r[0], 'line' => $r[1], 'h' => $r[2], 'progress' => jno_progress( jno_get( $id ) ) ) );
 } );
 
 add_action( 'wp_ajax_jno_preview_' . JNO_SLUG, function () {
