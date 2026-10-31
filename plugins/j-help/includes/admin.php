@@ -22,10 +22,16 @@ function jhelp_tabs() {
 
 /** Odkaz na administráciu doplnku (prvá položka menu, ktorej slug začína slugom doplnku). */
 function jhelp_admin_link( $slug ) {
-	global $menu;
+	global $menu, $submenu;
 	foreach ( (array) $menu as $item ) {
 		if ( isset( $item[2] ) && 0 === strpos( (string) $item[2], $slug ) ) {
 			return admin_url( 'admin.php?page=' . $item[2] );
+		}
+	}
+	// Doplnok zlúčený pod položku Jupiter (nie je v hlavnom menu, jeho podmenu ostáva).
+	foreach ( array_keys( (array) $submenu ) as $parent ) {
+		if ( 0 === strpos( (string) $parent, $slug ) ) {
+			return admin_url( 'admin.php?page=' . $parent );
 		}
 	}
 	return '';
@@ -94,7 +100,7 @@ function jhelp_tab_overview() {
 					<?php endif; ?>
 				</header>
 				<p><?php echo esc_html( $p['what'] ); ?></p>
-				<?php if ( $link ) : ?><a class="jhelp-link" href="<?php echo esc_url( $link ); ?>">Otvoriť →</a><?php endif; ?>
+				<?php $doc = jhelp_doc_url( $slug ); if ( $link || $doc ) : ?><p class="jhelp-links"><?php if ( $link ) : ?><a class="jhelp-link" href="<?php echo esc_url( $link ); ?>">Otvoriť →</a><?php endif; ?><?php if ( $doc ) : ?><a class="jhelp-link jhelp-doclink" href="<?php echo esc_url( $doc ); ?>"><span class="dashicons dashicons-book-alt" aria-hidden="true"></span> Príručka</a><?php endif; ?></p><?php endif; ?>
 			</article>
 		<?php endforeach; ?>
 	</div>

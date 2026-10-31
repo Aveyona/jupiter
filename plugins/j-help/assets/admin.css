@@ -69,3 +69,46 @@
 .jhelp-upd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #50575E; }
 .jhelp-err { color: #A3121B; }
 .jhelp-new { padding: 1px 8px; border-radius: 999px; background: #FCF0E3; color: #8A4B00; font-size: 11px; font-weight: 700; text-decoration: none; }
+
+/* Prehľad: odkaz na príručku */
+.jhelp-links { display: flex; flex-wrap: wrap; gap: 14px; margin: auto 0 0 !important; }
+.jhelp-doclink { display: inline-flex; align-items: center; gap: 4px; }
+.jhelp-doclink .dashicons { width: 16px; height: 16px; font-size: 16px; }
+/* Príručky doplnkov */
+.jhelp-doc-hero { position: relative; overflow: hidden; padding: 22px 26px; margin-bottom: 22px; border-radius: 14px; background: linear-gradient(135deg, #0f1b33, #1e3a8a 55%, #2563eb); color: #FFFFFF; }
+.jhelp-doc-hero h2 { margin: 8px 0 6px; color: #FFFFFF; font-size: 26px; }
+.jhelp-doc-hero h2 small { font-size: 13px; font-weight: 600; opacity: .75; }
+.jhelp-doc-hero p { margin: 0 0 14px; max-width: 760px; color: #DCE6F5; font-size: 14px; }
+.jhelp-doc-badge { display: inline-block; padding: 3px 12px; border-radius: 999px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.jhelp-doc-cover { margin: 0 0 22px; }
+.jhelp-doc-cover img { display: block; width: 100%; max-width: 1240px; height: auto; border-radius: 16px; box-shadow: 0 10px 30px rgba(15,27,51,.15); background: #fff; }
+.jhelp-doc-cover figcaption { margin-top: 6px; font-size: 12px; color: #646970; text-align: center; }
+.jhelp-doc-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 22px; align-items: start; }
+.jhelp-toc { position: sticky; top: 46px; padding: 14px 16px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; }
+.jhelp-toc ol { margin: 8px 0 0 18px !important; }
+.jhelp-toc li { margin: 0 0 6px !important; font-size: 13px; }
+.jhelp-toc a { text-decoration: none; }
+.jhelp-chapter { scroll-margin-top: 46px; padding: 6px 26px 18px; margin-bottom: 18px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 12px; }
+.jhelp-chapter > h2 { display: flex; align-items: center; gap: 10px; margin: 16px 0 10px; font-size: 19px; }
+.jhelp-chapter > h2 .dashicons { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: #1e3a8a; color: #FFFFFF; font-size: 18px; }
+.jhelp-ch-n { color: #2563eb; font-weight: 800; }
+.jhelp-chapter h3 { margin: 18px 0 6px; font-size: 15px; }
+.jhelp-chapter p, .jhelp-chapter li, .jhelp-chapter td, .jhelp-chapter th { font-size: 13.5px; line-height: 1.6; color: #2C3338; }
+.jhelp-chapter ul, .jhelp-chapter ol { margin-left: 20px !important; }
+.jhelp-chapter ul { list-style: disc !important; }
+.jhelp-chapter li { margin-bottom: 5px !important; }
+.jhelp-lead { font-size: 15px !important; }
+.jhelp-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
+.jhelp-facts div { padding: 12px 14px; border-radius: 10px; background: #EEF2F8; }
+.jhelp-facts b { display: block; font-size: 26px; line-height: 1.1; color: #1e3a8a; }
+.jhelp-facts span { font-size: 12px; color: #50575E; font-weight: 600; }
+.jhelp-table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; }
+.jhelp-table th, .jhelp-table td { padding: 8px 10px; border: 1px solid #E2E4E7; text-align: left; vertical-align: top; }
+.jhelp-table th { background: #F6F7F7; font-size: 12.5px; }
+.jhelp-table td:first-child { width: 28%; }
+.jhelp-steps li { padding-left: 4px; }
+.jhelp-tip { padding: 10px 14px; border-left: 4px solid #2271B1; border-radius: 6px; background: #F0F6FC; }
+.jhelp-warn { padding: 10px 14px; border-left: 4px solid #dba617; border-radius: 6px; background: #fcf9e8; }
+.jhelp-chapter kbd { display: inline-block; min-width: 18px; padding: 1px 7px; border: 1px solid #c3c4c7; border-bottom-width: 2px; border-radius: 5px; background: #f6f7f7; font: 600 12px/1.6 ui-monospace, Menlo, Consolas, monospace; text-align: center; }
+.jhelp-chapter code { padding: 1px 5px; border-radius: 4px; background: #f0f0f1; font-size: 12.5px; }
+@media (max-width: 960px) { .jhelp-doc-layout { grid-template-columns: 1fr; } .jhelp-toc { position: static; } }
