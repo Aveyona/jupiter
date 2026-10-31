@@ -44,6 +44,7 @@ function jord_numbers_defaults() {
 		'suffix'  => '',
 		'digits'  => 4,
 		'last'    => 0,
+		'since'   => 0, // čas zapnutia číslovania – staršie objednávky si ponechajú číslo WooCommerce (ID)
 	);
 }
 
@@ -188,6 +189,17 @@ function jord_assign( $order_or_id ) {
 	if ( ! $order || 'shop_order' !== $order->get_type() || '' !== jord_stored_number( $order ) ) {
 		return;
 	}
+	// Koncept z blokovej pokladne (vzniká už pri otvorení pokladne) a rozpísaná objednávka v administrácii
+	// číslo nedostanú – inak by opustené nákupy míňali čísla a v číslovaní by vznikali medzery.
+	if ( in_array( $order->get_status(), array( 'checkout-draft', 'auto-draft', 'draft' ), true ) || ( ! jord_hpos() && 'auto-draft' === get_post_status( $order->get_id() ) ) ) {
+		return;
+	}
+	// Objednávky spred zapnutia číslovania si ponechajú pôvodné číslo (napr. pri úprave alebo zmene stavu starej objednávky).
+	$since   = (int) jord_numbers_settings()['since'];
+	$created = $order->get_date_created();
+	if ( $since && $created && $created->getTimestamp() < $since - 60 ) {
+		return;
+	}
 	global $wpdb;
 	$locked = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', JORD_LOCK ) );
 	if ( ! $locked ) {
@@ -230,8 +242,10 @@ add_action( 'init', function () {
 	if ( ! jord_numbers_active() ) {
 		return;
 	}
-	foreach ( array( 'woocommerce_checkout_update_order_meta', 'woocommerce_store_api_checkout_update_order_meta', 'woocommerce_before_resend_order_emails', 'woocommerce_api_create_order', 'woocommerce_deposits_create_order' ) as $hook ) {
-		add_action( $hook, 'jord_assign', 10, 1 );
+	// Pokladňa (klasická aj bloková – až pri odoslaní objednávky), objednávky z REST API a iných doplnkov
+	// (woocommerce_new_order), opätovné odoslanie e-mailov a záchrana pri prechode konceptu do iného stavu.
+	foreach ( array( 'woocommerce_checkout_update_order_meta', 'woocommerce_store_api_checkout_order_processed', 'woocommerce_new_order', 'woocommerce_rest_insert_shop_order_object', 'woocommerce_order_status_changed', 'woocommerce_before_resend_order_emails', 'woocommerce_api_create_order', 'woocommerce_deposits_create_order' ) as $hook ) {
+		add_action( $hook, 'jord_assign', 20, 1 );
 	}
 	add_action( 'woocommerce_process_shop_order_meta', function ( $id, $post = null ) {
 		if ( $post instanceof WP_Post && 'auto-draft' === $post->post_status ) {

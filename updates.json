@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.3.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.3.0/j-help-v1.3.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.3.0",
+      "version": "1.4.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.4.1/j-help-v1.4.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.4.1",
       "published": "2026-10-31",
-      "notes": "Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
       "version": "0.10.2",
@@ -23,11 +23,11 @@
       "notes": "E-maily webu: odosielateľ, ktorý nie je adresou schránky ani aliasom (aj predvolená wordpress@), sa nahradí adresou schránky – server ho inak odmietol („Údaje neboli akceptované“); pôvodná adresa ide do Odpovedať."
     },
     "j-orders": {
-      "version": "0.2.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-orders-v0.2.0/j-orders-v0.2.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-orders-v0.2.0",
-      "published": "2026-10-29",
-      "notes": "Prepojenie s J-Fakturáciou: stĺpec Doklady (zálohová faktúra aj faktúra so stavom a PDF), Vystaviť faktúru a Pregenerovať pri riadku, filter Na fakturáciu (vybavené bez faktúry), hromadne Vybaviť a vystaviť faktúry."
+      "version": "0.3.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-orders-v0.3.0/j-orders-v0.3.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-orders-v0.3.0",
+      "published": "2026-10-31",
+      "notes": "Opravy číslovania (bloková pokladňa nemíňa čísla, objednávky z REST API, staršie objednávky si ponechajú číslo), zoznam bez konceptov z pokladne, rýchly filter Na fakturáciu, filter len zapnutých platieb. Príručka v J-Pomocníku."
     },
     "j-sklad": {
       "version": "0.6.0",

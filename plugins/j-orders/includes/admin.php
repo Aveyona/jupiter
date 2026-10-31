@@ -26,7 +26,7 @@ function jord_render_numbers() {
 	while ( jord_number_exists( jord_format( $next, $s ) ) ) {
 		$next++;
 	}
-	$last   = wc_get_orders( array( 'limit' => 1, 'type' => 'shop_order', 'orderby' => 'date', 'order' => 'DESC', 'status' => array_keys( wc_get_order_statuses() ) ) );
+	$last   = wc_get_orders( array( 'limit' => 1, 'type' => 'shop_order', 'orderby' => 'date', 'order' => 'DESC', 'status' => array_keys( jord_list_statuses() ) ) );
 	$last   = $last ? $last[0] : null;
 	$hist   = array_reverse( (array) get_option( JORD_HISTORY, array() ) );
 	$notice = isset( $_GET['jord_notice'] ) ? sanitize_key( $_GET['jord_notice'] ) : ''; // phpcs:ignore
@@ -56,7 +56,7 @@ function jord_render_numbers() {
 				<input type="hidden" name="action" value="jord_save_numbers">
 				<?php wp_nonce_field( 'jord_save_numbers' ); ?>
 				<table class="form-table" role="presentation">
-					<tr><th scope="row">Vlastné čísla objednávok</th><td><label><input type="checkbox" name="enabled" value="1" <?php checked( ! empty( $s['enabled'] ) ); ?>> zapnuté</label><p class="description">Vypnuté: nové objednávky majú číslo WooCommerce (ID). Už pridelené čísla ostávajú.</p></td></tr>
+					<tr><th scope="row">Vlastné čísla objednávok</th><td><label><input type="checkbox" name="enabled" value="1" <?php checked( ! empty( $s['enabled'] ) ); ?>> zapnuté</label><p class="description">Vypnuté: nové objednávky majú číslo WooCommerce (ID). Už pridelené čísla ostávajú. Po zapnutí dostávajú vlastné číslo len nové objednávky – staršie si ponechajú číslo WooCommerce.</p></td></tr>
 					<tr><th scope="row"><label for="jord-prefix">Prefix</label></th><td><input name="prefix" id="jord-prefix" type="text" class="regular-text" maxlength="20" value="<?php echo esc_attr( $s['prefix'] ); ?>"><p class="description">Písmená, číslice, „-“, „_“, „/“.</p></td></tr>
 					<tr><th scope="row"><label for="jord-digits">Počet číslic poradového čísla</label></th><td><input name="digits" id="jord-digits" type="number" min="1" max="10" class="small-text" value="<?php echo (int) $s['digits']; ?>"></td></tr>
 					<tr><th scope="row"><label for="jord-last">Posledné použité poradové číslo</label></th><td><input name="last" id="jord-last" type="number" min="0" step="1" value="<?php echo (int) $s['last']; ?>"><p class="description">Ďalšia objednávka dostane toto číslo + 1.</p></td></tr>
@@ -107,7 +107,11 @@ add_action( 'admin_post_jord_save_numbers', function () {
 		'suffix'  => $suffix,
 		'digits'  => $digits,
 		'last'    => $last,
+		'since'   => (int) $old['since'],
 	);
+	if ( $new['enabled'] && empty( $old['enabled'] ) ) {
+		$new['since'] = time(); // staršie objednávky si ponechajú číslo WooCommerce
+	}
 	update_option( JORD_OPTION, $new, false );
 	update_option( 'jord_mon_synced', 1, false ); // ručné nastavenie má prednosť pred počítadlom My Order Numbers
 	if ( $locked ) {

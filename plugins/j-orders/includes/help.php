@@ -26,6 +26,7 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 			'Pri aktivácii sa prevezme nastavenie, počítadlo aj história z doplnku My Order Numbers (alebo z pôvodného „Woo Custom and Sequential Order Number“); existujúce objednávky si čísla ponechajú.',
 			'Kým je My Order Numbers zapnutý, čísla prideľuje on a J-Objednávky ich len zobrazuje. Po jeho vypnutí prevezme číslovanie J-Objednávky a nadviaže na jeho posledné číslo – My Order Numbers potom môžeš zmazať.',
 			'Nový rok: zmeň prefix (napr. 22027) a posledné číslo na 0 → ďalšia objednávka 220270001. Číslo, ktoré už existuje, sa preskočí; zmeny sa zapisujú do histórie.',
+			'Číslo dostane objednávka pri odoslaní (aj v blokovej pokladni, z REST API a iných doplnkov); koncepty z pokladne číslo nedostanú. Objednávky spred zapnutia číslovania si ponechajú číslo WooCommerce.',
 			'Sledovanie objednávky a vyhľadávanie vo WooCommerce fungujú aj podľa vlastného čísla.',
 		),
 		'J-Objednávky',
