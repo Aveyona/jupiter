@@ -98,3 +98,11 @@
 	.jsk-cards strong { font-size: 15px; }
 	.jsk-table { font-size: 11px; }
 }
+
+/* Akcie a novinky */
+.jsk-badge { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 700; color: #FFFFFF; line-height: 1.6; }
+.jsk-badge-sale { background: #D63638; }
+.jsk-badge-new { background: #1E8E3E; }
+.jsk-promo-bulk { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.jsk-promo-bulk > span { display: contents; }
+.column-jsk_promo { width: 110px; }

@@ -30,11 +30,11 @@
       "notes": "Prepojenie s J-Fakturáciou: stĺpec Doklady (zálohová faktúra aj faktúra so stavom a PDF), Vystaviť faktúru a Pregenerovať pri riadku, filter Na fakturáciu (vybavené bez faktúry), hromadne Vybaviť a vystaviť faktúry."
     },
     "j-sklad": {
-      "version": "0.3.1",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.3.1/j-sklad-v0.3.1.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.3.1",
-      "published": "2026-10-29",
-      "notes": "Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
+      "version": "0.5.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.5.0/j-sklad-v0.5.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.5.0",
+      "published": "2026-10-30",
+      "notes": "Balíčky (zostavy): k produktu sa v košíku automaticky pridajú súčasti (napr. členstvo a hodiny poradenstva) za bežnú alebo vlastnú cenu; prehľad J-Sklad → Balíčky. Akcie a novinky: hromadné zľavy s dátumom od – do a názvom akcie, novinky ručne alebo automaticky, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky]. Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
     },
     "j-uctovnictvo": {
       "version": "0.6.0",
@@ -56,6 +56,20 @@
       "url": "https://github.com/Aveyona/jupiter/releases/tag/j-doprava-v0.2.0",
       "published": "2026-10-30",
       "notes": "E-mail zákazníkovi „Objednávka odoslaná“ s odkazom na sledovanie, keď Packeta prevezme zásielku. Prvá verzia: Packeta – výdajné miesta a Z-BOXy s mapou v košíku (blokový aj klasický), doručenie na adresu, podanie zásielok cez API, štítky PDF, sledovanie stavu."
+    },
+    "j-platby": {
+      "version": "0.1.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-platby-v0.1.0/j-platby-v0.1.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-platby-v0.1.0",
+      "published": "2026-10-30",
+      "notes": "Nový doplnok: platby kartou cez Stripe Checkout (karta, Apple Pay, Google Pay), potvrdenie webhookom, vrátenie peňazí z objednávky, prehľad platieb s poplatkami, prepojenie s J-Fakturáciou a J-Účtovníctvom."
+    },
+    "j-kupony": {
+      "version": "0.1.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-kupony-v0.1.0/j-kupony-v0.1.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-kupony-v0.1.0",
+      "published": "2026-10-30",
+      "notes": "Prvá verzia: evidencia zľavových kódov, automaticky generovaný kód (4 znaky), hromadné vytvorenie, stav a použitie kódov s objednávkami, vypnutie a zapnutie."
     }
   }
 }
