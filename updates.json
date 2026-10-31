@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.12.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.12.0/j-help-v1.12.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.12.0",
+      "version": "1.12.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.12.1/j-help-v1.12.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.12.1",
       "published": "2026-10-31",
-      "notes": "Overenie balíkov pred inštaláciou (SHA-256, podpis), len doplnky z rodiny Jupiter. Príručka Jupiter (10 kapitol, schéma) – príručku majú všetky doplnky. Príručka J-Notes (12 kapitol, schéma) a plán vývoja J-Notes. Príručka J-Kupóny (12 kapitol, schéma) a plán vývoja J-Kupónov. Príručka J-Účtovníctvo (16 kapitol, schéma) a plán vývoja J-Účtovníctva. Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Podpísané vydania – aktualizácie sa inštalujú len s platným podpisom. Overenie balíkov pred inštaláciou (SHA-256, podpis), len doplnky z rodiny Jupiter. Príručka Jupiter (10 kapitol, schéma) – príručku majú všetky doplnky. Príručka J-Notes (12 kapitol, schéma) a plán vývoja J-Notes. Príručka J-Kupóny (12 kapitol, schéma) a plán vývoja J-Kupónov. Príručka J-Účtovníctvo (16 kapitol, schéma) a plán vývoja J-Účtovníctva. Príručka J-Fakturácia. Príručka J-Platby. Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
       "version": "0.12.0",

@@ -69,3 +69,21 @@ jobs:
             echo "Vydané: $tag"
           done
           [ -n "$tags" ] || echo "Žiadna nová verzia na vydanie."
+          # Doplniť podpis (a kontrolný súčet) k aktuálnym vydaniam, ktoré ho ešte nemajú – J-Pomocník
+          # s verejným kľúčom inštaluje len podpísané balíky (aj staršie vydania, ktoré weby ešte nemajú).
+          if [ -n "$JUPITER_SIGNING_KEY" ] && [ "${GITHUB_REF_TYPE}" != "tag" ]; then
+            for dir in plugins/j-*/; do
+              plugin=$(basename "$dir")
+              ver=$(grep -m1 -E '^\s*\*\s*Version:' "$dir/$plugin.php" | awk '{print $NF}')
+              tag="$plugin-v$ver"
+              have=$(gh release view "$tag" --json assets -q '.assets[].name' 2>/dev/null || true)
+              echo "$have" | grep -qx "$tag.zip" || continue
+              echo "$have" | grep -qx "$tag.zip.sig" && continue
+              rm -f "$tag.zip"
+              gh release download "$tag" -p "$tag.zip" -D .
+              sha256sum "$tag.zip" | awk '{print $1}' > "$tag.zip.sha256"
+              php -r '$k=base64_decode(getenv("JUPITER_SIGNING_KEY"),true); if(!$k||strlen($k)!==SODIUM_CRYPTO_SIGN_SECRETKEYBYTES){fwrite(STDERR,"Neplatný JUPITER_SIGNING_KEY\n");exit(1);} echo base64_encode(sodium_crypto_sign_detached(file_get_contents($argv[1]),$k));' "$tag.zip" > "$tag.zip.sig"
+              gh release upload "$tag" "$tag.zip.sha256" "$tag.zip.sig" --clobber
+              echo "Podpísané: $tag"
+            done
+          fi

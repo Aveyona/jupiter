@@ -14,12 +14,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'JHELP_REPO', 'Aveyona/jupiter' );
 
 /*
- * Verejný kľúč Ed25519 (base64) na overenie podpisu vydaní. Keď je zadaný, nainštaluje sa len balík s platným
- * podpisom (<balík>.zip.sig, podpisuje ho GitHub Actions tajným kľúčom JUPITER_SIGNING_KEY). Prázdny = podpis sa
- * neoveruje, overí sa len kontrolný súčet SHA-256 (<balík>.zip.sha256), ak ho vydanie má.
+ * Verejný kľúč Ed25519 (base64) na overenie podpisu vydaní: nainštaluje sa len balík s platným podpisom
+ * (<balík>.zip.sig, podpisuje ho GitHub Actions tajným kľúčom JUPITER_SIGNING_KEY). Na webe sa dá prepísať
+ * konštantou JHELP_SIGN_PUBKEY vo wp-config.php (prázdna = podpis sa neoveruje, len kontrolný súčet SHA-256).
  */
 if ( ! defined( 'JHELP_SIGN_PUBKEY' ) ) {
-	define( 'JHELP_SIGN_PUBKEY', '' );
+	define( 'JHELP_SIGN_PUBKEY', 'Hi5s4yLjjbGbGOMV3/B4VzbscCgRVoIoh9CYehY6X20=' );
 }
 
 /**
