@@ -10,6 +10,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Zdokumentované doplnky: slug doplnku => údaje príručky. */
 function jhelp_docs() {
+	$docs  = jhelp_docs_list();
+	$order = function_exists( 'jhelp_menu_order' ) ? jhelp_menu_order() : array();
+	// Rovnaké poradie ako doplnky v menu Jupiter (Pošta, Sklad, Objednávky, …).
+	uksort( $docs, function ( $a, $b ) use ( $order, $docs ) {
+		return array( $order[ $a ] ?? 500, $docs[ $a ]['name'] ) <=> array( $order[ $b ] ?? 500, $docs[ $b ]['name'] );
+	} );
+	return $docs;
+}
+
+function jhelp_docs_list() {
 	return array(
 		'j-emails' => array(
 			'name'      => 'J-Pošta',

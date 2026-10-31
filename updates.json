@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.4.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.4.0/j-help-v1.4.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.4.0",
+      "version": "1.4.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.4.1/j-help-v1.4.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.4.1",
       "published": "2026-10-31",
-      "notes": "Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
       "version": "0.10.2",
