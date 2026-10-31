@@ -15,11 +15,19 @@ function jno_md_inline( $t ) {
 		$codes[] = '<code>' . $m[1] . '</code>';
 		return "\x01" . ( count( $codes ) - 1 ) . "\x01";
 	}, $t );
-	$t = preg_replace_callback( '/\[([^\]]+)\]\(([^)\s]+)\)/', function ( $m ) {
+	// Odkazy sa odložia ako zástupné znaky, aby sa podčiarkovníky a hviezdičky v adrese nezmenili na kurzívu.
+	$t = preg_replace_callback( '/\[([^\]]+)\]\(([^)\s]+)\)/', function ( $m ) use ( &$codes ) {
 		$url = esc_url( html_entity_decode( $m[2] ) );
-		return $url ? '<a href="' . $url . '" target="_blank" rel="noopener">' . $m[1] . '</a>' : $m[0];
+		if ( ! $url ) {
+			return $m[0];
+		}
+		$codes[] = '<a href="' . $url . '" target="_blank" rel="noopener">' . $m[1] . '</a>';
+		return "\x01" . ( count( $codes ) - 1 ) . "\x01";
 	}, $t );
-	$t = preg_replace( '#(?<!["\'=>])\b(https?://[^\s<]+[^\s<.,;:!?)])#', '<a href="$1" target="_blank" rel="noopener">$1</a>', $t );
+	$t = preg_replace_callback( '#(?<!["\'=>])\b(https?://[^\s<\x01]+[^\s<.,;:!?)\x01])#', function ( $m ) use ( &$codes ) {
+		$codes[] = '<a href="' . $m[1] . '" target="_blank" rel="noopener">' . $m[1] . '</a>';
+		return "\x01" . ( count( $codes ) - 1 ) . "\x01";
+	}, $t );
 	$t = preg_replace( '/\*\*(.+?)\*\*/u', '<strong>$1</strong>', $t );
 	$t = preg_replace( '/(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])/u', '<em>$1</em>', $t );
 	$t = preg_replace( '/(?<![\w_])_(?!\s)(.+?)(?<!\s)_(?![\w_])/u', '<em>$1</em>', $t );
@@ -37,6 +45,7 @@ function jno_markdown( $md, $tasks = true ) {
 	$n     = count( $lines );
 	$i     = 0;
 	$para  = array();
+	$ids   = array();
 	$flush = function () use ( &$para, &$out ) {
 		if ( $para ) {
 			$out .= '<p>' . implode( '<br>', array_map( 'jno_md_inline', $para ) ) . "</p>\n";
@@ -65,7 +74,15 @@ function jno_markdown( $md, $tasks = true ) {
 		if ( preg_match( '/^(#{1,6})\s+(.+?)\s*#*$/', $l, $m ) ) {
 			$flush();
 			$lv   = strlen( $m[1] );
-			$out .= '<h' . $lv . ' id="' . esc_attr( sanitize_title( $m[2] ) ) . '">' . jno_md_inline( $m[2] ) . '</h' . $lv . ">\n";
+			$hid  = sanitize_title( $m[2] );
+			$hid  = $hid ? $hid : 'h';
+			$base = $hid;
+			$k    = 1;
+			while ( isset( $ids[ $hid ] ) ) {
+				$hid = $base . '-' . ( ++$k );
+			}
+			$ids[ $hid ] = true;
+			$out .= '<h' . $lv . ' id="' . esc_attr( $hid ) . '">' . jno_md_inline( $m[2] ) . '</h' . $lv . ">\n";
 			$i++;
 			continue;
 		}
@@ -88,7 +105,7 @@ function jno_markdown( $md, $tasks = true ) {
 			$out .= '</tr></thead><tbody>';
 			$i   += 2;
 			while ( $i < $n && '|' === substr( ltrim( $lines[ $i ] ), 0, 1 ) ) {
-				$st   = $tasks && preg_match( '/\|\s*(☐|◐|☑)[^|]*\|?\s*$/u', $lines[ $i ] ) ? ' data-line="' . $i . '" class="jno-trow"' : '';
+				$st   = $tasks && preg_match( '/\|\s*(☐|◐|☑)[^|]*\|?\s*$/u', $lines[ $i ] ) ? ' data-line="' . $i . '" data-h="' . jno_line_hash( $lines[ $i ] ) . '" class="jno-trow"' : '';
 				$out .= '<tr' . $st . '>';
 				foreach ( $cells( $lines[ $i ] ) as $c ) {
 					$out .= '<td>' . jno_md_inline( $c ) . '</td>';
@@ -128,10 +145,10 @@ function jno_markdown( $md, $tasks = true ) {
 				$txt = $m[3];
 				if ( $tasks && preg_match( '/^\[( |x|X|~|-)\]\s+(.*)$/u', $txt, $t ) ) {
 					$st   = 'x' === strtolower( $t[1] ) ? 'done' : ( ' ' === $t[1] ? 'todo' : 'doing' );
-					$out .= '<li class="jno-task jno-' . $st . '" data-line="' . $i . '"><span class="jno-box" role="button" tabindex="0" aria-label="Zmeniť stav úlohy"></span> ' . jno_md_inline( $t[2] );
+					$out .= '<li class="jno-task jno-' . $st . '" data-line="' . $i . '" data-h="' . jno_line_hash( $lines[ $i ] ) . '"><span class="jno-box" role="button" tabindex="0" aria-label="Zmeniť stav úlohy"></span> ' . jno_md_inline( $t[2] );
 				} elseif ( $tasks && preg_match( '/^(☐|◐|☑)\s+(.*)$/u', $txt, $t ) ) {
 					$st   = '☑' === $t[1] ? 'done' : ( '◐' === $t[1] ? 'doing' : 'todo' );
-					$out .= '<li class="jno-task jno-' . $st . '" data-line="' . $i . '"><span class="jno-box" role="button" tabindex="0" aria-label="Zmeniť stav úlohy"></span> ' . jno_md_inline( $t[2] );
+					$out .= '<li class="jno-task jno-' . $st . '" data-line="' . $i . '" data-h="' . jno_line_hash( $lines[ $i ] ) . '"><span class="jno-box" role="button" tabindex="0" aria-label="Zmeniť stav úlohy"></span> ' . jno_md_inline( $t[2] );
 				} else {
 					$out .= '<li>' . jno_md_inline( $txt );
 				}
@@ -152,7 +169,7 @@ function jno_markdown( $md, $tasks = true ) {
 		if ( $tasks && preg_match( '/^\s*(☐|◐|☑)\s+(.*)$/u', $l, $t ) ) {
 			$flush();
 			$st   = '☑' === $t[1] ? 'done' : ( '◐' === $t[1] ? 'doing' : 'todo' );
-			$out .= '<ul><li class="jno-task jno-' . $st . '" data-line="' . $i . '"><span class="jno-box" role="button" tabindex="0" aria-label="Zmeniť stav úlohy"></span> ' . jno_md_inline( $t[2] ) . "</li></ul>\n";
+			$out .= '<ul><li class="jno-task jno-' . $st . '" data-line="' . $i . '" data-h="' . jno_line_hash( $lines[ $i ] ) . '"><span class="jno-box" role="button" tabindex="0" aria-label="Zmeniť stav úlohy"></span> ' . jno_md_inline( $t[2] ) . "</li></ul>\n";
 			$i++;
 			continue;
 		}

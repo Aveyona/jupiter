@@ -91,6 +91,16 @@ function jhelp_docs_list() {
 			'hero_w'    => 1200,
 			'hero_h'    => 620,
 		),
+		'j-notes' => array(
+			'name'      => 'J-Notes',
+			'title'     => 'J-Notes',
+			'fn'        => 'jhelp_doc_j_notes',
+			'ver_const' => 'JNO_VERSION',
+			'badge'     => 'Poznámky a plány',
+			'hero'      => 'img/j-notes-schema.svg',
+			'hero_w'    => 1200,
+			'hero_h'    => 620,
+		),
 		'j-sklad'  => array(
 			'name'      => 'J-Sklad',
 			'title'     => 'J-Sklad',
