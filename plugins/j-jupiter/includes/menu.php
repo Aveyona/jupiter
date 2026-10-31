@@ -59,7 +59,15 @@ add_action( 'admin_menu', function () {
 		remove_menu_page( $slug );
 		$b      = jju_badge( $it['raw'] );
 		$badge += $b;
-		$entries[] = array( jju_short( $it['title'] ) . ( $b ? ' <span class="awaiting-mod count-' . $b . '"><span class="pending-count">' . $b . '</span></span>' : '' ), $it['cap'], 'admin.php?page=' . $slug, $it['title'] );
+		$subs = array_values( array_filter( $it['subs'], function ( $sb ) use ( $slug ) {
+			return $sb['slug'] !== $slug;
+		} ) );
+		$entries[] = array( jju_short( $it['title'] ) . ( $b ? ' <span class="awaiting-mod count-' . $b . '"><span class="pending-count">' . $b . '</span></span>' : '' ), $it['cap'], 'admin.php?page=' . $slug, $it['title'], 'jju-app' . ( $subs ? ' jju-has-subs' : '' ) . ' jju-app-' . sanitize_html_class( $slug ) );
+		// Podpoložky doplnku (rozbaľujú sa pod ním; pri otvorenom doplnku sú rozbalené).
+		foreach ( $subs as $sb ) {
+			$url       = false !== strpos( $sb['slug'], '.php' ) ? $sb['slug'] : 'admin.php?page=' . $sb['slug'];
+			$entries[] = array( $sb['title'], $it['cap'], $url, $sb['title'], 'jju-sub jju-of-' . sanitize_html_class( $slug ) );
+		}
 	}
 	// Pod Jupiterom: Prehľad, doplnky, Nastavenia.
 	$own = (array) ( $submenu[ JJU_SLUG ] ?? array() );
@@ -78,14 +86,14 @@ add_action( 'admin_menu', function () {
 add_filter( 'parent_file', function ( $parent ) {
 	global $plugin_page, $jju_child, $submenu_file;
 	if ( jju_merged() && $plugin_page && isset( $jju_child[ $plugin_page ] ) ) {
-		$submenu_file = 'admin.php?page=' . $jju_child[ $plugin_page ]; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$submenu_file = 'admin.php?page=' . $plugin_page; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		return JJU_SLUG;
 	}
 	return $parent;
 } );
 add_filter( 'submenu_file', function ( $file ) {
 	global $plugin_page, $jju_child;
-	return ( jju_merged() && $plugin_page && isset( $jju_child[ $plugin_page ] ) ) ? 'admin.php?page=' . $jju_child[ $plugin_page ] : $file;
+	return ( jju_merged() && $plugin_page && isset( $jju_child[ $plugin_page ] ) ) ? 'admin.php?page=' . $plugin_page : $file;
 } );
 
 /** Navigácia hore na stránke doplnku: Jupiter › doplnok + jeho podstránky. */
@@ -125,13 +133,53 @@ add_action( 'admin_footer', function () {
 		li.classList.add( 'wp-has-current-submenu', 'wp-menu-open', 'current' );
 		var a = li.querySelector( 'a.menu-top' );
 		if ( a ) { a.classList.remove( 'wp-not-current-submenu' ); a.classList.add( 'wp-has-current-submenu', 'wp-menu-open' ); a.setAttribute( 'aria-current', 'page' ); }
-		var cur = li.querySelector( '.wp-submenu a[href$="page=<?php echo esc_js( $jju_child[ $plugin_page ] ); ?>"]' );
-		if ( cur ) { cur.classList.add( 'current' ); cur.parentElement.classList.add( 'current' ); }
+	} )();
+	</script>
+	<?php
+} );
+
+/* Podmenu Jupiter: podpoložky doplnkov ako rozbaľovací strom (šípka pri doplnku), otvorený doplnok je rozbalený. */
+add_action( 'admin_footer', function () {
+	global $plugin_page, $jju_child;
+	if ( ! jju_merged() ) {
+		return;
+	}
+	$open = ( $plugin_page && isset( $jju_child[ $plugin_page ] ) ) ? sanitize_html_class( $jju_child[ $plugin_page ] ) : '';
+	?>
+	<script>
+	( function () {
+		var root = document.querySelector( '#toplevel_page_j-jupiter .wp-submenu' );
+		if ( ! root ) { return; }
+		var key = 'jjuOpen', saved = [];
+		try { saved = JSON.parse( localStorage.getItem( key ) || '[]' ); } catch ( e ) {}
+		var open = <?php echo wp_json_encode( $open ); ?>;
+		function set( app, on ) {
+			root.querySelectorAll( 'li.jju-of-' + app ).forEach( function ( li ) { li.classList.toggle( 'jju-show', on ); } );
+			var p = root.querySelector( 'li.jju-app-' + app );
+			if ( p ) { p.classList.toggle( 'jju-open', on ); var b = p.querySelector( '.jju-tog' ); if ( b ) { b.setAttribute( 'aria-expanded', on ? 'true' : 'false' ); } }
+		}
+		root.querySelectorAll( 'li.jju-has-subs' ).forEach( function ( li ) {
+			var app = ( li.className.match( /jju-app-([\w-]+)/ ) || [] )[1];
+			if ( ! app ) { return; }
+			var b = document.createElement( 'button' );
+			b.type = 'button'; b.className = 'jju-tog'; b.setAttribute( 'aria-expanded', 'false' );
+			b.setAttribute( 'aria-label', 'Podpoložky: ' + li.textContent.trim() );
+			b.addEventListener( 'click', function ( e ) {
+				e.preventDefault(); e.stopPropagation();
+				var on = ! li.classList.contains( 'jju-open' );
+				set( app, on );
+				saved = saved.filter( function ( x ) { return x !== app; } );
+				if ( on ) { saved.push( app ); }
+				try { localStorage.setItem( key, JSON.stringify( saved ) ); } catch ( e2 ) {}
+			} );
+			li.appendChild( b );
+			set( app, app === open || saved.indexOf( app ) > -1 );
+		} );
 	} )();
 	</script>
 	<?php
 } );
 
 add_action( 'admin_enqueue_scripts', function () {
-	wp_enqueue_style( 'j-jupiter', JJU_URL . 'assets/jupiter.css', array(), JJU_VERSION );
+	wp_enqueue_style( 'j-jupiter', JJU_URL . 'assets/jupiter.css', array(), JJU_VERSION . '.' . filemtime( JJU_DIR . 'assets/jupiter.css' ) );
 } );

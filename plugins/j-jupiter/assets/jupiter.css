@@ -56,3 +56,16 @@
 .jju-switchrow small { display: block; margin-top: 3px; color: #50575e; font-size: 12.5px; }
 .jju-colors { max-width: 520px; }
 .jju-dot { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 50%; vertical-align: middle; }
+/* Podmenu Jupiter: strom doplnkov a ich podpoložiek */
+#adminmenu .wp-submenu li.jju-sub { display: none; }
+#adminmenu .wp-submenu li.jju-sub.jju-show { display: block; }
+#adminmenu .wp-submenu li.jju-sub a { padding-left: 26px !important; font-size: 12.5px; opacity: .85; }
+#adminmenu .wp-submenu li.jju-sub a::before { content: ""; display: inline-block; width: 6px; height: 1px; margin: 0 6px 3px -12px; background: currentColor; opacity: .5; }
+#adminmenu .wp-submenu li.jju-sub.current a, #adminmenu .wp-submenu li.jju-sub a:hover { opacity: 1; }
+#adminmenu .wp-submenu li.jju-app { position: relative; }
+#adminmenu .wp-submenu li.jju-has-subs > a { padding-right: 30px !important; }
+#adminmenu .jju-tog { position: absolute; top: 50%; right: 6px; width: 22px; height: 22px; margin-top: -11px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; opacity: .6; cursor: pointer; }
+#adminmenu .jju-tog::before { content: ""; position: absolute; top: 7px; left: 8px; width: 5px; height: 5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s; }
+#adminmenu li.jju-open > .jju-tog::before { top: 6px; transform: rotate(45deg); }
+#adminmenu .jju-tog:hover, #adminmenu .jju-tog:focus-visible { opacity: 1; background: rgba(255,255,255,.08); }
+#adminmenu .wp-submenu li.jju-app .awaiting-mod { margin-left: 4px; }
