@@ -1,0 +1,74 @@
+/* Jupiter – nástenka doplnkov, navigácia a nastavenia. */
+.jju-head { display: flex; align-items: center; gap: 16px; margin: 14px 0 6px; }
+.jju-head > div { flex: 1; }
+.jju-head h1 { margin: 0; padding: 0; font-size: 26px; font-weight: 700; }
+.jju-head p { margin: 4px 0 0; color: #50575e; }
+.jju-head .button .dashicons { vertical-align: text-bottom; font-size: 16px; width: 16px; height: 16px; }
+.jju-logo { padding: 10px; border-radius: 14px; background: linear-gradient(135deg, #3b82f6, #1e3a8a); box-shadow: 0 6px 16px rgba(29,78,216,.3); }
+.jju-head .jju-logo { width: 40px; height: 40px; }
+.jju-head .jju-logo { }
+.jju-h { display: flex; align-items: center; gap: 6px; margin: 26px 0 0; font-size: 15px; }
+.jju-h .dashicons { color: #2271b1; }
+.jju-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; margin-top: 14px; }
+.jju-tile { --app: #2271b1; position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid #dcdcde; border-top: 4px solid var(--app); border-radius: 14px; overflow: hidden; transition: transform .15s, box-shadow .15s, border-color .15s; }
+.jju-tile:hover { transform: translateY(-2px); border-color: var(--app); box-shadow: 0 8px 22px color-mix(in srgb, var(--app) 22%, transparent); }
+.jju-tile.is-pinned { background: color-mix(in srgb, var(--app) 4%, #fff); }
+.jju-main { position: relative; display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 20px 18px 16px; min-height: 150px; color: #1d2327; text-decoration: none; }
+.jju-main:focus { box-shadow: inset 0 0 0 2px var(--app); outline: none; }
+.jju-main .dashicons, .jju-img { width: 44px; height: 44px; font-size: 26px; line-height: 44px; text-align: center; border-radius: 12px; background-color: color-mix(in srgb, var(--app) 14%, #fff); color: var(--app); }
+.jju-img { display: block; background: color-mix(in srgb, var(--app) 14%, #fff) center / 24px no-repeat; }
+.jju-main strong { font-size: 15px; color: color-mix(in srgb, var(--app) 70%, #1d2327); }
+.jju-desc { color: #50575e; font-size: 12.5px; line-height: 1.45; }
+.jju-ver { margin-top: auto; padding-top: 6px; font-size: 11.5px; color: #646970; }
+.jju-badge { position: absolute; top: 18px; right: 50px; min-width: 20px; padding: 0 6px; border-radius: 10px; background: #d63638; color: #fff; font-style: normal; font-size: 11px; line-height: 20px; text-align: center; }
+.jju-pin { position: absolute; top: 12px; right: 12px; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: #8c8f94; text-decoration: none; opacity: 0; transition: opacity .15s, background .15s, color .15s; }
+.jju-pin .dashicons { font-size: 18px; width: 18px; height: 18px; transform: rotate(45deg); }
+.jju-tile:hover .jju-pin, .jju-pin:focus { opacity: 1; }
+.jju-pin:hover { background: color-mix(in srgb, var(--app) 12%, #fff); color: var(--app); }
+.jju-tile.is-pinned .jju-pin { opacity: 1; color: var(--app); }
+.jju-tile.is-pinned .jju-pin .dashicons { transform: none; }
+.jju-subs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px 14px; border-top: 1px solid #f0f0f1; }
+.jju-subs a { padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--app) 8%, #fff); color: var(--app); font-size: 12px; text-decoration: none; }
+.jju-subs a:hover { background: color-mix(in srgb, var(--app) 16%, #fff); }
+.jju-off { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 12px; }
+.jju-off > div { padding: 12px 14px; border: 1px dashed #c3c4c7; border-radius: 12px; background: #f6f7f7; }
+.jju-off span { color: #646970; font-size: 12px; }
+.jju-off p { margin: 4px 0 0; color: #50575e; font-size: 12.5px; }
+.jju-foot { margin-top: 28px; color: #646970; }
+/* Navigácia na stránke doplnku */
+.jju-crumb { --app: #2271b1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 10px 20px 0 2px; padding: 8px 14px; background: #fff; border: 1px solid #dcdcde; border-left: 4px solid var(--app); border-radius: 10px; }
+.jju-crumb > a { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-weight: 600; }
+.jju-crumb > a img { padding: 3px; border-radius: 6px; background: #1d4ed8; }
+.jju-crumb .sep { color: #8c8f94; }
+.jju-crumb strong { color: color-mix(in srgb, var(--app) 70%, #1d2327); }
+.jju-crumb nav { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.jju-crumb nav a { padding: 3px 10px; border-radius: 999px; background: #f6f7f7; text-decoration: none; font-size: 12.5px; }
+.jju-crumb nav a.is-on { background: var(--app); color: #fff; }
+/* Nastavenia */
+.jju-switchrow { display: flex; align-items: flex-start; gap: 12px; max-width: 760px; margin: 16px 0; padding: 14px 16px; background: #fff; border: 1px solid #dcdcde; border-radius: 12px; cursor: pointer; }
+.jju-switchrow input { position: absolute; opacity: 0; }
+.jju-switch { flex: none; position: relative; width: 40px; height: 22px; margin-top: 2px; border-radius: 999px; background: #c3c4c7; transition: background .15s; }
+.jju-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.jju-switchrow input:checked + .jju-switch { background: #1d4ed8; }
+.jju-switchrow input:checked + .jju-switch::after { transform: translateX(18px); }
+.jju-switchrow input:focus-visible + .jju-switch { outline: 2px solid #2271b1; outline-offset: 2px; }
+.jju-switchrow strong { display: block; }
+.jju-switchrow small { display: block; margin-top: 3px; color: #50575e; font-size: 12.5px; }
+.jju-colors { max-width: 520px; }
+.jju-dot { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 50%; vertical-align: middle; }
+/* Podmenu Jupiter: strom doplnkov a ich podpoložiek */
+#adminmenu .wp-submenu li.jju-sub { display: none; }
+#adminmenu .wp-submenu li.jju-sub.jju-show { display: block; }
+#adminmenu .wp-submenu li.jju-sub a { padding-left: 26px !important; font-size: 12.5px; opacity: .85; }
+#adminmenu .wp-submenu li.jju-sub a::before { content: ""; display: inline-block; width: 6px; height: 1px; margin: 0 6px 3px -12px; background: currentColor; opacity: .5; }
+#adminmenu .wp-submenu li.jju-sub.current a, #adminmenu .wp-submenu li.jju-sub a:hover { opacity: 1; }
+#adminmenu .wp-submenu li.jju-app { position: relative; }
+#adminmenu .wp-submenu li.jju-has-subs > a { padding-right: 30px !important; }
+#adminmenu .jju-tog { position: absolute; top: 50%; right: 6px; width: 22px; height: 22px; margin-top: -11px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; opacity: .6; cursor: pointer; }
+#adminmenu .jju-tog::before { content: ""; position: absolute; top: 7px; left: 8px; width: 5px; height: 5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s; }
+#adminmenu li.jju-open > .jju-tog::before { top: 6px; transform: rotate(45deg); }
+#adminmenu .jju-tog:hover, #adminmenu .jju-tog:focus-visible { opacity: 1; background: rgba(255,255,255,.08); }
+#adminmenu .wp-submenu li.jju-app .awaiting-mod { margin-left: 4px; }
+/* Ikona Jupiter v ľavom menu: planéta ako maska vo farbe menu */
+#adminmenu #toplevel_page_j-jupiter div.wp-menu-image::before { content: ""; display: block; width: 20px; height: 20px; margin: 7px auto 0; padding: 0; background-color: currentColor; -webkit-mask: url(planet.svg) center / 20px 20px no-repeat; mask: url(planet.svg) center / 20px 20px no-repeat; }
+#adminmenu #toplevel_page_j-jupiter div.wp-menu-image br { display: none; }

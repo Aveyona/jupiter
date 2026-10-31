@@ -6,6 +6,7 @@
 
 | Doplnok | Verzia | Na čo slúži |
 |---|---|---|
+| **Jupiter** (j-jupiter) | 0.1.0 | Hlavný doplnok rodiny: jedna položka Jupiter v menu, nástenka všetkých doplnkov J- (dlaždice s popisom, verziou, počítadlami a odkazmi, pripnutie), zlúčenie doplnkov do jednej položky menu a navigácia na ich stránkach. |
 | **J-Pomocník** | 1.1.5 | Dokumentácia doplnkov Jupiter priamo v administrácii – prehľad, návody, plán vývoja – a aktualizácie doplnkov z GitHubu. |
 | **J-Fakturácia** | 0.10.2 | Faktúry, zálohové faktúry a dobropisy z objednávok (číselný rad, PDF s QR PAY by square, e-mail zákazníkovi), ručné faktúry, prijaté faktúry s prílohami, splatnosťou a úhradami, adresár dodávateľov, pole „Nakupujem ako firma“, export pre účtovníka a do Pohody, prechod z Woo Faktura. Zatiaľ pre neplatiteľov DPH. |
 | **J-Účtovníctvo** | 0.6.0 | Podvojné účtovníctvo pre slovenské s. r. o.: sprievodca založením (firma, obdobie, rozvrh, počiatočné stavy), účtový rozvrh podľa rámcovej osnovy, účtovné doklady so stornom, denník, hlavná kniha, obratová predvaha, saldokonto, automatické účtovanie faktúr, banky a skladu. Účtovná závierka mikro účtovnej jednotky (Úč MÚJ). Pokladňa, majetok a odpisy, uzávierka mesiaca a roka (daň z príjmov, 710/702/701, poznámky Úč MÚJ), Na riešenie (úlohy a kontroly), import z OBERON-u. |
