@@ -132,9 +132,20 @@ function juc_post( array $h, array $lines ) {
 	$year = juc_year_of( $h['entry_date'] );
 	$ser  = preg_replace( '/[^A-Z]/', '', strtoupper( (string) $h['series'] ) );
 	$ser  = $ser ? $ser : 'ID';
-	$wpdb->query( 'START TRANSACTION' );
-	$seq = 1 + (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(seq) FROM ' . juc_t( 'entries' ) . ' WHERE year_id = %d AND series = %s FOR UPDATE', $year['id'], $ser ) ); // phpcs:ignore
+	// Pokladňa nesmie mať záporný zostatok – platí pre každý zápis (formulár, nový doklad, automatické účtovanie, storno).
+	// Výnimka: počiatočné stavy, uzávierka a import (prenos existujúceho účtovníctva).
+	if ( empty( $h['opening'] ) && empty( $GLOBALS['juc_importing'] ) && ! in_array( $ser, array( 'PS', 'UZ' ), true ) && function_exists( 'juc_cash_check' ) ) {
+		$ok = juc_cash_check( $h['entry_date'], $clean );
+		if ( is_wp_error( $ok ) ) {
+			return $ok;
+		}
+	}
 	$num = trim( (string) $h['number'] );
+	// Poradové číslo série spotrebuje len automaticky číslovaný doklad. Storno a doklad s vlastným číslom dostanú seq 0
+	// (inak by v číselnom rade, napr. PD/VD, vznikali medzery).
+	$auto = '' === $num && 'storno' !== $h['status'];
+	$wpdb->query( 'START TRANSACTION' );
+	$seq = $auto ? 1 + (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(seq) FROM ' . juc_t( 'entries' ) . ' WHERE year_id = %d AND series = %s FOR UPDATE', $year['id'], $ser ) ) : 0; // phpcs:ignore
 	if ( '' === $num ) {
 		$fmt = (string) ( juc_opt( 'format_' . $ser ) ?? '' );
 		$num = juc_format_number( $fmt ? $fmt : $ser . '{RRRR}{nnnn}', (int) substr( $year['start_date'], 0, 4 ), $seq );
@@ -166,7 +177,11 @@ function juc_post( array $h, array $lines ) {
 	}
 	$id = (int) $wpdb->insert_id;
 	foreach ( $clean as $l ) {
-		$wpdb->insert( juc_t( 'lines' ), $l + array( 'entry_id' => $id, 'year_id' => (int) $year['id'], 'entry_date' => $h['entry_date'], 'opening' => $h['opening'] ? 1 : 0 ) );
+		if ( ! $wpdb->insert( juc_t( 'lines' ), $l + array( 'entry_id' => $id, 'year_id' => (int) $year['id'], 'entry_date' => $h['entry_date'], 'opening' => $h['opening'] ? 1 : 0 ) ) ) {
+			$err = $wpdb->last_error;
+			$wpdb->query( 'ROLLBACK' );
+			return new WP_Error( 'juc_db', 'Zápisy dokladu sa nepodarilo uložiť: ' . $err );
+		}
 	}
 	$wpdb->query( 'COMMIT' );
 	do_action( 'juc_posted', $id, $h );

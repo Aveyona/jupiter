@@ -31,15 +31,18 @@ function juc_close_balances( $year_id, $saldo = true ) {
 		SELECT l.md acc, l.partner_id pid, l.vs, SUM(l.amount) v FROM $l l JOIN $e e ON e.id = l.entry_id WHERE $w GROUP BY l.md, l.partner_id, l.vs
 		UNION ALL SELECT l.d acc, l.partner_id pid, l.vs, -SUM(l.amount) FROM $l l JOIN $e e ON e.id = l.entry_id WHERE $w GROUP BY l.d, l.partner_id, l.vs
 	) x GROUP BY acc, pid, vs", ARRAY_A ); // phpcs:ignore
-	$out = array();
-	foreach ( (array) $rows as $r ) {
-		// Saldokontné účty po VS (úhrada z banky nemusí mať partnera – partner sa doplní z faktúry), bez VS po partnerovi.
-		$per = $saldo && preg_match( '/^(311|314|321|324|391)/', $r['acc'] );
-		$key = $per ? $r['acc'] . '|' . ( '' !== (string) $r['vs'] ? 'vs:' . $r['vs'] : 'p:' . (int) $r['pid'] ) : $r['acc'] . '|';
+	$out  = array();
+	$rows = (array) $rows;
+	// Saldokontné účty po VS a partnerovi (rôzni partneri s rovnakým VS sa nezlúčia); úhrada z banky bez partnera
+	// sa pripojí k položke s rovnakým VS – rovnaké párovanie ako zostava Saldokonto (juc_saldo_keys).
+	$per  = array_map( fn( $r ) => $saldo && preg_match( '/^(311|314|321|324|391)/', $r['acc'] ), $rows );
+	$pair = juc_saldo_keys( array_filter( $rows, fn( $r, $i ) => $per[ $i ], ARRAY_FILTER_USE_BOTH ) );
+	foreach ( $rows as $i => $r ) {
+		$key = $per[ $i ] ? $pair[ $i ] : $r['acc'] . '|';
 		if ( ! isset( $out[ $key ] ) ) {
-			$out[ $key ] = array( 'acc' => $r['acc'], 'partner_id' => 0, 'vs' => $per ? (string) $r['vs'] : '', 'bal' => 0.0 );
+			$out[ $key ] = array( 'acc' => $r['acc'], 'partner_id' => 0, 'vs' => $per[ $i ] ? (string) $r['vs'] : '', 'bal' => 0.0 );
 		}
-		if ( $per && (int) $r['pid'] && ! $out[ $key ]['partner_id'] ) {
+		if ( $per[ $i ] && (int) $r['pid'] && ! $out[ $key ]['partner_id'] ) {
 			$out[ $key ]['partner_id'] = (int) $r['pid'];
 		}
 		$out[ $key ]['bal'] = round( $out[ $key ]['bal'] + (float) $r['bal'], 2 );

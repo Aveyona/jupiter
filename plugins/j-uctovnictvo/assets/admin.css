@@ -87,3 +87,11 @@ a.juc-chip { max-width: 520px; overflow: hidden; text-overflow: ellipsis; vertic
 .juc-prio-1 { background-color: #FCE7E7; color: #8A1F11; border-color: #E6A5A0; }
 .juc-prio-2 { background-color: #FFF2CC; color: #6B4E00; border-color: #E3C766; }
 .juc-prio-3 { background-color: #F0F0F1; color: #50575E; }
+
+/* Pomôcky pre majiteľa (tools.php). */
+.juc-owner { margin: 16px 0; padding: 14px 18px; background: #F6F9FF; border: 1px solid #C9D7F2; border-radius: 10px; max-width: 980px; }
+.juc-owner h2 { margin: 0 0 8px; font-size: 15px; }
+.juc-owner ul { margin: 0 0 6px 18px; list-style: disc; }
+.juc-owner li { margin: 3px 0; }
+.juc-checks { margin: 10px 0 14px; padding: 12px 16px; background: #FFFFFF; border: 1px solid #DCDCDE; border-radius: 10px; }
+.juc-checks ul { list-style: none; margin: 0; }

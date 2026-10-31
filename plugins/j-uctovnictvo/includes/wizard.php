@@ -522,13 +522,30 @@ function juc_wizard_post_ps() {
 	if ( abs( $md - $d ) >= 0.005 ) {
 		return new WP_Error( 'juc_ps', sprintf( 'Počiatočné stavy sa nerovnajú: MD %s €, Dal %s € – aktíva sa musia rovnať pasívam.', juc_money( $md ), juc_money( $d ) ) );
 	}
-	$yr  = (int) substr( $start, 0, 4 );
-	$old = juc_entry_by_source( 'wizard', 'ps', $yr );
+	$yr = (int) substr( $start, 0, 4 );
+	// Najprv overiť, že sa k dátumu začiatku dá účtovať – inak by storno pristálo v inom dni a nové stavy by sa nezaúčtovali.
+	$ok = juc_can_post( $start );
+	if ( is_wp_error( $ok ) ) {
+		return new WP_Error( 'juc_ps', 'Počiatočné stavy k ' . juc_date( $start ) . ' sa nedajú zaúčtovať ani opraviť – obdobie je uzavreté (zrušte uzávierku mesiaca alebo roka a skúste znova). ' . $ok->get_error_message() );
+	}
+	$old  = juc_entry_by_source( 'wizard', 'ps', $yr );
+	$prev =$old ? juc_entry( (int) $old['id'] ) : null;
 	if ( $old ) {
-		$r = juc_storno( (int) $old['id'], 'oprava počiatočných stavov' );
+		$r = juc_storno( (int) $old['id'], 'oprava počiatočných stavov', $start );
 		if ( is_wp_error( $r ) ) {
 			return $r;
 		}
 	}
-	return juc_post( array( 'series' => 'PS', 'number' => 'PS' . $yr . ( $old ? '-' . substr( md5( microtime() ), 0, 4 ) : '' ), 'entry_date' => $start, 'descr' => 'Otvorenie účtovných kníh – počiatočné stavy', 'source' => 'wizard', 'source_type' => 'ps', 'source_id' => $yr, 'opening' => 1 ), $lines );
+	$head = array( 'series' => 'PS', 'number' => 'PS' . $yr . ( $old ? '-' . substr( md5( microtime() ), 0, 4 ) : '' ), 'entry_date' => $start, 'descr' => 'Otvorenie účtovných kníh – počiatočné stavy', 'source' => 'wizard', 'source_type' => 'ps', 'source_id' => $yr, 'opening' => 1 );
+	$r    = juc_post( $head, $lines );
+	if ( is_wp_error( $r ) && $prev ) {
+		// Obnovenie pôvodných počiatočných stavov, aby sa po neúspešnej oprave nestratili.
+		$back = array();
+		foreach ( (array) $prev['lines'] as $l ) {
+			$back[] = array( 'md' => $l['md'], 'd' => $l['d'], 'amount' => (float) $l['amount'], 'text' => $l['text'], 'partner_id' => (int) $l['partner_id'], 'vs' => $l['vs'] );
+		}
+		$rr = juc_post( array( 'number' => 'PS' . $yr . '-' . substr( md5( microtime() . 'r' ), 0, 4 ), 'descr' => 'Obnovenie počiatočných stavov (neúspešná oprava)' ) + $head, $back );
+		return new WP_Error( 'juc_ps', 'Nové počiatočné stavy sa nepodarilo zaúčtovať: ' . $r->get_error_message() . ( is_wp_error( $rr ) ? ' Pôvodné stavy sa nepodarilo obnoviť: ' . $rr->get_error_message() . ' – zadajte ich ručne.' : ' Pôvodné počiatočné stavy boli obnovené.' ) );
+	}
+	return $r;
 }

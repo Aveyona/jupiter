@@ -38,6 +38,7 @@ require_once JUC_DIR . 'includes/cash.php';
 require_once JUC_DIR . 'includes/issues.php';
 require_once JUC_DIR . 'includes/assets.php';
 require_once JUC_DIR . 'includes/closing.php';
+require_once JUC_DIR . 'includes/tools.php';
 
 register_activation_hook( __FILE__, 'juc_activate' );
 add_action( 'plugins_loaded', function () {

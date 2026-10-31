@@ -56,7 +56,7 @@ function juc_cash_book( $year_id, $from = '', $to = '' ) {
 	$acc  = juc_cash_account();
 	$like = $wpdb->esc_like( $acc ) . '%';
 	$rows = $wpdb->get_results( $wpdb->prepare(
-		'SELECT l.*, e.number, e.descr, e.partner_name, e.status, e.series, e.id eid FROM ' . juc_t( 'lines' ) . ' l JOIN ' . juc_t( 'entries' ) . ' e ON e.id = l.entry_id WHERE l.year_id = %d AND e.status = \'posted\' AND (l.md LIKE %s OR l.d LIKE %s) ORDER BY l.opening DESC, l.entry_date, e.seq, l.id',
+		'SELECT l.*, e.number, e.descr, e.partner_name, e.status, e.series, e.id eid FROM ' . juc_t( 'lines' ) . ' l JOIN ' . juc_t( 'entries' ) . ' e ON e.id = l.entry_id WHERE l.year_id = %d AND e.status = \'posted\' AND (l.md LIKE %s OR l.d LIKE %s) ORDER BY l.opening DESC, l.entry_date, e.id, l.id',
 		$year_id, $like, $like
 	), ARRAY_A ); // phpcs:ignore
 	$out = array( 'ps' => 0.0, 'rows' => array(), 'in' => 0.0, 'out' => 0.0, 'end' => 0.0, 'negative' => array() );
@@ -91,6 +91,44 @@ function juc_cash_book( $year_id, $from = '', $to = '' ) {
 	return $out;
 }
 
+/**
+ * Kontrola záporného zostatku pokladne pre zápisy dokladu (volá juc_post). Ak doklad pokladňu znižuje
+ * (Dal 211, alebo storno príjmu = záporná suma na MD 211), zostatok k dátumu dokladu ani kedykoľvek neskôr v roku
+ * nesmie klesnúť pod nulu. Vráti true alebo WP_Error.
+ */
+function juc_cash_check( $date, array $lines ) {
+	$cash  = juc_cash_account();
+	$delta = 0.0;
+	foreach ( $lines as $l ) {
+		if ( 0 === strpos( (string) $l['md'], $cash ) ) {
+			$delta += (float) $l['amount'];
+		}
+		if ( 0 === strpos( (string) $l['d'], $cash ) ) {
+			$delta -= (float) $l['amount'];
+		}
+	}
+	if ( $delta > -0.005 ) {
+		return true;
+	}
+	$y = juc_year_of( $date );
+	if ( ! $y ) {
+		$y = juc_year( juc_ensure_year( (int) substr( $date, 0, 4 ) ) );
+	}
+	if ( ! $y ) {
+		return true;
+	}
+	$min = juc_account_balance( $cash, $date, (int) $y['id'] );
+	foreach ( juc_cash_book( (int) $y['id'] )['rows'] as $r ) {
+		if ( $r['date'] > $date ) {
+			$min = min( $min, $r['balance'] );
+		}
+	}
+	if ( -$delta - $min > 0.004 ) {
+		return new WP_Error( 'juc_cash_negative', 'Výdaj z pokladne ' . juc_money( -$delta ) . ' € (' . juc_date( $date ) . ') je vyšší ako zostatok pokladne (' . juc_money( $min ) . ' €) – pokladňa nesmie mať záporný zostatok.' );
+	}
+	return true;
+}
+
 /* ---------------------------------------------------------------- Zaúčtovanie dokladu */
 
 add_action( 'admin_post_juc_cash_save', function () {
@@ -116,22 +154,7 @@ add_action( 'admin_post_juc_cash_save', function () {
 	if ( '' === $text ) {
 		juc_back_err( $back, 'Vyplňte účel platby (text dokladu).' );
 	}
-	if ( 'out' === $kind ) {
-		// Zostatok k dátumu výdaja aj kedykoľvek neskôr nesmie klesnúť pod nulu.
-		$y = juc_year_of( $date );
-		if ( $y ) {
-			$book = juc_cash_book( (int) $y['id'] );
-			$min  = juc_account_balance( $cash, $date, (int) $y['id'] );
-			foreach ( $book['rows'] as $r ) {
-				if ( $r['date'] > $date ) {
-					$min = min( $min, $r['balance'] );
-				}
-			}
-			if ( $amt - $min > 0.004 ) {
-				juc_back_err( $back, 'Výdaj ' . juc_money( $amt ) . ' € je vyšší ako zostatok pokladne (' . juc_money( $min ) . ' €) – pokladňa nesmie mať záporný zostatok.' );
-			}
-		}
-	}
+	// Kontrola záporného zostatku pokladne je v juc_post() (juc_cash_check) – platí aj pre storno a automatické účtovanie.
 	$ser = 'in' === $kind ? 'PD' : 'VD';
 	$r   = juc_post( array(
 		'series'       => $ser,
