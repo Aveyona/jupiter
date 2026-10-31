@@ -25,5 +25,14 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		),
 		'J-Doprava',
 	);
+	$guides[] = array(
+		'Slovenská pošta a osobný odber',
+		array(
+			'J-Doprava → Nastavenia → Slovenská pošta: vyplňte odosielateľa, druh zásielky (doporučený list, balík…) a text, podľa ktorého sa spozná doprava poštou (napr. „pošta“).',
+			'J-Doprava → Zásielky → Slovenská pošta: označte objednávky a stiahnite ePodací hárok (XML). V aplikácii eph.posta.sk ho nahráte cez Import a podací hárok vytlačíte alebo pošlete na poštu.',
+			'Osobný odber: v detaile objednávky → Akcie objednávky → Poslať e-mail: pripravené na osobný odber (alebo hromadne v zozname objednávok). Text e-mailu upravíte vo WooCommerce → Nastavenia → E-maily.',
+		),
+		'J-Doprava',
+	);
 	return $guides;
 } );

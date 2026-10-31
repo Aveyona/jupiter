@@ -2,11 +2,11 @@
   "repo": "Aveyona/jupiter",
   "plugins": {
     "j-help": {
-      "version": "1.4.1",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.4.1/j-help-v1.4.1.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.4.1",
+      "version": "1.5.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-help-v1.5.0/j-help-v1.5.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-help-v1.5.0",
       "published": "2026-10-31",
-      "notes": "Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
+      "notes": "Príručka J-Doprava. Príručky v poradí ako menu Jupiter. Príručka J-Objednávky a plán vývoja J-Objednávok. Príručka J-Sklad: 16 kapitol od rýchleho štartu po technické údaje, schéma toku tovaru. Podrobné príručky doplnkov (J-Pomocník → Príručka …): prvá je Príručka J-Pošta – 14 kapitol so schémou, rýchlym štartom, nastaveniami, skratkami a riešením problémov. Odkaz Príručka pri doplnku v Prehľade."
     },
     "j-invoices": {
       "version": "0.10.2",
@@ -23,11 +23,11 @@
       "notes": "E-maily webu: odosielateľ, ktorý nie je adresou schránky ani aliasom (aj predvolená wordpress@), sa nahradí adresou schránky – server ho inak odmietol („Údaje neboli akceptované“); pôvodná adresa ide do Odpovedať."
     },
     "j-orders": {
-      "version": "0.3.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-orders-v0.3.0/j-orders-v0.3.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-orders-v0.3.0",
+      "version": "0.3.1",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-orders-v0.3.1/j-orders-v0.3.1.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-orders-v0.3.1",
       "published": "2026-10-31",
-      "notes": "Opravy číslovania (bloková pokladňa nemíňa čísla, objednávky z REST API, staršie objednávky si ponechajú číslo), zoznam bez konceptov z pokladne, rýchly filter Na fakturáciu, filter len zapnutých platieb. Príručka v J-Pomocníku."
+      "notes": "Stĺpec Doprava s výdajným miestom a stavom zásielky Packeta. Opravy číslovania (bloková pokladňa nemíňa čísla, objednávky z REST API, staršie objednávky si ponechajú číslo), zoznam bez konceptov z pokladne, rýchly filter Na fakturáciu, filter len zapnutých platieb. Príručka v J-Pomocníku."
     },
     "j-sklad": {
       "version": "0.6.0",
@@ -72,11 +72,11 @@
       "notes": "Prvá verzia: evidencia zľavových kódov, automaticky generovaný kód (4 znaky), hromadné vytvorenie, stav a použitie kódov s objednávkami, vypnutie a zapnutie."
     },
     "j-doprava": {
-      "version": "0.2.0",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-doprava-v0.2.0/j-doprava-v0.2.0.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-doprava-v0.2.0",
-      "published": "2026-10-30",
-      "notes": "E-mail zákazníkovi „Objednávka odoslaná“ s odkazom na sledovanie, keď Packeta prevezme zásielku. Prvá verzia: Packeta – výdajné miesta a Z-BOXy s mapou v košíku (blokový aj klasický), doručenie na adresu, podanie zásielok cez API, štítky PDF, sledovanie stavu."
+      "version": "0.3.0",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-doprava-v0.3.0/j-doprava-v0.3.0.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-doprava-v0.3.0",
+      "published": "2026-10-31",
+      "notes": "Oprava dobierky pri stave Spracováva sa, upozornenie na nečitateľné API heslo, spoľahlivejšie sledovanie. Nové: automatické podanie zásielky, záložka Na tlač, spätná zásielka, Slovenská pošta – ePodací hárok, e-mail Pripravené na osobný odber."
     }
   }
 }

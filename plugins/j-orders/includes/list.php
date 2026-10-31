@@ -108,6 +108,28 @@ function jord_only_ids( array $args, array $ids ) {
 	return $args;
 }
 
+/** Doplnok k doprave (J-Doprava): výdajné miesto Packeta, zásielka so stavom, export na poštu, e-mail osobného odberu. */
+function jord_ship_info( WC_Order $o ) {
+	$out   = array();
+	$label = (string) $o->get_meta( '_jdp_point_label' );
+	$bar   = (string) $o->get_meta( '_jdp_barcode' );
+	if ( '' !== $label ) {
+		$out[] = esc_html( $label );
+	}
+	if ( '' !== $bar && function_exists( 'jdp_tracking_url' ) && 11 !== (int) $o->get_meta( '_jdp_status' ) ) {
+		$out[] = '<a href="' . esc_url( jdp_tracking_url( $bar ) ) . '" target="_blank" rel="noopener">' . esc_html( $bar ) . '</a> · ' . esc_html( (string) $o->get_meta( '_jdp_status_text' ) );
+	} elseif ( $o->get_meta( '_jdp_kind' ) && function_exists( 'jdp_ready_to_ship' ) && jdp_ready_to_ship( $o ) ) {
+		$out[] = '<span class="jord-muted">zásielka nepodaná</span>';
+	}
+	if ( $o->get_meta( '_jdp_eph_at' ) ) {
+		$out[] = 'v ePodacom hárku ' . esc_html( date_i18n( 'j. n.', strtotime( (string) $o->get_meta( '_jdp_eph_at' ) ) ) );
+	}
+	if ( $o->get_meta( '_jdp_pickup_mailed' ) ) {
+		$out[] = 'pripravené na odber ' . esc_html( date_i18n( 'j. n.', strtotime( (string) $o->get_meta( '_jdp_pickup_mailed' ) ) ) );
+	}
+	return $out ? '<br><small class="jord-ship">' . implode( '<br>', $out ) . '</small>' : '';
+}
+
 /** Bunka Doklady: zálohová faktúra a faktúra so stavom + akcie. */
 function jord_docs_cell( WC_Order $o, $back ) {
 	if ( ! function_exists( 'jinv_docs_for_order' ) ) {
@@ -285,7 +307,7 @@ function jord_render_list() {
 						<td><mark class="order-status status-<?php echo esc_attr( $o->get_status() ); ?>"><span><?php echo esc_html( wc_get_order_status_name( $o->get_status() ) ); ?></span></mark></td>
 						<td><?php echo esc_html( $name ? $name : '—' ); ?><?php if ( $co ) : ?><br><small><?php echo esc_html( $co ); ?></small><?php endif; ?><br><small><?php echo esc_html( $o->get_billing_email() ); ?></small></td>
 						<td><?php echo esc_html( $o->get_payment_method_title() ? $o->get_payment_method_title() : '—' ); ?><?php if ( $o->is_paid() && $o->get_date_paid() ) : ?><br><small class="jord-paid">zaplatené <?php echo esc_html( wc_format_datetime( $o->get_date_paid(), 'j. n.' ) ); ?></small><?php endif; ?></td>
-						<td><?php echo esc_html( $o->get_shipping_method() ? $o->get_shipping_method() : '—' ); ?></td>
+						<td><?php echo esc_html( $o->get_shipping_method() ? $o->get_shipping_method() : '—' ); ?><?php echo jord_ship_info( $o ); // phpcs:ignore -- escapované ?></td>
 						<td class="n"><?php echo wp_kses_post( wc_price( $o->get_total(), array( 'currency' => $o->get_currency() ) ) ); ?></td>
 						<td class="jord-docs"><?php echo jord_docs_cell( $o, $back ); // phpcs:ignore -- escapované v jord_docs_cell ?></td>
 					</tr>
