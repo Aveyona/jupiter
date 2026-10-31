@@ -244,6 +244,26 @@ function jhelp_roadmap() {
 			),
 		),
 		array(
+			'title'  => 'J-Kupóny 0.2 – séria, doprava zadarmo, štatistika, príručka',
+			'state'  => 'done',
+			'points' => array(
+				'Doprava zadarmo z kupónu pri každom spôsobe dopravy vrátane Packety, kupón len na dopravu zadarmo.',
+				'Série: názov, dlhší kód, export CSV, tlač kódov, vypnutie celej série.',
+				'Detail kupónu s objednávkami, poskytnutou zľavou a tržbami, duplikovanie; štatistika za mesiac.',
+				'Kategórie, produkty, kombinovanie a predpona vo formulári; nastavenia dĺžky kódu; opravy (neplatný e-mail, platnosť, stránkovanie).',
+				'Podrobná príručka J-Kupóny v J-Pomocníkovi.',
+			),
+		),
+		array(
+			'title'  => 'J-Kupóny – ďalej',
+			'state'  => 'next',
+			'points' => array(
+				'Odoslanie kódu zákazníkovi e-mailom (J-Pošta) priamo z detailu kupónu.',
+				'Automatický kupón po prvej objednávke alebo pri prihlásení na odber noviniek.',
+				'Darčekové poukážky s hodnotou, ktorá sa míňa postupne.',
+			),
+		),
+		array(
 			'title'  => 'J-Sklad a ďalšie doplnky',
 			'state'  => 'next',
 			'points' => array(
