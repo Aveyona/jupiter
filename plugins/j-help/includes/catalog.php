@@ -145,6 +145,27 @@ function jhelp_roadmap() {
 			),
 		),
 		array(
+			'title'  => 'J-Objednávky 0.3 – opravy číslovania a príručka',
+			'state'  => 'done',
+			'points' => array(
+				'Bloková pokladňa nemíňa čísla objednávok (koncept pri otvorení pokladne číslo nedostane), číslo aj pre objednávky z REST API a iných doplnkov, staršie objednávky si ponechajú číslo WooCommerce.',
+				'Zoznam bez konceptov z pokladne, rýchly filter Na fakturáciu aj pri tisícoch faktúr, filter len zapnutých platieb.',
+				'Podrobná príručka J-Objednávky v J-Pomocníkovi.',
+			),
+		),
+		array(
+			'title'  => 'J-Objednávky – vylepšenia zoznamu a číslovania',
+			'state'  => 'next',
+			'points' => array(
+				'Automatický nový rok v čísle objednávky: {RRRR} / {RR} v prefixe, poradie sa 1. januára samo vynuluje.',
+				'Rozbalenie riadku: položky, adresa, telefón a poznámka bez otvárania detailu objednávky.',
+				'Doprava podrobnejšie: výdajné miesto Packeta / Z-BOX a stav zásielky z J-Dopravy.',
+				'Nezaplatené prevody: filter „čaká na platbu dlhšie ako X dní“ a voliteľné automatické zrušenie po N dňoch.',
+				'Export zoznamu do CSV podľa filtra; filter dopravy, triedenie stĺpcov, počet objednávok na stránku.',
+				'Rýchly e-mail zákazníkovi z riadku cez J-Poštu.',
+			),
+		),
+		array(
 			'title'  => 'J-Sklad a ďalšie doplnky',
 			'state'  => 'next',
 			'points' => array(

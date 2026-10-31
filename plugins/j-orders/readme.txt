@@ -4,7 +4,7 @@ Tags: woocommerce, orders, order number, jupiter
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 
 Prehľadný zoznam objednávok WooCommerce a vlastné čísla objednávok. Súčasť rodiny Jupiter.
@@ -15,6 +15,13 @@ Prehľadný zoznam objednávok WooCommerce a vlastné čísla objednávok. Súč
 * Čísla objednávok (J-Objednávky → Číslovanie): prefix + poradové číslo s pevným počtom číslic + prípona, história zmien. Náhrada doplnku My Order Numbers – prevezme jeho nastavenie, počítadlo aj históriu; čísla sú v rovnakom údaji (_wcson_order_number), takže existujúce objednávky si ich ponechajú. Kým My Order Numbers beží, čísla prideľuje on.
 
 == Changelog ==
+
+= 0.3.0 =
+* Oprava: bloková pokladňa už neprideľuje číslo konceptu objednávky pri otvorení pokladne – číslo dostane objednávka až pri odoslaní (opustené nákupy nemíňajú čísla).
+* Oprava: číslo dostanú aj objednávky z REST API a iných doplnkov; objednávky spred zapnutia číslovania si ponechajú číslo WooCommerce.
+* Oprava: zoznam Všetky a „Posledná objednávka“ nezobrazujú koncepty z pokladne (opustené nákupy).
+* Filter Na fakturáciu je rýchly aj pri tisícoch vyfakturovaných objednávok a rešpektuje zvolené obdobie.
+* Filter platby ponúka len zapnuté spôsoby platby.
 
 = 0.2.0 =
 * Prepojenie s J-Fakturáciou: stĺpec Doklady (zálohová faktúra aj faktúra so stavom a PDF), Vystaviť faktúru a Pregenerovať pri riadku, filter Na fakturáciu (vybavené bez faktúry), hromadne Vybaviť a vystaviť faktúry.

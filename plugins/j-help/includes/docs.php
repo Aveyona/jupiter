@@ -21,6 +21,16 @@ function jhelp_docs() {
 			'hero_w'    => 1200,
 			'hero_h'    => 620,
 		),
+		'j-orders' => array(
+			'name'      => 'J-Objednávky',
+			'title'     => 'J-Objednávky',
+			'fn'        => 'jhelp_doc_j_orders',
+			'ver_const' => 'JORD_VERSION',
+			'badge'     => 'Objednávky a ich čísla',
+			'hero'      => 'img/j-orders-schema.svg',
+			'hero_w'    => 1200,
+			'hero_h'    => 620,
+		),
 		'j-sklad'  => array(
 			'name'      => 'J-Sklad',
 			'title'     => 'J-Sklad',

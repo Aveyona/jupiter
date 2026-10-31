@@ -16,11 +16,21 @@ function jord_list_url( $args = array() ) {
 	return add_query_arg( $args, admin_url( 'admin.php?page=j-orders' ) );
 }
 
-/** Spôsoby platby, ktoré obchod pozná: kód => názov. */
-function jord_payment_methods() {
+/** Stavy pre zoznam – bez konceptov z blokovej pokladne (opustené nákupy; WooCommerce ich v zozname tiež nezobrazuje). */
+function jord_list_statuses() {
+	$st = wc_get_order_statuses();
+	unset( $st['wc-checkout-draft'] );
+	return $st;
+}
+
+/** Zapnuté spôsoby platby: kód => názov (+ práve zvolený vo filtri, aj keď je už vypnutý). */
+function jord_payment_methods( $keep = '' ) {
 	$out = array();
 	if ( function_exists( 'WC' ) && WC()->payment_gateways() ) {
 		foreach ( WC()->payment_gateways()->payment_gateways() as $id => $gw ) {
+			if ( 'yes' !== $gw->enabled && $id !== $keep ) {
+				continue;
+			}
 			$title       = method_exists( $gw, 'get_method_title' ) && $gw->get_method_title() ? $gw->get_method_title() : $gw->get_title();
 			$out[ $id ] = wp_strip_all_tags( $gw->get_title() ? $gw->get_title() : $title );
 		}
@@ -38,7 +48,7 @@ function jord_search_ids( $term ) {
 	try {
 		if ( function_exists( 'jord_hpos' ) && jord_hpos() ) {
 			// HPOS: vyhľadávanie WooCommerce v tabuľkách objednávok (meno, e-mail, telefón, adresa, položky).
-			$found = wc_get_orders( array( 's' => $term, 'type' => 'shop_order', 'return' => 'ids', 'limit' => 500, 'status' => array_keys( wc_get_order_statuses() ) ) );
+			$found = wc_get_orders( array( 's' => $term, 'type' => 'shop_order', 'return' => 'ids', 'limit' => 500, 'status' => array_keys( jord_list_statuses() ) ) );
 		} else {
 			// WC_Data_Store odovzdáva volania cez __call – method_exists by vrátilo false, preto priamo s ochranou.
 			$found = WC_Data_Store::load( 'order' )->search_orders( $term );
@@ -60,35 +70,42 @@ function jord_wf() {
 	return function_exists( 'jinv_woo_faktura_active' ) && jinv_woo_faktura_active();
 }
 
-/** ID objednávok, ktoré už majú platnú (nestornovanú) faktúru v J-Fakturácii. */
-function jord_invoiced_ids() {
+/**
+ * Na fakturáciu: vybavené objednávky bez platnej faktúry v J-Fakturácii (ani z Woo Faktury) – ID.
+ * Najprv kandidáti (stav vybavená, obdobie – predvolene posledných 90 dní), potom sa vyradia tie, ktoré faktúru majú –
+ * dotaz ostáva rýchly aj pri tisícoch vyfakturovaných objednávok.
+ */
+function jord_tobill_ids( $date_created = '' ) {
 	global $wpdb;
-	if ( ! function_exists( 'jinv_table' ) ) {
+	if ( ! jord_jinv() ) {
 		return array();
 	}
-	return array_map( 'absint', (array) $wpdb->get_col( 'SELECT DISTINCT order_id FROM ' . jinv_table() . " WHERE kind = 'issued' AND status <> 'cancelled' AND order_id > 0" ) ); // phpcs:ignore
+	$cand = wc_get_orders( array(
+		'type'         => 'shop_order',
+		'status'       => array( 'wc-' . jinv_fulfil_status() ),
+		'date_created' => '' !== $date_created ? $date_created : '>' . ( time() - (int) apply_filters( 'jord_tobill_days', 90 ) * DAY_IN_SECONDS ),
+		'limit'        => -1,
+		'return'       => 'ids',
+		'meta_query'   => array( array( 'key' => 'wc_wi_invoice_id', 'compare' => 'NOT EXISTS' ) ), // phpcs:ignore
+	) );
+	$cand = array_map( 'absint', (array) $cand );
+	if ( ! $cand || ! function_exists( 'jinv_table' ) ) {
+		return $cand;
+	}
+	$in   = implode( ',', $cand );
+	$done = array_map( 'absint', (array) $wpdb->get_col( 'SELECT DISTINCT order_id FROM ' . jinv_table() . " WHERE kind = 'issued' AND status <> 'cancelled' AND order_id IN ($in)" ) ); // phpcs:ignore
+	return array_values( array_diff( $cand, $done ) );
 }
 
-/** Argumenty dopytu „Na fakturáciu“: vybavené objednávky bez faktúry (aj bez faktúry z Woo Faktury) za posledných 90 dní. */
-function jord_tobill_args( array $args ) {
-	$args['status'] = array( 'wc-' . jinv_fulfil_status() );
-	if ( empty( $args['date_created'] ) ) {
-		$args['date_created'] = '>' . ( time() - (int) apply_filters( 'jord_tobill_days', 90 ) * DAY_IN_SECONDS );
+/** Obmedzenie dopytu na zoznam ID (HPOS: id, klasické úložisko: post__in). */
+function jord_only_ids( array $args, array $ids ) {
+	$ids = $ids ? array_values( $ids ) : array( 0 );
+	if ( jord_hpos() ) {
+		$args['id'] = $ids;
+	} else {
+		$args['post__in'] = $ids;
 	}
-	$done           = jord_invoiced_ids();
-	if ( $done ) {
-		$args['exclude'] = $done;
-	}
-	$args['meta_query'] = array( array( 'key' => 'wc_wi_invoice_id', 'compare' => 'NOT EXISTS' ) ); // phpcs:ignore
 	return $args;
-}
-
-function jord_tobill_count() {
-	if ( ! jord_jinv() ) {
-		return 0;
-	}
-	$r = wc_get_orders( jord_tobill_args( array( 'type' => 'shop_order', 'limit' => 1, 'paginate' => true, 'return' => 'ids' ) ) );
-	return (int) $r->total;
 }
 
 /** Bunka Doklady: zálohová faktúra a faktúra so stavom + akcie. */
@@ -136,7 +153,7 @@ function jord_render_list() {
 	if ( ! current_user_can( 'edit_shop_orders' ) ) {
 		return;
 	}
-	$statuses = wc_get_order_statuses();
+	$statuses = jord_list_statuses();
 	$st       = isset( $_GET['st'] ) ? sanitize_key( wp_unslash( $_GET['st'] ) ) : ''; // phpcs:ignore
 	$st       = isset( $statuses[ $st ] ) || ( 'tobill' === $st && jord_jinv() ) ? $st : '';
 	$q        = isset( $_GET['s'] ) ? trim( sanitize_text_field( wp_unslash( $_GET['s'] ) ) ) : ''; // phpcs:ignore
@@ -144,7 +161,8 @@ function jord_render_list() {
 	$from     = isset( $_GET['from'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ) ? $_GET['from'] : ''; // phpcs:ignore
 	$to       = isset( $_GET['to'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $_GET['to'] ) ? $_GET['to'] : ''; // phpcs:ignore
 	$pg       = max( 1, isset( $_GET['paged'] ) ? (int) $_GET['paged'] : 1 ); // phpcs:ignore
-	$methods  = jord_payment_methods();
+	$methods  = jord_payment_methods( $pay );
+	$range    = $from || $to ? ( $from ? $from : '2000-01-01' ) . '...' . ( $to ? $to : '2999-12-31' ) : '';
 
 	$args = array(
 		'type'     => 'shop_order',
@@ -155,35 +173,24 @@ function jord_render_list() {
 		'order'    => 'DESC',
 		'status'   => $st && 'tobill' !== $st ? array( $st ) : array_keys( $statuses ),
 	);
-	if ( 'tobill' === $st ) {
-		$args = jord_tobill_args( $args );
-	}
 	if ( $pay ) {
 		$args['payment_method'] = $pay;
 	}
-	if ( $from || $to ) {
-		$args['date_created'] = ( $from ? $from : '2000-01-01' ) . '...' . ( $to ? $to : '2999-12-31' );
+	if ( $range ) {
+		$args['date_created'] = $range;
 	}
-	$empty = false;
+	// Obmedzenie na ID: hľadaný text a/alebo „Na fakturáciu“ (prienik).
+	$only = null;
+	if ( 'tobill' === $st ) {
+		$only = jord_tobill_ids( $range );
+	}
 	if ( '' !== $q ) {
-		$ids = jord_search_ids( $q );
-		if ( ! $ids ) {
-			$empty = true;
-		} elseif ( jord_hpos() ) {
-			$args['id'] = $ids;
-		} else {
-			$args['post__in'] = $ids;
-		}
+		$found = jord_search_ids( $q );
+		$only  = null === $only ? $found : array_values( array_intersect( $only, $found ) );
 	}
-	if ( '' !== $q && ! $empty && ! empty( $args['exclude'] ) ) {
-		$ids = array_values( array_diff( $ids, $args['exclude'] ) ); // hľadanie v „Na fakturáciu“
-		unset( $args['exclude'] );
-		$empty = ! $ids;
-		if ( jord_hpos() ) {
-			$args['id'] = $ids;
-		} else {
-			$args['post__in'] = $ids;
-		}
+	$empty = null !== $only && ! $only;
+	if ( null !== $only && $only ) {
+		$args = jord_only_ids( $args, $only );
 	}
 	$res    = $empty ? (object) array( 'orders' => array(), 'total' => 0, 'max_num_pages' => 0 ) : wc_get_orders( $args );
 	$orders = $res->orders;
@@ -192,7 +199,11 @@ function jord_render_list() {
 	$imsg   = isset( $_GET['jord_inv'] ) ? (int) $_GET['jord_inv'] : -1; // phpcs:ignore
 	$ierr   = isset( $_GET['jord_err'] ) ? (int) $_GET['jord_err'] : 0; // phpcs:ignore
 	$back   = jord_list_url( array_merge( $keep, array( 'paged' => $pg ) ) );
-	$tobill = jord_tobill_count();
+	$tobill = 0;
+	if ( jord_jinv() ) {
+		// Počet pri odkaze = posledných 90 dní; pri otvorenom filtri bez obdobia a hľadania sa použije už zistený zoznam.
+		$tobill = 'tobill' === $st && ! $range && '' === $q ? count( (array) $only ) : count( jord_tobill_ids() );
+	}
 	$jmsg   = isset( $_GET['jinv_msg'] ) ? sanitize_key( $_GET['jinv_msg'] ) : ''; // phpcs:ignore
 	?>
 	<div class="wrap jord">
@@ -335,7 +346,7 @@ add_action( 'admin_post_jord_bulk_status', function () {
 		wp_safe_redirect( add_query_arg( $args, remove_query_arg( array( 'jord_msg', 'jord_inv', 'jord_err', 'jinv_msg' ), $back ) ) );
 		exit;
 	}
-	if ( isset( wc_get_order_statuses()[ $to ] ) ) {
+	if ( isset( jord_list_statuses()[ $to ] ) ) {
 		foreach ( $ids as $id ) {
 			$o = wc_get_order( $id );
 			if ( $o && 'shop_order' === $o->get_type() && current_user_can( 'edit_shop_order', $id ) && $o->get_status() !== preg_replace( '/^wc-/', '', $to ) ) {
