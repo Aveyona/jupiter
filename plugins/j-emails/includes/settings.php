@@ -330,7 +330,7 @@ function jem_render_settings() {
 		</table>
 		<h2>E-maily webu</h2>
 		<table class="form-table" role="presentation">
-			<tr><th>Odosielanie e-mailov webu</th><td><label><input type="checkbox" name="jem[site_mail]" value="1" <?php checked( ! empty( $s['site_mail'] ) ); ?>> Všetky e-maily webu (objednávky, faktúry, registrácia, obnova hesla) posielať cez túto schránku</label><p class="description">E-maily sa tak nedostanú do spamu. Odosielateľ z inej domény (napr. gmail) sa nahradí adresou schránky; adresy tej istej domény (napr. eshop@) ostanú.</p></td></tr>
+			<tr><th>Odosielanie e-mailov webu</th><td><label><input type="checkbox" name="jem[site_mail]" value="1" <?php checked( ! empty( $s['site_mail'] ) ); ?>> Všetky e-maily webu (objednávky, faktúry, registrácia, obnova hesla) posielať cez túto schránku</label><p class="description">E-maily sa tak nedostanú do spamu. Odosielateľ, ktorý nie je adresou schránky ani aliasom (napr. gmail alebo predvolená wordpress@), sa nahradí adresou schránky a odpoveď pôjde na pôvodnú adresu. Adresy, z ktorých posiela e-shop (napr. eshop@), zapíšte medzi aliasy.</p></td></tr>
 		</table>
 		<h2>Zobrazenie a podpis</h2>
 		<table class="form-table" role="presentation">

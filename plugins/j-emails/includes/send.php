@@ -134,7 +134,9 @@ function jem_send( array $d ) {
 
 /**
  * Všetky e-maily webu (wp_mail – WooCommerce, faktúry, registrácia…) cez SMTP schránky.
- * Odosielateľ z cudzej domény sa nahradí adresou schránky (inak by správy padali do spamu).
+ * Odosielateľ, ktorý nie je adresou schránky ani jej aliasom, sa nahradí adresou schránky: server schránky
+ * (napr. WebSupport) cudziu adresu odmietne („Údaje neboli akceptované“) – aj adresu tej istej domény, ktorá
+ * neexistuje, napr. predvolenú wordpress@domena.sk z e-mailov WordPressu. Pôvodná skutočná adresa ide do Odpovedať.
  */
 add_action( 'phpmailer_init', function ( $m ) {
 	if ( ! empty( $GLOBALS['jem_smtp_skip'] ) || ! jem_configured() || ! jem_opt( 'site_mail' ) ) {
@@ -150,10 +152,14 @@ add_action( 'phpmailer_init', function ( $m ) {
 	$m->SMTPSecure  = 'ssl' === $s['smtp_secure'] ? 'ssl' : ( 'tls' === $s['smtp_secure'] ? 'tls' : '' );
 	$m->SMTPAutoTLS = 'none' !== $s['smtp_secure'];
 	$m->Timeout     = 20;
-	$domain         = strtolower( substr( strrchr( $s['email'], '@' ), 1 ) );
-	$from_domain    = strtolower( substr( strrchr( (string) $m->From, '@' ), 1 ) );
-	if ( $from_domain !== $domain ) {
+	$from = strtolower( trim( (string) $m->From ) );
+	$mine = jem_my_addresses();
+	if ( ! isset( $mine[ $from ] ) ) {
 		$name = $m->FromName && 'WordPress' !== $m->FromName ? $m->FromName : $s['name'];
+		// Odpoveď na pôvodnú adresu (napr. zákazník z kontaktného formulára), nie na predvolenú wordpress@….
+		if ( is_email( $from ) && 0 !== strpos( $from, 'wordpress@' ) && ! $m->getReplyToAddresses() ) {
+			$m->addReplyTo( $from, 'WordPress' !== $m->FromName ? (string) $m->FromName : '' );
+		}
 		$m->setFrom( $s['email'], $name, false );
 	}
 	$m->Sender = $s['email'];
