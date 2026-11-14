@@ -4,7 +4,8 @@
  *
  * Keď je zapnuté:
  * - J-Sklad → Obrázky: evidencia obrázkov ku každému produktu a variantu (hlavný obrázok, galéria) s úpravou na jednom mieste,
- * - Knižnica multimédií neukazuje obrázky, ktoré produkty práve používajú (hlavný obrázok, galéria) – ostávajú v nej obrázky webu;
+ * - Knižnica multimédií neukazuje obrázky e-shopu – tie, ktoré produkty používajú (hlavný obrázok, galéria), aj tie, ktoré boli nahraté
+ *   k produktu (napr. ďalšie verzie obrázka) – ostávajú v nej obrázky webu;
  *   obrázok, ktorý je zároveň náhľadovým obrázkom článku či stránky, v Knižnici ostane,
  * - výber obrázka v úprave produktu a v J-Sklade ukazuje všetky obrázky ako doteraz.
  * Súbory sa nikam nepresúvajú; vypnutím voľby je Knižnica opäť kompletná.
@@ -18,8 +19,7 @@ function jsk_media_on() {
 }
 
 /**
- * ID obrázkov, ktoré produkty práve používajú: hlavný obrázok a galéria produktov a variantov (len obrázky).
- * Neráta sa podľa „nahraté k produktu“ – obrázok odobratý z produktu sa tak hneď vráti do Knižnice.
+ * ID obrázkov e-shopu: hlavný obrázok a galéria produktov a variantov a obrázky nahraté k produktu (len obrázky).
  */
 function jsk_product_image_ids() {
 	global $wpdb;
@@ -34,6 +34,8 @@ function jsk_product_image_ids() {
 	foreach ( $gal as $g ) {
 		$all = array_merge( $all, explode( ',', $g ) );
 	}
+	// Obrázky nahraté k produktu alebo variantu (aj keď ich produkt práve nepoužíva).
+	$all = array_merge( $all, $wpdb->get_col( "SELECT a.ID FROM {$wpdb->posts} a JOIN {$wpdb->posts} p ON p.ID = a.post_parent WHERE a.post_type = 'attachment' AND p.post_type IN ($types)" ) ); // phpcs:ignore
 	$ids = array_values( array_unique( array_filter( array_map( 'intval', $all ) ) ) );
 	if ( $ids ) {
 		// Len prílohy typu obrázok (nie PDF, ZIP a pod.).
@@ -47,10 +49,17 @@ function jsk_product_image_ids() {
 	return $ids;
 }
 
-/** Je požiadavka z Knižnice multimédií (upload.php)? Okno výberu obrázka v úprave produktu alebo článku nie. */
+/**
+ * Je požiadavka z Knižnice multimédií (upload.php)? Okno výberu obrázka v úprave produktu alebo článku nie.
+ * Adresa administrácie sa berie z admin_url() – funguje aj s premenovaným /wp-admin/ (napr. /administracia/).
+ */
 function jsk_media_is_library_request() {
 	$ref = wp_get_referer();
-	return $ref && false !== strpos( (string) wp_parse_url( $ref, PHP_URL_PATH ), '/wp-admin/upload.php' );
+	if ( ! $ref ) {
+		return false;
+	}
+	$lib = untrailingslashit( (string) wp_parse_url( admin_url( 'upload.php' ), PHP_URL_PATH ) );
+	return untrailingslashit( (string) wp_parse_url( $ref, PHP_URL_PATH ) ) === $lib;
 }
 
 // Knižnica – mriežka (AJAX).
@@ -153,7 +162,7 @@ function jsk_render_media() {
 	$total = count( jsk_product_image_ids() );
 	jsk_head( 'Obrázky produktov' );
 	echo '<hr class="wp-header-end">';
-	echo '<p class="description" style="max-width:820px">Hlavný obrázok a galéria každého produktu a variantu na jednom mieste. Knižnica multimédií obrázky používané produktmi nezobrazuje (' . (int) $total . ' obrázkov), aby v nej ostali obrázky webu; obrázok odobratý z produktu sa do Knižnice vráti. Kliknutím na obrázok ho otvoríš v plnej veľkosti, × ho odoberie z produktu (súbor ostane).</p>';
+	echo '<p class="description" style="max-width:820px">Hlavný obrázok a galéria každého produktu a variantu na jednom mieste. Knižnica multimédií obrázky e-shopu nezobrazuje (' . (int) $total . ' obrázkov – používané produktmi aj nahraté k produktu), aby v nej ostali obrázky webu. Kliknutím na obrázok ho otvoríš v plnej veľkosti, × ho odoberie z produktu (súbor ostane).</p>';
 	echo '<form method="get" class="jsk-filter"><input type="hidden" name="page" value="j-sklad-media">'
 		. '<input type="search" name="s" value="' . esc_attr( $q ) . '" placeholder="Názov alebo číslo produktu">'
 		. '<select name="f"><option value="">Všetky produkty</option><option value="noimg"' . selected( $f, 'noimg', false ) . '>Bez hlavného obrázka</option></select>'
