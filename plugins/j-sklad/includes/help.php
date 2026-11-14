@@ -50,7 +50,7 @@ add_filter( 'jupiter_guides', function ( $guides ) {
 		array(
 			'J-Sklad → Nastavenia → Obrázky produktov spravuje J-Sklad (predvolene vypnuté).',
 			'Po zapnutí pribudne J-Sklad → Obrázky: hlavný obrázok a galéria každého produktu, varianty pod ním. Zmeniť / Pridať vyberie alebo nahrá obrázok, + Galéria pridá viac obrázkov naraz, × obrázok z produktu odoberie (súbor ostane).',
-			'Knižnica multimédií potom obrázky produktov nezobrazuje – ostanú v nej len obrázky webu (články, logo…). Okno výberu obrázka v úprave produktu ukazuje všetky obrázky ako doteraz.',
+			'Knižnica multimédií potom obrázky e-shopu nezobrazuje – ani tie, ktoré produkt používa (hlavný obrázok, galéria), ani tie, ktoré boli nahraté k produktu. Ostanú v nej len obrázky webu (články, logo…). Funguje aj pri premenovanej administrácii (napr. /administracia/). Okno výberu obrázka v úprave produktu ukazuje všetky obrázky ako doteraz.',
 			'Súbory sa nikam nepresúvajú; po vypnutí voľby je Knižnica opäť kompletná.',
 		),
 		'J-Sklad',
