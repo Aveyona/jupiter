@@ -30,11 +30,11 @@
       "notes": "Na fakturáciu aj objednávky Vybavená. Stĺpec Doprava s výdajným miestom a stavom zásielky Packeta. Opravy číslovania (bloková pokladňa nemíňa čísla, objednávky z REST API, staršie objednávky si ponechajú číslo), zoznam bez konceptov z pokladne, rýchly filter Na fakturáciu, filter len zapnutých platieb. Príručka v J-Pomocníku."
     },
     "j-sklad": {
-      "version": "0.6.1",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.6.1/j-sklad-v0.6.1.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.6.1",
-      "published": "2026-10-31",
-      "notes": "Storno dokladu sa hneď prejaví v účtovníctve. Merné jednotky pri produkte (kus, hodina, kg, mesiac, licencia… aj vlastné), zobrazené pri zásobe, v dokladoch, pohyboch a balíčkoch, voliteľne aj pri cene v obchode. Balíčky (zostavy): k produktu sa v košíku automaticky pridajú súčasti (napr. členstvo a hodiny poradenstva) za bežnú alebo vlastnú cenu; prehľad J-Sklad → Balíčky. Akcie a novinky: hromadné zľavy s dátumom od – do a názvom akcie, novinky ručne alebo automaticky, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky]. Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
+      "version": "0.6.2",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-sklad-v0.6.2/j-sklad-v0.6.2.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-sklad-v0.6.2",
+      "published": "2026-11-14",
+      "notes": "Obrázky e-shopu sa v Knižnici multimédií skryjú aj pri premenovanej administrácii (/wp-admin/) a skryjú sa aj obrázky nahraté k produktu, ktoré produkt práve nepoužíva. Storno dokladu sa hneď prejaví v účtovníctve. Merné jednotky pri produkte (kus, hodina, kg, mesiac, licencia… aj vlastné), zobrazené pri zásobe, v dokladoch, pohyboch a balíčkoch, voliteľne aj pri cene v obchode. Balíčky (zostavy): k produktu sa v košíku automaticky pridajú súčasti (napr. členstvo a hodiny poradenstva) za bežnú alebo vlastnú cenu; prehľad J-Sklad → Balíčky. Akcie a novinky: hromadné zľavy s dátumom od – do a názvom akcie, novinky ručne alebo automaticky, štítky v obchode, krátke kódy [jsk_akcie] a [jsk_novinky]. Inventúra (súpis, čítačka, protokol, storno) a v príjemke dodávateľ z adresára J-Fakturácie s prepojením na prijatú faktúru."
     },
     "j-uctovnictvo": {
       "version": "0.8.0",
