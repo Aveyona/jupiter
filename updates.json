@@ -16,11 +16,11 @@
       "notes": "Dobierka na peniaze na ceste, úhrady pri novej faktúre po storne sa nezdvoja, vrátenie peňazí (karta aj banka ↔ dobropis), druh položiek dobropisu, zašifrovaný token Fio API. Bezpečnosť príloh, spoľahlivé párovanie banky (žiadne dvojité spárovanie, dvojité platby na kontrolu, mena), upozornenia na banku, opravy číslovania, upomienky a stav Po splatnosti, dobierka uhradená po doručení, dobropis pri zrušenej objednávke, zostávajúca suma v PDF a QR."
     },
     "j-emails": {
-      "version": "0.5.3",
-      "package": "https://github.com/Aveyona/jupiter/releases/download/j-emails-v0.5.3/j-emails-v0.5.3.zip",
-      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-emails-v0.5.3",
-      "published": "2026-10-31",
-      "notes": "Odinštalovanie zmaže tajné údaje. E-maily webu: odosielateľ, ktorý nie je adresou schránky ani aliasom (aj predvolená wordpress@), sa nahradí adresou schránky – server ho inak odmietol („Údaje neboli akceptované“); pôvodná adresa ide do Odpovedať."
+      "version": "0.5.4",
+      "package": "https://github.com/Aveyona/jupiter/releases/download/j-emails-v0.5.4/j-emails-v0.5.4.zip",
+      "url": "https://github.com/Aveyona/jupiter/releases/tag/j-emails-v0.5.4",
+      "published": "2026-11-15",
+      "notes": "Pri pripájaní účtu Google sa vždy ponúkne výber účtu. Odinštalovanie zmaže tajné údaje. E-maily webu: odosielateľ, ktorý nie je adresou schránky ani aliasom (aj predvolená wordpress@), sa nahradí adresou schránky – server ho inak odmietol („Údaje neboli akceptované“); pôvodná adresa ide do Odpovedať."
     },
     "j-orders": {
       "version": "0.3.2",

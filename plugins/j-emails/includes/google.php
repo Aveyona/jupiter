@@ -48,7 +48,7 @@ function jem_g_auth_url() {
 		'response_type'          => 'code',
 		'scope'                  => rawurlencode( JEM_G_SCOPE . ' email' ),
 		'access_type'            => 'offline',
-		'prompt'                 => 'consent',
+		'prompt'                 => rawurlencode( 'select_account consent' ), // vždy výber účtu Google (nie prihlásený účet prehliadača) a nové povolenie
 		'include_granted_scopes' => 'true',
 		'state'                  => $state,
 	), 'https://accounts.google.com/o/oauth2/v2/auth' );

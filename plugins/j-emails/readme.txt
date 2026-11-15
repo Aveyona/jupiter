@@ -4,7 +4,7 @@ Tags: email, imap, smtp, woocommerce, jupiter
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.5.3
+Stable tag: 0.5.4
 License: GPLv2 or later
 
 E-mailová schránka obchodu priamo v administrácii WordPressu. Súčasť rodiny Jupiter.
@@ -28,6 +28,9 @@ Faktúry z e-mailu: externý účet Google (Gmail) sa pripojí cez Google API le
 Pripája sa k schránke cez IMAP a SMTP, nepotrebuje rozšírenie php-imap. Heslo je uložené zašifrované. Poštu vidí len administrátor.
 
 == Changelog ==
+
+= 0.5.4 =
+* Faktúry z e-mailu: pri pripájaní účtu Google sa vždy ukáže výber účtu (nie len účet prihlásený v prehliadači) a Google vypýta nové povolenie.
 
 = 0.5.3 =
 * Odinštalovanie zmaže tajné údaje (heslá IMAP/SMTP, prístup ku Google).
